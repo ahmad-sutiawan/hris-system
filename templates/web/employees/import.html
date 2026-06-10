@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Import Karyawan — HRIS-Lite{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="mb-2 text-2xl font-bold">Import Karyawan (CSV)</h1>
+  <p class="mb-6 text-sm text-slate-500">
+    <a href="{% url 'web:employee_import_template' %}" class="text-blue-700 hover:underline">Download template CSV</a>
+  </p>
+  <form method="post" enctype="multipart/form-data" class="rounded-xl border bg-white p-6 shadow-sm">
+    {% csrf_token %}
+    <label class="block text-sm font-medium text-slate-700">File CSV</label>
+    <input type="file" name="file" accept=".csv" required class="mt-2 block w-full text-sm">
+    <button type="submit" class="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-white">Upload & Import</button>
+  </form>
+</div>
+{% endblock %}

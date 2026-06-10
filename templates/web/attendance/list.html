@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Absensi — HRIS-Lite{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+  <h1 class="text-2xl font-bold">Daily Timesheet</h1>
+  <div class="flex gap-2">
+    <a href="{% url 'web:shift_assign' %}" class="rounded-lg border px-3 py-2 text-sm">Assign Shift</a>
+    <a href="{% url 'web:attendance_export' %}" class="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white">Export CSV (24 kolom)</a>
+  </div>
+</div>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+  <table class="min-w-full divide-y divide-slate-200 text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-3 py-3 text-left">Employee ID</th>
+        <th class="px-3 py-3 text-left">Nama</th>
+        <th class="px-3 py-3 text-left">Tanggal</th>
+        <th class="px-3 py-3 text-left">Shift</th>
+        <th class="px-3 py-3 text-left">Code</th>
+        <th class="px-3 py-3 text-left">Late</th>
+        <th class="px-3 py-3 text-left">Paid Hrs</th>
+        <th class="px-3 py-3 text-left">OT After</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+      {% for row in timesheets %}
+      <tr>
+        <td class="px-3 py-3">{{ row.employee.employee_id }}</td>
+        <td class="px-3 py-3">{{ row.employee.full_name }}</td>
+        <td class="px-3 py-3">{{ row.work_date }}</td>
+        <td class="px-3 py-3">{{ row.shift_code|default:"-" }}</td>
+        <td class="px-3 py-3">{{ row.attendance_code.code|default:"-" }}</td>
+        <td class="px-3 py-3">{{ row.late_in_minutes }} m</td>
+        <td class="px-3 py-3">{{ row.paid_working_hours }}</td>
+        <td class="px-3 py-3">{{ row.ot_after_minutes }} m</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Belum ada timesheet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

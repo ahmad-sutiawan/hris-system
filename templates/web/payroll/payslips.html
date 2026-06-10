@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Slip Gaji — HRIS-Lite{% endblock %}
+{% block content %}
+<h1 class="mb-6 text-2xl font-bold">Slip Gaji</h1>
+<div class="overflow-hidden rounded-xl border bg-white shadow-sm">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-4 py-3 text-left">Periode</th>
+        <th class="px-4 py-3 text-left">Karyawan</th>
+        <th class="px-4 py-3 text-right">THP</th>
+        <th class="px-4 py-3 text-left">Hash</th>
+        <th class="px-4 py-3 text-left"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for slip in payslips %}
+      <tr>
+        <td class="px-4 py-3">{{ slip.payroll_run.period_start }} — {{ slip.payroll_run.period_end }}</td>
+        <td class="px-4 py-3">{{ slip.employee.full_name }}</td>
+        <td class="px-4 py-3 text-right font-semibold">Rp {{ slip.net_amount }}</td>
+        <td class="px-4 py-3 font-mono text-xs">{{ slip.verification_hash }}</td>
+        <td class="px-4 py-3">
+          <a href="{% url 'web:payslip_download' slip.pk %}" class="text-blue-700 hover:underline">PDF</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Belum ada slip gaji.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

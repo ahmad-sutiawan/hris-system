@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — HRIS-Lite{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+  <h1 class="mb-6 text-2xl font-bold">{{ title }}</h1>
+  <form method="post" class="space-y-4 rounded-xl border bg-white p-6 shadow-sm">
+    {% csrf_token %}
+    {% for field in form %}
+    <div>
+      <label class="block text-sm font-medium text-slate-700">{{ field.label }}</label>
+      {{ field }}
+      {% if field.errors %}<p class="mt-1 text-sm text-red-600">{{ field.errors.0 }}</p>{% endif %}
+    </div>
+    {% endfor %}
+    <button type="submit" class="rounded-lg bg-slate-900 px-4 py-2 text-white">Simpan</button>
+  </form>
+</div>
+<style>
+  form input, form select, form textarea { margin-top: 0.25rem; width: 100%; border-radius: 0.5rem; border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; }
+</style>
+{% endblock %}

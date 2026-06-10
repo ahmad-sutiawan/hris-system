@@ -1,0 +1,11 @@
+{
+  "name": "hris-system",
+  "private": true,
+  "scripts": {
+    "dev:css": "tailwindcss -i ./static/src/input.css -o ./static/css/app.css --watch",
+    "build:css": "tailwindcss -i ./static/src/input.css -o ./static/css/app.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}

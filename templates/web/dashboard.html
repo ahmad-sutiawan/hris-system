@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — HRIS-Lite{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
+    <p class="text-sm text-slate-500">Ringkasan operasional HRD</p>
+  </div>
+  {% if profile %}
+  <div class="flex gap-2">
+    <form method="post" action="{% url 'web:punch' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="in">
+      <button type="submit" {% if punch_status == 'in' %}disabled{% endif %}
+              class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-40">
+        Clock In
+      </button>
+    </form>
+    <form method="post" action="{% url 'web:punch' %}">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="out">
+      <button type="submit" {% if punch_status != 'in' %}disabled{% endif %}
+              class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-40">
+        Clock Out
+      </button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+
+<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <p class="text-sm text-slate-500">Karyawan Aktif</p>
+    <p class="mt-2 text-3xl font-semibold">{{ stats.employee_count }}</p>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <p class="text-sm text-slate-500">Cuti Pending</p>
+    <p class="mt-2 text-3xl font-semibold">{{ stats.pending_leave }}</p>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <p class="text-sm text-slate-500">Timesheet Hari Ini</p>
+    <p class="mt-2 text-3xl font-semibold">{{ stats.today_timesheets }}</p>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <p class="text-sm text-slate-500">Payroll Draft</p>
+    <p class="mt-2 text-3xl font-semibold">{{ stats.draft_payroll }}</p>
+  </div>
+</div>
+
+<div class="mt-8 grid gap-4 lg:grid-cols-2">
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold">Quick Actions</h2>
+    <div class="mt-4 flex flex-wrap gap-2">
+      <a href="{% url 'web:leave_create' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Ajukan Cuti</a>
+      <a href="{% url 'web:payslip_list' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Lihat Slip Gaji</a>
+      {% if user.role == 'admin' or user.role == 'hr' %}
+      <a href="{% url 'web:employee_create' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Tambah Karyawan</a>
+      <a href="{% url 'web:shift_assign' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Assign Shift</a>
+      <a href="{% url 'web:payroll_create' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Buat Payroll</a>
+      <a href="{% url 'web:attendance_export' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Export Timesheet CSV</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <h2 class="text-lg font-semibold">Alur MVP</h2>
+    <p class="mt-2 text-sm text-slate-600">
+      Karyawan → Assign Shift → Clock In/Out → Daily Timesheet → Cuti → Payroll → Slip Gaji
+    </p>
+  </div>
+</div>
+{% endblock %}

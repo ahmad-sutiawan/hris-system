@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Payroll Detail — HRIS-Lite{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold">Payroll {{ payroll_run.plant.code }}</h1>
+    <p class="text-sm text-slate-500">{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {{ payroll_run.get_status_display }}</p>
+  </div>
+  {% if payroll_run.status == 'finalized' %}
+  <a href="{% url 'web:payroll_bank_export' payroll_run.pk %}" class="rounded-lg border px-4 py-2 text-sm">Export Bank CSV</a>
+  {% endif %}
+  {% if payroll_run.status != 'finalized' %}
+  <div class="flex gap-2">
+    <form method="post" action="{% url 'web:payroll_calculate' payroll_run.pk %}">{% csrf_token %}
+      <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white">Hitung Payroll</button>
+    </form>
+    {% if payroll_run.status == 'review' %}
+    <form method="post" action="{% url 'web:payroll_finalize' payroll_run.pk %}">{% csrf_token %}
+      <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm text-white">Finalize</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+<div class="overflow-hidden rounded-xl border bg-white shadow-sm">
+  <table class="min-w-full text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-4 py-3 text-left">Karyawan</th>
+        <th class="px-4 py-3 text-right">Gross</th>
+        <th class="px-4 py-3 text-right">Potongan</th>
+        <th class="px-4 py-3 text-right">THP</th>
+        <th class="px-4 py-3 text-left">Slip</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y">
+      {% for slip in payslips %}
+      <tr>
+        <td class="px-4 py-3">{{ slip.employee.full_name }}</td>
+        <td class="px-4 py-3 text-right">{{ slip.gross_amount }}</td>
+        <td class="px-4 py-3 text-right">{{ slip.deduction_amount }}</td>
+        <td class="px-4 py-3 text-right font-semibold">{{ slip.net_amount }}</td>
+        <td class="px-4 py-3">
+          {% if payroll_run.status == 'finalized' %}
+          <a href="{% url 'web:payslip_download' slip.pk %}" class="text-blue-700 hover:underline">PDF</a>
+          {% else %}-{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Belum dihitung. Klik "Hitung Payroll".</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

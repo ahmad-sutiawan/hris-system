@@ -1,0 +1,40 @@
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from apps.core.permissions import IsAdminOrHR
+from apps.core.viewsets import TenantScopedViewSet
+from apps.employees.models import Employee
+from apps.employees.serializers import EmployeeSerializer
+from apps.employees.services.import_csv import import_employees_csv, template_csv
+
+
+class EmployeeViewSet(TenantScopedViewSet):
+    queryset = Employee.objects.select_related(
+        "plant",
+        "department",
+        "job_position",
+        "manager",
+    )
+    serializer_class = EmployeeSerializer
+    search_fields = ["employee_id", "full_name", "nik", "email"]
+    filterset_fields = ["plant", "department", "status"]
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
+    def import_template(self, request):
+        from django.http import HttpResponse
+
+        response = HttpResponse(template_csv(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="employee_import_template.csv"'
+        return response
+
+    @action(detail=False, methods=["post"], permission_classes=[IsAdminOrHR])
+    def import_csv(self, request):
+        upload = request.FILES.get("file")
+        if not upload:
+            return Response({"detail": "file required."}, status=400)
+        content = upload.read().decode("utf-8-sig")
+        try:
+            result = import_employees_csv(request.user.tenant, content)
+            return Response(result)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
