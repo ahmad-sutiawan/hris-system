@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Admin Console — HRIS-Lite{% endblock %}
+{% block page_title %}Admin Console{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>Admin Console</h1>
+    <p>Semua modul Django Admin — CRUD lengkap per model, grouped by app</p>
+  </div>
+</div>
+
+{% for section, resources in sections.items %}
+<div class="hris-card" style="margin-bottom:1rem">
+  <div class="hris-card-body">
+    <h2 class="hris-manage-section-title">{{ section }}</h2>
+    <div class="hris-manage-links">
+      {% for resource in resources %}
+      <a href="{% url 'web:manage_list' resource.slug %}" class="hris-manage-link">
+        <strong>{{ resource.title_plural }}</strong>
+        <span>{% if resource.allow_create %}Tambah · {% endif %}Edit · {% if resource.allow_delete %}Hapus{% else %}Lihat{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

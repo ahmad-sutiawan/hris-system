@@ -2,6 +2,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
 from apps.web import views
+from apps.web.admin_crud import views as manage_views
 from apps.web.auth_views import HRISLoginView, HRISLogoutView
 
 app_name = "web"
@@ -11,6 +12,11 @@ urlpatterns = [
     path("logout/", HRISLogoutView.as_view(), name="logout"),
     path("", views.dashboard, name="dashboard"),
     path("punch/", views.punch_action, name="punch"),
+    path("manage/", manage_views.manage_hub, name="manage_hub"),
+    path("manage/<slug:slug>/", manage_views.resource_list, name="manage_list"),
+    path("manage/<slug:slug>/new/", manage_views.resource_create, name="manage_create"),
+    path("manage/<slug:slug>/<int:pk>/edit/", manage_views.resource_edit, name="manage_edit"),
+    path("manage/<slug:slug>/<int:pk>/delete/", manage_views.resource_delete, name="manage_delete"),
     path("employees/", views.employee_list, name="employee_list"),
     path("employees/new/", views.employee_create, name="employee_create"),
     path("employees/<int:pk>/edit/", views.employee_edit, name="employee_edit"),

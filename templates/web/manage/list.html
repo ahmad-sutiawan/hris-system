@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ resource.title_plural }} — Admin{% endblock %}
+{% block page_title %}{{ resource.title_plural }}{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>{{ resource.title_plural }}</h1>
+    <p>Kelola data {{ resource.title|lower }} tenant Anda</p>
+  </div>
+  <div class="hris-actions">
+    <a href="{% url 'web:manage_hub' %}" class="hris-btn hris-btn-secondary">← Console</a>
+    {% if resource.allow_create %}
+    <a href="{% url 'web:manage_create' resource.slug %}" class="hris-btn hris-btn-primary">+ Tambah</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="hris-search-bar">
+  <input type="search" name="q" value="{{ search_query }}" placeholder="Cari {{ resource.title_plural|lower }}…" class="hris-input">
+  <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
+  {% if search_query %}
+  <a href="{% url 'web:manage_list' resource.slug %}" class="hris-btn hris-btn-ghost">Reset</a>
+  {% endif %}
+</form>
+
+<div class="hris-table-wrap" style="margin-top:1rem">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          {% for col in resource.columns %}
+          <th>{{ col.header }}</th>
+          {% endfor %}
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          {% for cell in row.cells %}
+          <td>{{ cell }}</td>
+          {% endfor %}
+          <td>
+            <div class="hris-inline-actions">
+              {% if resource.allow_edit %}
+              <a href="{% url 'web:manage_edit' resource.slug row.obj.pk %}" class="hris-link">Edit</a>
+              {% endif %}
+              {% if resource.allow_delete %}
+              <form method="post" action="{% url 'web:manage_delete' resource.slug row.obj.pk %}" onsubmit="return confirm('Hapus data ini?')">{% csrf_token %}
+                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Hapus</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="{{ resource.columns|length|add:1 }}">
+            <div class="hris-empty">Belum ada data.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1621,3 +1621,89 @@ body.hris-modal-open {
     min-width: 12rem;
   }
 }
+
+.hris-manage-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.hris-manage-section-title {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.hris-manage-links {
+  display: grid;
+  gap: 0.625rem;
+}
+
+.hris-manage-link {
+  display: block;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--hris-border);
+  border-radius: var(--hris-radius-sm);
+  background: var(--hris-bg-elevated);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.hris-manage-link:hover {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.hris-manage-link strong {
+  display: block;
+  font-size: 0.9375rem;
+}
+
+.hris-manage-link span {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--hris-text-muted);
+}
+
+.hris-search-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+}
+
+.hris-search-bar .hris-input {
+  flex: 1;
+  min-width: 14rem;
+}
+
+.hris-nav-section--admin {
+  margin-bottom: 0.75rem;
+}
+
+.hris-nav-link--admin {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.hris-nav-link--admin svg {
+  width: 1rem;
+  height: 1rem;
+  opacity: 0.7;
+}
+
+.hris-nav-link--admin-hub {
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.hris-nav-link--admin-hub.is-active,
+.hris-nav-link--admin.is-active {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--hris-accent-hover);
+}
+

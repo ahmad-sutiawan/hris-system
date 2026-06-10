@@ -79,7 +79,12 @@
           </a>
         </div>
 
-        {% if user.role == 'admin' or user.role == 'hr' %}
+        {% if show_admin_nav %}
+        <div class="hris-nav-section">
+          <div class="hris-nav-label">Administration</div>
+          {% include "components/admin_sidebar_nav.html" %}
+        </div>
+        {% elif user.role == 'admin' or user.role == 'hr' %}
         <div class="hris-nav-section">
           <div class="hris-nav-label">Governance</div>
           <a href="{% url 'web:audit_log_list' %}" class="hris-nav-link{% if '/audit' in request.path %} is-active{% endif %}">
