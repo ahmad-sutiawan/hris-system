@@ -9,6 +9,7 @@
     <p>Rekap absensi harian — shift, kode kehadiran, jam kerja & lembur</p>
   </div>
   <div class="hris-actions">
+    <a href="{% url 'web:shift_assignment_list' %}" class="hris-btn hris-btn-secondary">Kelola Shift</a>
     <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-secondary">Assign Shift</a>
     <a href="{% url 'web:attendance_export' %}" class="hris-btn hris-btn-primary">Export CSV (24 kolom)</a>
   </div>

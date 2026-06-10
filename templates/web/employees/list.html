@@ -24,7 +24,9 @@
           <th>Nama</th>
           <th>Plant</th>
           <th>Department</th>
+          <th>Department</th>
           <th>Status</th>
+          <th>Aksi</th>
         </tr>
       </thead>
       <tbody>
@@ -35,9 +37,19 @@
           <td>{{ employee.plant.code }}</td>
           <td>{{ employee.department.name|default:"-" }}</td>
           <td>{% status_badge employee.status employee.get_status_display %}</td>
+          <td>
+            <div class="hris-inline-actions">
+              <a href="{% url 'web:employee_edit' employee.pk %}" class="hris-link">Edit</a>
+              {% if employee.status != 'inactive' and employee.status != 'resigned' %}
+              <form method="post" action="{% url 'web:employee_deactivate' employee.pk %}" onsubmit="return confirm('Nonaktifkan karyawan ini?')">{% csrf_token %}
+                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Nonaktifkan</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="5"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
+        <tr><td colspan="6"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

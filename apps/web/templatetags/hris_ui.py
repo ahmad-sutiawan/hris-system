@@ -22,6 +22,7 @@ STATUS_BADGE_MAP = {
     "update": "review",
     "delete": "rejected",
     "access": "default",
+    "cancelled": "default",
 }
 
 

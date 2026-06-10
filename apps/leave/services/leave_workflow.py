@@ -166,3 +166,22 @@ def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveReq
 
     _notify_employee_status(request, approved=False)
     return request
+
+
+@transaction.atomic
+def cancel_leave_request(request: LeaveRequest, actor) -> LeaveRequest:
+    if request.status != LeaveRequest.Status.PENDING:
+        raise LeaveError("Hanya pengajuan pending yang bisa dibatalkan.")
+
+    request.status = LeaveRequest.Status.CANCELLED
+    request.approver = actor
+    request.approved_at = timezone.now()
+    request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
+
+    if request.leave_type.code == "CT":
+        balance = get_or_create_balance(request.employee, request.leave_type)
+        balance.pending -= request.days
+        balance.remaining += request.days
+        balance.save(update_fields=["pending", "remaining", "updated_at"])
+
+    return request

@@ -10,6 +10,9 @@
     <p>{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {% status_badge payroll_run.status payroll_run.get_status_display %}</p>
   </div>
   <div class="hris-actions">
+    {% if payroll_run.status == 'draft' %}
+    <a href="{% url 'web:payroll_edit' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Edit</a>
+    {% endif %}
     {% if payroll_run.status == 'finalized' %}
     <a href="{% url 'web:payroll_bank_export' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Export Bank CSV</a>
     {% endif %}

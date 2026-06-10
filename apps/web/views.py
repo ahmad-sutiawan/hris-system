@@ -17,6 +17,7 @@ from apps.leave.models import LeaveRequest
 from apps.leave.services.leave_workflow import (
     LeaveError,
     approve_leave_request,
+    cancel_leave_request,
     reject_leave_request,
     submit_leave_request,
 )
@@ -31,6 +32,16 @@ from apps.web.forms import EmployeeForm, LeaveRequestForm, PayrollRunForm, Shift
 
 def _employee_profile(user):
     return getattr(user, "employee_profile", None)
+
+
+def _form_context(form, title, *, cancel_url=None, subtitle="", submit_label="Simpan"):
+    return {
+        "form": form,
+        "title": title,
+        "cancel_url": cancel_url,
+        "subtitle": subtitle,
+        "submit_label": submit_label,
+    }
 
 
 @login_required
@@ -152,7 +163,7 @@ def employee_import(request):
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_create(request):
     if request.method == "POST":
-        form = EmployeeForm(request.POST, tenant=request.user.tenant)
+        form = EmployeeForm(request.POST, tenant=request.user.tenant, user=request.user)
         if form.is_valid():
             employee = form.save(commit=False)
             employee.tenant = request.user.tenant
@@ -160,27 +171,183 @@ def employee_create(request):
             messages.success(request, "Karyawan berhasil ditambahkan.")
             return redirect("web:employee_list")
     else:
-        form = EmployeeForm(initial={"plant": request.user.plant}, tenant=request.user.tenant)
-    return render(request, "web/employees/form.html", {"form": form, "title": "Tambah Karyawan"})
+        form = EmployeeForm(
+            initial={"plant": request.user.plant},
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+    ctx = _form_context(form, "Tambah Karyawan", cancel_url="/employees/")
+    return render(request, "web/employees/form.html", ctx)
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def employee_edit(request, pk):
+    employee = get_object_or_404(Employee, pk=pk, tenant=request.user.tenant)
+    if request.user.plant_id and not request.user.is_admin and employee.plant_id != request.user.plant_id:
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:employee_list")
+
+    if request.method == "POST":
+        form = EmployeeForm(
+            request.POST,
+            instance=employee,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+        if form.is_valid():
+            updated = form.save(commit=False)
+            updated.tenant = request.user.tenant
+            updated.save()
+            messages.success(request, "Data karyawan berhasil diperbarui.")
+            return redirect("web:employee_list")
+    else:
+        form = EmployeeForm(instance=employee, tenant=request.user.tenant, user=request.user)
+
+    ctx = _form_context(
+        form,
+        f"Edit — {employee.full_name}",
+        cancel_url="/employees/",
+        subtitle=employee.employee_id,
+    )
+    return render(request, "web/employees/form.html", ctx)
+
+
+@login_required
+@require_POST
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def employee_deactivate(request, pk):
+    employee = get_object_or_404(Employee, pk=pk, tenant=request.user.tenant)
+    if request.user.plant_id and not request.user.is_admin and employee.plant_id != request.user.plant_id:
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:employee_list")
+
+    employee.status = Employee.Status.INACTIVE
+    employee.save(update_fields=["status", "updated_at"])
+    messages.success(request, f"Karyawan {employee.full_name} dinonaktifkan.")
+    return redirect("web:employee_list")
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def shift_assignment_list(request):
+    qs = ShiftAssignment.objects.filter(tenant=request.user.tenant).select_related(
+        "employee", "shift"
+    ).order_by("-work_date")[:100]
+    if request.user.plant_id and not request.user.is_admin:
+        qs = qs.filter(employee__plant=request.user.plant)
+    return render(request, "web/shifts/list.html", {"assignments": qs})
 
 
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def shift_assign(request):
     if request.method == "POST":
-        form = ShiftAssignmentForm(request.POST, tenant=request.user.tenant)
+        instance = None
+        employee_id = request.POST.get("employee")
+        work_date = request.POST.get("work_date")
+        if employee_id and work_date:
+            instance = ShiftAssignment.objects.filter(
+                employee_id=employee_id,
+                work_date=work_date,
+                tenant=request.user.tenant,
+            ).first()
+
+        form = ShiftAssignmentForm(
+            request.POST,
+            instance=instance,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
         if form.is_valid():
-            assignment = form.save(commit=False)
-            assignment.tenant = request.user.tenant
-            assignment.save()
             from apps.attendance.services.timesheet import recalculate_daily_timesheet
 
-            recalculate_daily_timesheet(assignment.employee, assignment.work_date)
-            messages.success(request, "Shift berhasil di-assign.")
-            return redirect("web:attendance_list")
+            employee = form.cleaned_data["employee"]
+            shift = form.cleaned_data["shift"]
+            work_date = form.cleaned_data["work_date"]
+            assignment, created = ShiftAssignment.objects.update_or_create(
+                employee=employee,
+                work_date=work_date,
+                defaults={
+                    "tenant": request.user.tenant,
+                    "shift": shift,
+                    "scheduled_check_in": shift.scheduled_check_in,
+                    "scheduled_check_out": shift.scheduled_check_out,
+                },
+            )
+            recalculate_daily_timesheet(employee, work_date)
+            verb = "di-assign" if created else "diperbarui"
+            messages.success(request, f"Shift berhasil {verb}.")
+            return redirect("web:shift_assignment_list")
     else:
-        form = ShiftAssignmentForm(tenant=request.user.tenant)
-    return render(request, "web/shifts/assign.html", {"form": form, "title": "Assign Shift"})
+        form = ShiftAssignmentForm(tenant=request.user.tenant, user=request.user)
+
+    ctx = _form_context(
+        form,
+        "Assign Shift",
+        cancel_url="/shifts/",
+        submit_label="Assign Shift",
+    )
+    return render(request, "web/shifts/assign.html", ctx)
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def shift_edit(request, pk):
+    assignment = get_object_or_404(
+        ShiftAssignment.objects.select_related("employee", "shift"),
+        pk=pk,
+        tenant=request.user.tenant,
+    )
+    if request.user.plant_id and not request.user.is_admin and assignment.employee.plant_id != request.user.plant_id:
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:shift_assignment_list")
+
+    if request.method == "POST":
+        form = ShiftAssignmentForm(
+            request.POST,
+            instance=assignment,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+        if form.is_valid():
+            from apps.attendance.services.timesheet import recalculate_daily_timesheet
+
+            updated = form.save(commit=False)
+            updated.tenant = request.user.tenant
+            updated.save()
+            recalculate_daily_timesheet(updated.employee, updated.work_date)
+            messages.success(request, "Assignment shift diperbarui.")
+            return redirect("web:shift_assignment_list")
+    else:
+        form = ShiftAssignmentForm(
+            instance=assignment,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+
+    ctx = _form_context(
+        form,
+        "Edit Assignment Shift",
+        cancel_url="/shifts/",
+        subtitle=f"{assignment.employee.full_name} · {assignment.work_date}",
+    )
+    return render(request, "web/shifts/form.html", ctx)
+
+
+@login_required
+@require_POST
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def shift_delete(request, pk):
+    assignment = get_object_or_404(ShiftAssignment, pk=pk, tenant=request.user.tenant)
+    employee = assignment.employee
+    work_date = assignment.work_date
+    assignment.delete()
+    from apps.attendance.services.timesheet import recalculate_daily_timesheet
+
+    recalculate_daily_timesheet(employee, work_date)
+    messages.success(request, "Assignment shift dihapus.")
+    return redirect("web:shift_assignment_list")
 
 
 @login_required
@@ -218,35 +385,85 @@ def leave_list(request):
         User.Role.HR,
         User.Role.MANAGER,
     }
+    profile = _employee_profile(request.user)
     return render(
         request,
         "web/leave/list.html",
-        {"leave_requests": qs, "can_approve": can_approve},
+        {
+            "leave_requests": qs,
+            "can_approve": can_approve,
+            "profile": profile,
+        },
     )
 
 
 @login_required
 def leave_create(request):
     profile = _employee_profile(request.user)
+    show_employee = request.user.is_hr
+
     if request.method == "POST":
-        form = LeaveRequestForm(request.POST, tenant=request.user.tenant)
-        if form.is_valid() and profile:
-            try:
-                submit_leave_request(
-                    employee=profile,
-                    leave_type=form.cleaned_data["leave_type"],
-                    start_date=form.cleaned_data["start_date"],
-                    end_date=form.cleaned_data["end_date"],
-                    reason=form.cleaned_data.get("reason", ""),
-                    is_half_day=form.cleaned_data.get("is_half_day", False),
+        form = LeaveRequestForm(
+            request.POST,
+            tenant=request.user.tenant,
+            user=request.user,
+            show_employee=show_employee,
+        )
+        if form.is_valid():
+            employee = form.cleaned_data.get("employee") if show_employee else profile
+            if not employee:
+                messages.error(
+                    request,
+                    "Pilih karyawan atau hubungkan akun ke data karyawan terlebih dahulu.",
                 )
-                messages.success(request, "Pengajuan cuti berhasil dikirim.")
-                return redirect("web:leave_list")
-            except LeaveError as exc:
-                messages.error(request, str(exc))
+            else:
+                try:
+                    submit_leave_request(
+                        employee=employee,
+                        leave_type=form.cleaned_data["leave_type"],
+                        start_date=form.cleaned_data["start_date"],
+                        end_date=form.cleaned_data["end_date"],
+                        reason=form.cleaned_data.get("reason", ""),
+                        is_half_day=form.cleaned_data.get("is_half_day", False),
+                    )
+                    messages.success(request, "Pengajuan cuti berhasil dikirim.")
+                    return redirect("web:leave_list")
+                except LeaveError as exc:
+                    messages.error(request, str(exc))
     else:
-        form = LeaveRequestForm(tenant=request.user.tenant)
-    return render(request, "web/leave/form.html", {"form": form, "title": "Ajukan Cuti"})
+        form = LeaveRequestForm(
+            tenant=request.user.tenant,
+            user=request.user,
+            show_employee=show_employee,
+        )
+
+    ctx = _form_context(
+        form,
+        "Ajukan Cuti",
+        cancel_url="/leave/",
+        submit_label="Kirim Pengajuan",
+    )
+    return render(request, "web/leave/form.html", ctx)
+
+
+@login_required
+@require_POST
+def leave_cancel(request, pk):
+    leave_req = get_object_or_404(LeaveRequest, pk=pk, tenant=request.user.tenant)
+    profile = _employee_profile(request.user)
+    if not (
+        request.user.is_hr
+        or (profile and profile.pk == leave_req.employee_id)
+    ):
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:leave_list")
+
+    try:
+        cancel_leave_request(leave_req, request.user)
+        messages.success(request, "Pengajuan cuti dibatalkan.")
+    except LeaveError as exc:
+        messages.error(request, str(exc))
+    return redirect("web:leave_list")
 
 
 @login_required
@@ -287,13 +504,16 @@ def payroll_list(request):
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_create(request):
     if request.method == "POST":
-        form = PayrollRunForm(request.POST)
+        form = PayrollRunForm(request.POST, tenant=request.user.tenant, user=request.user)
         if form.is_valid():
-            run = form.save(commit=False)
-            run.tenant = request.user.tenant
-            run.save()
-            messages.success(request, "Payroll run dibuat.")
-            return redirect("web:payroll_detail", pk=run.pk)
+            try:
+                run = form.save(commit=False)
+                run.tenant = request.user.tenant
+                run.save()
+                messages.success(request, "Payroll run dibuat.")
+                return redirect("web:payroll_detail", pk=run.pk)
+            except Exception as exc:
+                messages.error(request, f"Gagal membuat payroll: {exc}")
     else:
         today = timezone.localdate()
         form = PayrollRunForm(
@@ -301,9 +521,61 @@ def payroll_create(request):
                 "plant": request.user.plant,
                 "period_start": today.replace(day=1),
                 "period_end": today,
-            }
+            },
+            tenant=request.user.tenant,
+            user=request.user,
         )
-    return render(request, "web/payroll/form.html", {"form": form, "title": "Buat Payroll Run"})
+    ctx = _form_context(form, "Buat Payroll Run", cancel_url="/payroll/")
+    return render(request, "web/payroll/form.html", ctx)
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def payroll_edit(request, pk):
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
+    if run.status != PayrollRun.Status.DRAFT:
+        messages.error(request, "Hanya payroll draft yang bisa diedit.")
+        return redirect("web:payroll_detail", pk=pk)
+
+    if request.method == "POST":
+        form = PayrollRunForm(
+            request.POST,
+            instance=run,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+        if form.is_valid():
+            try:
+                form.save()
+                messages.success(request, "Payroll run diperbarui.")
+                return redirect("web:payroll_detail", pk=pk)
+            except Exception as exc:
+                messages.error(request, f"Gagal memperbarui payroll: {exc}")
+    else:
+        form = PayrollRunForm(instance=run, tenant=request.user.tenant, user=request.user)
+
+    ctx = _form_context(
+        form,
+        "Edit Payroll Run",
+        cancel_url=f"/payroll/{pk}/",
+        subtitle=f"{run.plant.code} · {run.period_start} — {run.period_end}",
+    )
+    return render(request, "web/payroll/form.html", ctx)
+
+
+@login_required
+@require_POST
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def payroll_cancel(request, pk):
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
+    if run.status == PayrollRun.Status.FINALIZED:
+        messages.error(request, "Payroll finalized tidak bisa dibatalkan.")
+        return redirect("web:payroll_detail", pk=pk)
+
+    run.status = PayrollRun.Status.CANCELLED
+    run.save(update_fields=["status", "updated_at"])
+    messages.success(request, "Payroll run dibatalkan.")
+    return redirect("web:payroll_list")
 
 
 @login_required

@@ -49,10 +49,16 @@
             Karyawan
           </a>
           {% endif %}
-          <a href="{% url 'web:attendance_list' %}" class="hris-nav-link{% if '/attendance' in request.path or '/shifts' in request.path %} is-active{% endif %}">
+          <a href="{% url 'web:attendance_list' %}" class="hris-nav-link{% if '/attendance' in request.path %} is-active{% endif %}">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             Absensi
           </a>
+          {% if user.role == 'admin' or user.role == 'hr' %}
+          <a href="{% url 'web:shift_assignment_list' %}" class="hris-nav-link{% if '/shifts' in request.path %} is-active{% endif %}">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            Shift
+          </a>
+          {% endif %}
           <a href="{% url 'web:leave_list' %}" class="hris-nav-link{% if '/leave' in request.path %} is-active{% endif %}">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             Cuti

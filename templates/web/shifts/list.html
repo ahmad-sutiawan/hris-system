@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load hris_ui %}
+{% block title %}Shift Assignment — HRIS-Lite{% endblock %}
+{% block page_title %}Shift Assignment{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>Shift Assignment</h1>
+    <p>Penjadwalan shift harian per karyawan</p>
+  </div>
+  <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-primary">+ Assign Shift</a>
+</div>
+
+<div class="hris-table-wrap">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Karyawan</th>
+          <th>Shift</th>
+          <th>Check In</th>
+          <th>Check Out</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in assignments %}
+        <tr>
+          <td>{{ row.work_date }}</td>
+          <td class="hris-strong">{{ row.employee.full_name }}</td>
+          <td><span class="hris-mono">{{ row.shift.code }}</span></td>
+          <td>{{ row.scheduled_check_in }}</td>
+          <td>{{ row.scheduled_check_out }}</td>
+          <td>
+            <div class="hris-inline-actions">
+              <a href="{% url 'web:shift_edit' row.pk %}" class="hris-link">Edit</a>
+              <form method="post" action="{% url 'web:shift_delete' row.pk %}" onsubmit="return confirm('Hapus assignment shift ini?')">{% csrf_token %}
+                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Hapus</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="hris-empty">Belum ada assignment shift.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
