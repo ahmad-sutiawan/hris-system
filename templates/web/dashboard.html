@@ -1,28 +1,26 @@
 {% extends "base.html" %}
-
 {% block title %}Dashboard — HRIS-Lite{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+<div class="hris-page-header">
   <div>
-    <h1 class="text-2xl font-bold text-slate-900">Dashboard</h1>
-    <p class="text-sm text-slate-500">Ringkasan operasional HRD</p>
+    <h1>Ringkasan Operasional</h1>
+    <p>Monitor workforce, absensi, cuti, dan payroll plant Anda</p>
   </div>
   {% if profile %}
-  <div class="flex gap-2">
+  <div class="hris-punch-bar">
     <form method="post" action="{% url 'web:punch' %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="in">
-      <button type="submit" {% if punch_status == 'in' %}disabled{% endif %}
-              class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-40">
+      <button type="submit" {% if punch_status == 'in' %}disabled{% endif %} class="hris-btn hris-btn-success">
         Clock In
       </button>
     </form>
     <form method="post" action="{% url 'web:punch' %}">
       {% csrf_token %}
       <input type="hidden" name="action" value="out">
-      <button type="submit" {% if punch_status != 'in' %}disabled{% endif %}
-              class="rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-40">
+      <button type="submit" {% if punch_status != 'in' %}disabled{% endif %} class="hris-btn hris-btn-danger">
         Clock Out
       </button>
     </form>
@@ -30,44 +28,52 @@
   {% endif %}
 </div>
 
-<div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-sm text-slate-500">Karyawan Aktif</p>
-    <p class="mt-2 text-3xl font-semibold">{{ stats.employee_count }}</p>
+<div class="hris-stat-grid">
+  <div class="hris-stat-card hris-stat-card--amber">
+    <div class="hris-stat-label">Karyawan Aktif</div>
+    <div class="hris-stat-value">{{ stats.employee_count }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-sm text-slate-500">Cuti Pending</p>
-    <p class="mt-2 text-3xl font-semibold">{{ stats.pending_leave }}</p>
+  <div class="hris-stat-card hris-stat-card--rose">
+    <div class="hris-stat-label">Cuti Pending</div>
+    <div class="hris-stat-value">{{ stats.pending_leave }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-sm text-slate-500">Timesheet Hari Ini</p>
-    <p class="mt-2 text-3xl font-semibold">{{ stats.today_timesheets }}</p>
+  <div class="hris-stat-card hris-stat-card--cyan">
+    <div class="hris-stat-label">Timesheet Hari Ini</div>
+    <div class="hris-stat-value">{{ stats.today_timesheets }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-    <p class="text-sm text-slate-500">Payroll Draft</p>
-    <p class="mt-2 text-3xl font-semibold">{{ stats.draft_payroll }}</p>
+  <div class="hris-stat-card hris-stat-card--green">
+    <div class="hris-stat-label">Payroll Draft</div>
+    <div class="hris-stat-value">{{ stats.draft_payroll }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
 </div>
 
-<div class="mt-8 grid gap-4 lg:grid-cols-2">
-  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 class="text-lg font-semibold">Quick Actions</h2>
-    <div class="mt-4 flex flex-wrap gap-2">
-      <a href="{% url 'web:leave_create' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Ajukan Cuti</a>
-      <a href="{% url 'web:payslip_list' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Lihat Slip Gaji</a>
-      {% if user.role == 'admin' or user.role == 'hr' %}
-      <a href="{% url 'web:employee_create' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Tambah Karyawan</a>
-      <a href="{% url 'web:shift_assign' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Assign Shift</a>
-      <a href="{% url 'web:payroll_create' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Buat Payroll</a>
-      <a href="{% url 'web:attendance_export' %}" class="rounded-lg border px-3 py-2 text-sm hover:bg-slate-50">Export Timesheet CSV</a>
-      {% endif %}
+<div class="hris-quick-grid" style="margin-top:1.75rem">
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <h2 style="margin:0;font-size:1.125rem;font-weight:700">Quick Actions</h2>
+      <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.625rem">
+        <a href="{% url 'web:leave_create' %}" class="hris-quick-link">Ajukan Cuti</a>
+        <a href="{% url 'web:payslip_list' %}" class="hris-quick-link">Lihat Slip Gaji</a>
+        {% if user.role == 'admin' or user.role == 'hr' %}
+        <a href="{% url 'web:employee_create' %}" class="hris-quick-link">Tambah Karyawan</a>
+        <a href="{% url 'web:shift_assign' %}" class="hris-quick-link">Assign Shift</a>
+        <a href="{% url 'web:payroll_create' %}" class="hris-quick-link">Buat Payroll</a>
+        <a href="{% url 'web:attendance_export' %}" class="hris-quick-link">Export Timesheet CSV</a>
+        {% endif %}
+      </div>
     </div>
   </div>
-  <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 class="text-lg font-semibold">Alur MVP</h2>
-    <p class="mt-2 text-sm text-slate-600">
-      Karyawan → Assign Shift → Clock In/Out → Daily Timesheet → Cuti → Payroll → Slip Gaji
-    </p>
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <h2 style="margin:0;font-size:1.125rem;font-weight:700">Alur MVP</h2>
+      <div class="hris-flow">
+        Karyawan → Assign Shift → Clock In/Out → Daily Timesheet → Cuti → Payroll → Slip Gaji
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

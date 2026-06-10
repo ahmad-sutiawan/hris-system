@@ -1,47 +1,58 @@
 {% extends "base.html" %}
+{% load hris_ui %}
 {% block title %}Cuti — HRIS-Lite{% endblock %}
+{% block page_title %}Cuti{% endblock %}
+
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
-  <h1 class="text-2xl font-bold">Pengajuan Cuti</h1>
-  <a href="{% url 'web:leave_create' %}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">+ Ajukan Cuti</a>
+<div class="hris-page-header">
+  <div>
+    <h1>Pengajuan Cuti</h1>
+    <p>Kelola dan approve permohonan cuti karyawan</p>
+  </div>
+  <a href="{% url 'web:leave_create' %}" class="hris-btn hris-btn-primary">+ Ajukan Cuti</a>
 </div>
-<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-  <table class="min-w-full divide-y divide-slate-200 text-sm">
-    <thead class="bg-slate-50">
-      <tr>
-        <th class="px-4 py-3 text-left">Karyawan</th>
-        <th class="px-4 py-3 text-left">Jenis</th>
-        <th class="px-4 py-3 text-left">Periode</th>
-        <th class="px-4 py-3 text-left">Hari</th>
-        <th class="px-4 py-3 text-left">Status</th>
-        {% if can_approve %}<th class="px-4 py-3 text-left">Aksi</th>{% endif %}
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-slate-100">
-      {% for req in leave_requests %}
-      <tr>
-        <td class="px-4 py-3">{{ req.employee.full_name }}</td>
-        <td class="px-4 py-3">{{ req.leave_type.code }}</td>
-        <td class="px-4 py-3">{{ req.start_date }} — {{ req.end_date }}</td>
-        <td class="px-4 py-3">{{ req.days }}</td>
-        <td class="px-4 py-3">{{ req.get_status_display }}</td>
-        {% if can_approve %}
-        <td class="px-4 py-3">
-          {% if req.status == 'pending' %}
-          <form class="inline" method="post" action="{% url 'web:leave_approve' req.pk %}">{% csrf_token %}
-            <button class="text-emerald-700 hover:underline">Approve</button>
-          </form>
-          <form class="inline ml-2" method="post" action="{% url 'web:leave_reject' req.pk %}">{% csrf_token %}
-            <button class="text-rose-700 hover:underline">Reject</button>
-          </form>
-          {% else %}-{% endif %}
-        </td>
-        {% endif %}
-      </tr>
-      {% empty %}
-      <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Belum ada pengajuan cuti.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+<div class="hris-table-wrap">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th>Karyawan</th>
+          <th>Jenis</th>
+          <th>Periode</th>
+          <th>Hari</th>
+          <th>Status</th>
+          {% if can_approve %}<th>Aksi</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in leave_requests %}
+        <tr>
+          <td class="hris-strong">{{ req.employee.full_name }}</td>
+          <td><span class="hris-mono">{{ req.leave_type.code }}</span></td>
+          <td>{{ req.start_date }} — {{ req.end_date }}</td>
+          <td>{{ req.days }}</td>
+          <td>{% status_badge req.status req.get_status_display %}</td>
+          {% if can_approve %}
+          <td>
+            {% if req.status == 'pending' %}
+            <div class="hris-inline-actions">
+              <form method="post" action="{% url 'web:leave_approve' req.pk %}">{% csrf_token %}
+                <button class="hris-btn hris-btn-success hris-btn-sm">Approve</button>
+              </form>
+              <form method="post" action="{% url 'web:leave_reject' req.pk %}">{% csrf_token %}
+                <button class="hris-btn hris-btn-danger hris-btn-sm">Reject</button>
+              </form>
+            </div>
+            {% else %}—{% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="6"><div class="hris-empty">Belum ada pengajuan cuti.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

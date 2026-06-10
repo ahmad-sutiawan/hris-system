@@ -1,38 +1,46 @@
 {% extends "base.html" %}
+{% load hris_ui %}
 {% block title %}Karyawan — HRIS-Lite{% endblock %}
+{% block page_title %}Karyawan{% endblock %}
+
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
+<div class="hris-page-header">
   <div>
-    <h1 class="text-2xl font-bold">Karyawan</h1>
-    <p class="text-sm text-slate-500">Master data karyawan</p>
+    <h1>Master Karyawan</h1>
+    <p>Data workforce plant — ID, organisasi, dan status kepegawaian</p>
   </div>
-  <a href="{% url 'web:employee_create' %}" class="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">+ Tambah</a>
-  <a href="{% url 'web:employee_import' %}" class="rounded-lg border px-4 py-2 text-sm">Import CSV</a>
+  <div class="hris-actions">
+    <a href="{% url 'web:employee_import' %}" class="hris-btn hris-btn-secondary">Import CSV</a>
+    <a href="{% url 'web:employee_create' %}" class="hris-btn hris-btn-primary">+ Tambah Karyawan</a>
+  </div>
 </div>
-<div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-  <table class="min-w-full divide-y divide-slate-200 text-sm">
-    <thead class="bg-slate-50">
-      <tr>
-        <th class="px-4 py-3 text-left font-medium text-slate-600">Employee ID</th>
-        <th class="px-4 py-3 text-left font-medium text-slate-600">Nama</th>
-        <th class="px-4 py-3 text-left font-medium text-slate-600">Plant</th>
-        <th class="px-4 py-3 text-left font-medium text-slate-600">Department</th>
-        <th class="px-4 py-3 text-left font-medium text-slate-600">Status</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-slate-100">
-      {% for employee in employees %}
-      <tr>
-        <td class="px-4 py-3 font-medium">{{ employee.employee_id }}</td>
-        <td class="px-4 py-3">{{ employee.full_name }}</td>
-        <td class="px-4 py-3">{{ employee.plant.code }}</td>
-        <td class="px-4 py-3">{{ employee.department.name|default:"-" }}</td>
-        <td class="px-4 py-3">{{ employee.get_status_display }}</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="5" class="px-4 py-8 text-center text-slate-500">Belum ada data karyawan.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+<div class="hris-table-wrap">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Nama</th>
+          <th>Plant</th>
+          <th>Department</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for employee in employees %}
+        <tr>
+          <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
+          <td class="hris-strong">{{ employee.full_name }}</td>
+          <td>{{ employee.plant.code }}</td>
+          <td>{{ employee.department.name|default:"-" }}</td>
+          <td>{% status_badge employee.status employee.get_status_display %}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

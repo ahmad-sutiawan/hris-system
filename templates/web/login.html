@@ -1,32 +1,63 @@
 {% extends "base.html" %}
-
 {% block title %}Login — HRIS-Lite{% endblock %}
 
 {% block auth_content %}
-<div class="flex min-h-full items-center justify-center px-4 py-12">
-  <div class="w-full max-w-md rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-    <h1 class="text-2xl font-bold text-slate-900">HRIS-Lite</h1>
-    <p class="mt-1 text-sm text-slate-500">Masuk ke portal HRD manufaktur</p>
-    <form method="post" class="mt-8 space-y-4">
-      {% csrf_token %}
-      {% if form.non_field_errors %}
-        <div class="rounded bg-red-50 px-3 py-2 text-sm text-red-700">{{ form.non_field_errors }}</div>
-      {% endif %}
-      <div>
-        <label class="block text-sm font-medium text-slate-700">Username</label>
-        <input type="text" name="username" autofocus required
-               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+<div class="hris-login-page">
+  <div class="hris-login-hero">
+    <div>
+      <div class="hris-brand" style="border:none;padding:0">
+        <div class="hris-brand-mark">HR</div>
+        <div class="hris-brand-text">
+          <strong>HRIS-Lite</strong>
+          <span>Manufacturing Suite</span>
+        </div>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-slate-700">Password</label>
-        <input type="password" name="password" required
-               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2">
+      <h2 style="margin-top:2.5rem">HR yang presisi untuk lantai produksi</h2>
+      <p style="margin-top:1rem">Kelola absensi, timesheet 24 kolom, cuti, dan payroll — dirancang untuk operasional manufaktur multi-plant.</p>
+    </div>
+    <div class="hris-login-features">
+      <div class="hris-login-feature">
+        <div class="hris-login-feature-icon">⏱</div>
+        <div>
+          <strong style="display:block;margin-bottom:0.25rem">Real-time Attendance</strong>
+          <span style="font-size:0.8125rem;color:var(--hris-text-muted)">Clock in/out web & mobile dengan engine timesheet otomatis</span>
+        </div>
       </div>
-      <button type="submit"
-              class="w-full rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800">
-        Masuk
-      </button>
-    </form>
+      <div class="hris-login-feature">
+        <div class="hris-login-feature-icon">📋</div>
+        <div>
+          <strong style="display:block;margin-bottom:0.25rem">Compliance Ready</strong>
+          <span style="font-size:0.8125rem;color:var(--hris-text-muted)">BPJS, PPh21 TER, audit trail, dan export bank payroll</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hris-login-panel">
+    <div class="hris-login-box">
+      <h1>Selamat datang</h1>
+      <p>Masuk ke portal HRD manufaktur Anda</p>
+      <form method="post" class="hris-login-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="hris-alert hris-alert--error">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="hris-field">
+          <label for="id_username">Username</label>
+          <input type="text" name="username" id="id_username" autofocus required class="hris-input">
+        </div>
+        <div class="hris-field">
+          <label for="id_password">Password</label>
+          <input type="password" name="password" id="id_password" required class="hris-input">
+        </div>
+        <button type="submit" class="hris-btn hris-btn-primary" style="width:100%;padding:0.875rem">
+          Masuk ke Dashboard
+        </button>
+      </form>
+      <p style="margin-top:1.5rem;font-size:0.75rem;color:var(--hris-text-dim);text-align:center">
+        Demo: admin / budi / manager — lihat README
+      </p>
+    </div>
   </div>
 </div>
 {% endblock %}

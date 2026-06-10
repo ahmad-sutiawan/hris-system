@@ -6,6 +6,22 @@ from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
 
 
+HRIS_INPUT_CLASS = "hris-input"
+HRIS_SELECT_CLASS = "hris-select"
+HRIS_TEXTAREA_CLASS = "hris-textarea"
+
+
+def _style_fields(form):
+    for field in form.fields.values():
+        widget = field.widget
+        if isinstance(widget, forms.Select):
+            widget.attrs.setdefault("class", HRIS_SELECT_CLASS)
+        elif isinstance(widget, forms.Textarea):
+            widget.attrs.setdefault("class", HRIS_TEXTAREA_CLASS)
+        else:
+            widget.attrs.setdefault("class", HRIS_INPUT_CLASS)
+
+
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
@@ -27,6 +43,7 @@ class EmployeeForm(forms.ModelForm):
 
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
+        _style_fields(self)
         if tenant:
             from apps.organization.models import Department, JobPosition
 
@@ -41,6 +58,7 @@ class ShiftAssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
+        _style_fields(self)
         if tenant:
             from apps.shifts.models import Shift
 
@@ -63,6 +81,7 @@ class LeaveRequestForm(forms.ModelForm):
 
     def __init__(self, *args, tenant=None, **kwargs):
         super().__init__(*args, **kwargs)
+        _style_fields(self)
         if tenant:
             self.fields["leave_type"].queryset = LeaveType.objects.filter(
                 tenant=tenant, is_active=True
@@ -73,3 +92,7 @@ class PayrollRunForm(forms.ModelForm):
     class Meta:
         model = PayrollRun
         fields = ["plant", "period_start", "period_end", "notes"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_fields(self)

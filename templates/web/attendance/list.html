@@ -1,43 +1,51 @@
 {% extends "base.html" %}
 {% block title %}Absensi — HRIS-Lite{% endblock %}
+{% block page_title %}Absensi{% endblock %}
+
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
-  <h1 class="text-2xl font-bold">Daily Timesheet</h1>
-  <div class="flex gap-2">
-    <a href="{% url 'web:shift_assign' %}" class="rounded-lg border px-3 py-2 text-sm">Assign Shift</a>
-    <a href="{% url 'web:attendance_export' %}" class="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white">Export CSV (24 kolom)</a>
+<div class="hris-page-header">
+  <div>
+    <h1>Daily Timesheet</h1>
+    <p>Rekap absensi harian — shift, kode kehadiran, jam kerja & lembur</p>
+  </div>
+  <div class="hris-actions">
+    <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-secondary">Assign Shift</a>
+    <a href="{% url 'web:attendance_export' %}" class="hris-btn hris-btn-primary">Export CSV (24 kolom)</a>
   </div>
 </div>
-<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-  <table class="min-w-full divide-y divide-slate-200 text-sm">
-    <thead class="bg-slate-50">
-      <tr>
-        <th class="px-3 py-3 text-left">Employee ID</th>
-        <th class="px-3 py-3 text-left">Nama</th>
-        <th class="px-3 py-3 text-left">Tanggal</th>
-        <th class="px-3 py-3 text-left">Shift</th>
-        <th class="px-3 py-3 text-left">Code</th>
-        <th class="px-3 py-3 text-left">Late</th>
-        <th class="px-3 py-3 text-left">Paid Hrs</th>
-        <th class="px-3 py-3 text-left">OT After</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-slate-100">
-      {% for row in timesheets %}
-      <tr>
-        <td class="px-3 py-3">{{ row.employee.employee_id }}</td>
-        <td class="px-3 py-3">{{ row.employee.full_name }}</td>
-        <td class="px-3 py-3">{{ row.work_date }}</td>
-        <td class="px-3 py-3">{{ row.shift_code|default:"-" }}</td>
-        <td class="px-3 py-3">{{ row.attendance_code.code|default:"-" }}</td>
-        <td class="px-3 py-3">{{ row.late_in_minutes }} m</td>
-        <td class="px-3 py-3">{{ row.paid_working_hours }}</td>
-        <td class="px-3 py-3">{{ row.ot_after_minutes }} m</td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="8" class="px-4 py-8 text-center text-slate-500">Belum ada timesheet.</td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+
+<div class="hris-table-wrap">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Nama</th>
+          <th>Tanggal</th>
+          <th>Shift</th>
+          <th>Code</th>
+          <th>Late</th>
+          <th>Paid Hrs</th>
+          <th>OT After</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in timesheets %}
+        <tr>
+          <td><span class="hris-mono">{{ row.employee.employee_id }}</span></td>
+          <td class="hris-strong">{{ row.employee.full_name }}</td>
+          <td>{{ row.work_date }}</td>
+          <td>{{ row.shift_code|default:"-" }}</td>
+          <td><span class="hris-mono">{{ row.attendance_code.code|default:"-" }}</span></td>
+          <td>{{ row.late_in_minutes }} m</td>
+          <td class="hris-num">{{ row.paid_working_hours }}</td>
+          <td class="hris-num">{{ row.ot_after_minutes }} m</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8"><div class="hris-empty">Belum ada timesheet.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
