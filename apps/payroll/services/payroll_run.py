@@ -1,11 +1,14 @@
 import hashlib
 from decimal import Decimal
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.models import DailyTimesheet
+from apps.core.models import Notification
+from apps.core.services.notifications import notify_user
 from apps.employees.models import Employee
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.services.calculator import (
@@ -123,6 +126,18 @@ def finalize_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         pdf_bytes = generate_payslip_pdf(payslip)
         filename = f"slip_{payslip.employee.employee_id}_{payroll_run.period_end}.pdf"
         payslip.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
+        if payslip.employee.user_id:
+            notify_user(
+                tenant=payroll_run.tenant,
+                user=payslip.employee.user,
+                category=Notification.Category.PAYROLL,
+                title="Slip gaji tersedia",
+                message=(
+                    f"Slip gaji periode {payroll_run.period_start} — {payroll_run.period_end} "
+                    f"siap diunduh. THP: Rp {payslip.net_amount:,.0f}"
+                ),
+                link=f"{settings.HRIS_SITE_URL}/payslips/{payslip.pk}/download/",
+            )
 
     DailyTimesheet.objects.filter(
         tenant=payroll_run.tenant,

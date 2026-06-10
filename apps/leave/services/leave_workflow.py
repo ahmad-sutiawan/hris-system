@@ -1,10 +1,12 @@
-from datetime import date
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.services.timesheet import recalculate_timesheet_range
+from apps.core.models import Notification
+from apps.core.services.notifications import notify_user
 from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
 
 
@@ -12,11 +14,53 @@ class LeaveError(Exception):
     pass
 
 
-def _business_days(start: date, end: date, is_half_day=False) -> Decimal:
+def _business_days(start, end, is_half_day=False) -> Decimal:
     if is_half_day:
         return Decimal("0.5")
     days = (end - start).days + 1
     return Decimal(max(days, 0))
+
+
+def _notify_manager_pending(leave_request):
+    manager = leave_request.employee.manager
+    if manager and manager.user_id:
+        notify_user(
+            tenant=leave_request.tenant,
+            user=manager.user,
+            category=Notification.Category.LEAVE,
+            title="Pengajuan cuti baru",
+            message=(
+                f"{leave_request.employee.full_name} mengajukan cuti "
+                f"{leave_request.leave_type.code} ({leave_request.start_date} — {leave_request.end_date})"
+            ),
+            link=f"{settings.HRIS_SITE_URL}/leave/",
+        )
+
+
+def _notify_employee_status(leave_request, approved=True):
+    employee_user = leave_request.employee.user
+    if not employee_user:
+        return
+    if approved:
+        title = "Cuti disetujui"
+        message = (
+            f"Pengajuan cuti {leave_request.leave_type.code} "
+            f"({leave_request.start_date} — {leave_request.end_date}) telah disetujui."
+        )
+    else:
+        title = "Cuti ditolak"
+        message = (
+            f"Pengajuan cuti {leave_request.leave_type.code} ditolak. "
+            f"Alasan: {leave_request.rejection_reason or '-'}"
+        )
+    notify_user(
+        tenant=leave_request.tenant,
+        user=employee_user,
+        category=Notification.Category.LEAVE,
+        title=title,
+        message=message,
+        link=f"{settings.HRIS_SITE_URL}/leave/",
+    )
 
 
 @transaction.atomic
@@ -72,6 +116,7 @@ def submit_leave_request(
         balance.remaining -= days
         balance.save(update_fields=["pending", "remaining", "updated_at"])
 
+    _notify_manager_pending(req)
     return req
 
 
@@ -96,6 +141,7 @@ def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
         request.start_date,
         request.end_date,
     )
+    _notify_employee_status(request, approved=True)
     return request
 
 
@@ -118,4 +164,5 @@ def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveReq
         balance.remaining += request.days
         balance.save(update_fields=["pending", "remaining", "updated_at"])
 
+    _notify_employee_status(request, approved=False)
     return request

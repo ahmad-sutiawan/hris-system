@@ -3,6 +3,7 @@ from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.attendance.api import AttendanceRecordViewSet, DailyTimesheetViewSet
+from apps.core.api_views import AuditLogViewSet, NotificationViewSet
 from apps.core.views import HealthCheckView
 from apps.employees.api import EmployeeViewSet
 from apps.leave.api import LeaveBalanceViewSet, LeaveRequestViewSet
@@ -10,6 +11,8 @@ from apps.payroll.api import PayrollRunViewSet, PayslipViewSet
 from apps.shifts.api import ShiftAssignmentViewSet, ShiftViewSet
 
 router = routers.DefaultRouter()
+router.register("audit-logs", AuditLogViewSet, basename="audit-log")
+router.register("notifications", NotificationViewSet, basename="notification")
 router.register("employees", EmployeeViewSet, basename="employee")
 router.register("shifts", ShiftViewSet, basename="shift")
 router.register("shift-assignments", ShiftAssignmentViewSet, basename="shift-assignment")

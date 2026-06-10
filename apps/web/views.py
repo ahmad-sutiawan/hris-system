@@ -10,7 +10,8 @@ from apps.attendance.models import AttendanceRecord
 from apps.attendance.services.export import export_timesheets_csv
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
 from apps.core.decorators import require_roles
-from apps.core.models import User
+from apps.core.models import AuditLog, Notification, User
+from apps.core.services.notifications import mark_notifications_read
 from apps.employees.models import Employee
 from apps.leave.models import LeaveRequest
 from apps.leave.services.leave_workflow import (
@@ -389,3 +390,40 @@ def payroll_bank_export(request, pk):
     response = HttpResponse(content, content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="bank_export_{run.plant.code}_{run.period_end}.csv"'
     return response
+
+
+@login_required
+def notification_list(request):
+    qs = Notification.objects.filter(user=request.user).order_by("-created_at")[:100]
+    return render(request, "web/notifications/list.html", {"notifications": qs})
+
+
+@login_required
+@require_POST
+def notification_mark_read(request, pk):
+    mark_notifications_read(request.user, [pk])
+    next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/"
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+def notification_mark_all_read(request):
+    mark_notifications_read(request.user)
+    return redirect("web:notification_list")
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def audit_log_list(request):
+    qs = AuditLog.objects.filter(tenant=request.user.tenant).select_related("user").order_by(
+        "-created_at"
+    )[:200]
+    model_name = request.GET.get("model")
+    if model_name:
+        qs = qs.filter(model_name=model_name)
+    return render(
+        request,
+        "web/audit/list.html",
+        {"audit_logs": qs, "model_filter": model_name or ""},
+    )

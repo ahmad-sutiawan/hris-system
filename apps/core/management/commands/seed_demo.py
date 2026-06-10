@@ -121,6 +121,39 @@ class Command(BaseCommand):
             admin_user.save()
             self.stdout.write(self.style.SUCCESS("Created admin user (admin / Admin123456!)"))
 
+        mgr_user, created = User.objects.get_or_create(
+            username="manager",
+            defaults={
+                "email": "manager@demo.local",
+                "tenant": tenant,
+                "plant": plant,
+                "role": User.Role.MANAGER,
+            },
+        )
+        if created:
+            mgr_user.set_password("Manager123!")
+            mgr_user.save()
+            self.stdout.write(self.style.SUCCESS("Created manager user (manager / Manager123!)"))
+
+        manager_employee, _ = Employee.objects.update_or_create(
+            tenant=tenant,
+            employee_id="PLT01-2026-MGR",
+            defaults={
+                "plant": plant,
+                "department": dept,
+                "job_position": job,
+                "full_name": "Siti Manager",
+                "email": "manager@demo.local",
+                "join_date": timezone.localdate(),
+                "status": Employee.Status.PERMANENT,
+                "base_salary": Decimal("8000000"),
+                "user": mgr_user,
+            },
+        )
+        if not manager_employee.user_id:
+            manager_employee.user = mgr_user
+            manager_employee.save(update_fields=["user"])
+
         employee, _ = Employee.objects.update_or_create(
             tenant=tenant,
             employee_id="PLT01-2026-001",
@@ -128,6 +161,7 @@ class Command(BaseCommand):
                 "plant": plant,
                 "department": dept,
                 "job_position": job,
+                "manager": manager_employee,
                 "full_name": "Budi Santoso",
                 "nik": "3201010101900001",
                 "email": "budi@demo.local",
@@ -169,22 +203,9 @@ class Command(BaseCommand):
         if created:
             emp_user.set_password("Employee123!")
             emp_user.save()
+            self.stdout.write(self.style.SUCCESS("Created employee user (budi / Employee123!)"))
+        if not employee.user_id:
             employee.user = emp_user
             employee.save(update_fields=["user"])
-            self.stdout.write(self.style.SUCCESS("Created employee user (budi / Employee123!)"))
-
-        mgr_user, created = User.objects.get_or_create(
-            username="manager",
-            defaults={
-                "email": "manager@demo.local",
-                "tenant": tenant,
-                "plant": plant,
-                "role": User.Role.MANAGER,
-            },
-        )
-        if created:
-            mgr_user.set_password("Manager123!")
-            mgr_user.save()
-            self.stdout.write(self.style.SUCCESS("Created manager user (manager / Manager123!)"))
 
         self.stdout.write(self.style.SUCCESS(f"Seed complete for tenant '{tenant.slug}'"))

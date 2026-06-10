@@ -20,8 +20,31 @@
           <a href="{% url 'web:leave_list' %}" class="text-sm text-slate-300 hover:text-white">Cuti</a>
           <a href="{% url 'web:payroll_list' %}" class="text-sm text-slate-300 hover:text-white">Payroll</a>
           <a href="{% url 'web:payslip_list' %}" class="text-sm text-slate-300 hover:text-white">Slip Gaji</a>
+          {% if user.role == 'admin' or user.role == 'hr' %}
+          <a href="{% url 'web:audit_log_list' %}" class="text-sm text-slate-300 hover:text-white">Audit</a>
+          {% endif %}
         </div>
         <div class="flex items-center gap-4 text-sm">
+          <div class="relative group">
+            <a href="{% url 'web:notification_list' %}" class="relative inline-flex items-center text-slate-300 hover:text-white">
+              <span aria-hidden="true">🔔</span>
+              {% if unread_notifications %}
+              <span class="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{{ unread_notifications }}</span>
+              {% endif %}
+            </a>
+            {% if recent_notifications %}
+            <div class="absolute right-0 z-20 mt-2 hidden w-80 rounded-lg border border-slate-200 bg-white text-slate-900 shadow-lg group-hover:block">
+              <div class="border-b border-slate-100 px-3 py-2 text-xs font-semibold uppercase text-slate-500">Terbaru</div>
+              {% for n in recent_notifications %}
+              <a href="{% if n.link %}{{ n.link }}{% else %}{% url 'web:notification_list' %}{% endif %}" class="block border-b border-slate-50 px-3 py-2 hover:bg-slate-50">
+                <p class="text-sm font-medium {% if not n.is_read %}text-slate-900{% else %}text-slate-600{% endif %}">{{ n.title }}</p>
+                <p class="truncate text-xs text-slate-500">{{ n.message }}</p>
+              </a>
+              {% endfor %}
+              <a href="{% url 'web:notification_list' %}" class="block px-3 py-2 text-center text-xs text-slate-600 hover:bg-slate-50">Lihat semua</a>
+            </div>
+            {% endif %}
+          </div>
           <span class="text-slate-300">{{ user.get_full_name|default:user.username }} · {{ user.get_role_display|default:user.role }}</span>
           <a href="{% url 'web:logout' %}" class="rounded bg-slate-700 px-3 py-1 hover:bg-slate-600">Logout</a>
         </div>

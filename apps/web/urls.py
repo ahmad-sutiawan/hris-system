@@ -29,4 +29,8 @@ urlpatterns = [
     path("payroll/<int:pk>/bank-export/", views.payroll_bank_export, name="payroll_bank_export"),
     path("payslips/", views.payslip_list, name="payslip_list"),
     path("payslips/<int:pk>/download/", views.payslip_download, name="payslip_download"),
+    path("notifications/", views.notification_list, name="notification_list"),
+    path("notifications/<int:pk>/read/", views.notification_mark_read, name="notification_mark_read"),
+    path("notifications/read-all/", views.notification_mark_all_read, name="notification_mark_all_read"),
+    path("audit/", views.audit_log_list, name="audit_log_list"),
 ]

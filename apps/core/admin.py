@@ -1,12 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
 
-from apps.core.models import AuditLog, FeatureFlag, Plant, Tenant, User
+from apps.core.models import AuditLog, FeatureFlag, Notification, Plant, Tenant, User
 
 admin.site.register(Tenant)
 admin.site.register(Plant)
 admin.site.register(FeatureFlag)
 admin.site.register(AuditLog)
+admin.site.register(Notification)
 
 
 @admin.register(User)
