@@ -41,3 +41,32 @@ def initials(value):
     if len(parts) >= 2:
         return (parts[0][0] + parts[1][0]).upper()
     return parts[0][:2].upper()
+
+
+@register.filter
+def local_datetime(value, arg=None):
+    if not value:
+        return "-"
+    from django.utils import timezone
+    from django.utils.formats import date_format
+
+    if timezone.is_aware(value):
+        value = timezone.localtime(value)
+    fmt = arg or "d M Y H:i"
+    return date_format(value, fmt, use_l10n=False)
+
+
+@register.filter
+def local_date(value, arg=None):
+    if not value:
+        return "-"
+    from django.utils import timezone
+    from django.utils.formats import date_format
+
+    if hasattr(value, "hour"):
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+        fmt = arg or "d M Y"
+        return date_format(value, fmt, use_l10n=False)
+    fmt = arg or "d M Y"
+    return date_format(value, fmt, use_l10n=False)

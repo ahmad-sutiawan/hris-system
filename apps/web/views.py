@@ -9,6 +9,8 @@ from apps.attendance.models import DailyTimesheet
 from apps.attendance.models import AttendanceRecord
 from apps.attendance.services.export import export_timesheets_csv
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
+from apps.attendance.services.photo import PhotoError, decode_selfie
+from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.decorators import require_roles
 from apps.core.models import AuditLog, Notification, User
 from apps.core.services.notifications import mark_notifications_read
@@ -56,7 +58,14 @@ def dashboard(request):
         "draft_payroll": 0,
     }
     today = timezone.localdate()
-    punch_status = None
+    punch_ui = {
+        "status": "pending",
+        "can_clock_in": False,
+        "can_clock_out": False,
+        "needs_ci_photo": False,
+        "needs_co_photo": False,
+    }
+    today_record = None
     profile = _employee_profile(user)
 
     if tenant:
@@ -79,18 +88,21 @@ def dashboard(request):
         ).count()
 
     if profile:
-        record = AttendanceRecord.objects.filter(
+        today_record = AttendanceRecord.objects.filter(
             employee=profile, work_date=today
         ).first()
-        if record and record.check_in and not record.check_out:
-            punch_status = "in"
-        elif record and record.check_out:
-            punch_status = "out"
+        punch_ui = get_punch_ui_state(today_record)
 
     return render(
         request,
         "web/dashboard.html",
-        {"stats": stats, "punch_status": punch_status, "profile": profile},
+        {
+            "stats": stats,
+            "punch_ui": punch_ui,
+            "profile": profile,
+            "today_record": today_record,
+            "today": today,
+        },
     )
 
 
@@ -103,13 +115,34 @@ def punch_action(request):
         return redirect("web:dashboard")
 
     action = request.POST.get("action")
+    photo_data = request.POST.get("photo", "").strip()
+    if not photo_data:
+        messages.error(request, "Foto selfie wajib. Buka kamera dan ambil foto sebelum absen.")
+        return redirect("web:dashboard")
+
+    try:
+        photo = decode_selfie(photo_data)
+    except PhotoError as exc:
+        messages.error(request, str(exc))
+        return redirect("web:dashboard")
+
     try:
         if action == "in":
-            clock_in(profile, source=AttendanceRecord.Source.WEB)
-            messages.success(request, "Clock in berhasil.")
+            record = clock_in(profile, source=AttendanceRecord.Source.WEB, photo=photo)
+            when = timezone.localtime(record.check_in)
+            messages.success(
+                request,
+                f"Clock in berhasil — {when.strftime('%d %b %Y %H:%M')}.",
+            )
         elif action == "out":
-            clock_out(profile)
-            messages.success(request, "Clock out berhasil.")
+            record = clock_out(profile, photo=photo)
+            when = timezone.localtime(record.check_out)
+            messages.success(
+                request,
+                f"Clock out berhasil — {when.strftime('%d %b %Y %H:%M')}.",
+            )
+        else:
+            messages.error(request, "Aksi absensi tidak valid.")
     except PunchError as exc:
         messages.error(request, str(exc))
     return redirect("web:dashboard")
@@ -355,8 +388,34 @@ def shift_delete(request, pk):
 def attendance_list(request):
     qs = DailyTimesheet.objects.filter(tenant=request.user.tenant).select_related(
         "employee", "plant", "attendance_code"
-    ).order_by("-work_date")[:100]
-    return render(request, "web/attendance/list.html", {"timesheets": qs})
+    )
+
+    profile = _employee_profile(request.user)
+    if profile and not request.user.is_hr:
+        qs = qs.filter(employee=profile)
+
+    timesheets = list(qs.order_by("-work_date")[:100])
+    record_map = {}
+    if timesheets:
+        records = AttendanceRecord.objects.filter(
+            tenant=request.user.tenant,
+            employee_id__in={row.employee_id for row in timesheets},
+            work_date__in={row.work_date for row in timesheets},
+        )
+        record_map = {(r.employee_id, r.work_date): r for r in records}
+
+    for row in timesheets:
+        row.punch_record = record_map.get((row.employee_id, row.work_date))
+
+    return render(
+        request,
+        "web/attendance/list.html",
+        {
+            "timesheets": timesheets,
+            "record_map": record_map,
+            "profile": profile,
+        },
+    )
 
 
 @login_required

@@ -7,6 +7,8 @@ from django.utils import timezone
 from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
 from apps.attendance.services.punch import clock_in, clock_out
+from apps.attendance.tests.test_punch_photo import _sample_photo_data_url
+from apps.attendance.services.photo import decode_selfie
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.services.leave_workflow import approve_leave_request, submit_leave_request
@@ -85,8 +87,9 @@ class EndToEndFlowTests(TestCase):
             scheduled_check_in=time(7, 0),
             scheduled_check_out=time(15, 0),
         )
-        clock_in(self.employee)
-        clock_out(self.employee)
+        photo = decode_selfie(_sample_photo_data_url())
+        clock_in(self.employee, photo=photo)
+        clock_out(self.employee, photo=photo)
         ts = recalculate_daily_timesheet(self.employee, today)
         self.assertIsNotNone(ts.check_in)
         self.assertIsNotNone(ts.check_out)

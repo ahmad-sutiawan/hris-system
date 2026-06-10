@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hris_ui %}
 {% block title %}Absensi — HRIS-Lite{% endblock %}
 {% block page_title %}Absensi{% endblock %}
 
@@ -6,12 +7,16 @@
 <div class="hris-page-header">
   <div>
     <h1>Daily Timesheet</h1>
-    <p>Rekap absensi harian — shift, kode kehadiran, jam kerja & lembur</p>
+    <p>Rekap absensi harian — clock in/out, shift, jam kerja & lembur</p>
   </div>
   <div class="hris-actions">
+    {% if user.role == 'admin' or user.role == 'hr' %}
     <a href="{% url 'web:shift_assignment_list' %}" class="hris-btn hris-btn-secondary">Kelola Shift</a>
     <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-secondary">Assign Shift</a>
     <a href="{% url 'web:attendance_export' %}" class="hris-btn hris-btn-primary">Export CSV (24 kolom)</a>
+    {% else %}
+    <a href="{% url 'web:dashboard' %}" class="hris-btn hris-btn-primary">Clock In / Out</a>
+    {% endif %}
   </div>
 </div>
 
@@ -20,30 +25,62 @@
     <table class="hris-table">
       <thead>
         <tr>
+          {% if user.role == 'admin' or user.role == 'hr' %}
           <th>Employee ID</th>
           <th>Nama</th>
+          {% endif %}
           <th>Tanggal</th>
+          <th>Clock In</th>
+          <th>Clock Out</th>
           <th>Shift</th>
           <th>Code</th>
           <th>Late</th>
           <th>Paid Hrs</th>
-          <th>OT After</th>
+          <th>Foto</th>
         </tr>
       </thead>
       <tbody>
         {% for row in timesheets %}
         <tr>
+          {% if user.role == 'admin' or user.role == 'hr' %}
           <td><span class="hris-mono">{{ row.employee.employee_id }}</span></td>
           <td class="hris-strong">{{ row.employee.full_name }}</td>
-          <td>{{ row.work_date }}</td>
+          {% endif %}
+          <td>{{ row.work_date|local_date }}</td>
+          <td>
+            {% if row.check_in %}
+            <span class="hris-strong">{{ row.check_in|local_datetime:"H:i" }}</span>
+            <span class="hris-text-dim" style="display:block;font-size:0.75rem">{{ row.check_in|local_datetime:"d M Y" }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if row.check_out %}
+            <span class="hris-strong">{{ row.check_out|local_datetime:"H:i" }}</span>
+            <span class="hris-text-dim" style="display:block;font-size:0.75rem">{{ row.check_out|local_datetime:"d M Y" }}</span>
+            {% else %}—{% endif %}
+          </td>
           <td>{{ row.shift_code|default:"-" }}</td>
           <td><span class="hris-mono">{{ row.attendance_code.code|default:"-" }}</span></td>
           <td>{{ row.late_in_minutes }} m</td>
           <td class="hris-num">{{ row.paid_working_hours }}</td>
-          <td class="hris-num">{{ row.ot_after_minutes }} m</td>
+          <td>
+            <div class="hris-punch-photo-row">
+              {% if row.punch_record and row.punch_record.check_in_photo %}
+              <a href="{{ row.punch_record.check_in_photo.url }}" target="_blank" rel="noopener" title="Foto CI">
+                <img src="{{ row.punch_record.check_in_photo.url }}" alt="CI" class="hris-punch-photo hris-punch-photo--sm">
+              </a>
+              {% endif %}
+              {% if row.punch_record and row.punch_record.check_out_photo %}
+              <a href="{{ row.punch_record.check_out_photo.url }}" target="_blank" rel="noopener" title="Foto CO">
+                <img src="{{ row.punch_record.check_out_photo.url }}" alt="CO" class="hris-punch-photo hris-punch-photo--sm">
+              </a>
+              {% endif %}
+              {% if not row.punch_record or not row.punch_record.check_in_photo and not row.punch_record.check_out_photo %}—{% endif %}
+            </div>
+          </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8"><div class="hris-empty">Belum ada timesheet.</div></td></tr>
+        <tr><td colspan="10"><div class="hris-empty">Belum ada timesheet.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

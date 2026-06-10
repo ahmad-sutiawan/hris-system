@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 
@@ -24,13 +25,63 @@ def _get_assignment(employee: Employee, work_date: date):
     ).first()
 
 
+def _save_photo(record: AttendanceRecord, field_name: str, photo: ContentFile):
+    current = getattr(record, field_name)
+    if current:
+        current.delete(save=False)
+    setattr(record, field_name, photo)
+    record.save(update_fields=[field_name, "updated_at"])
+
+
 @transaction.atomic
 def clock_in(
     employee: Employee,
     *,
     source=AttendanceRecord.Source.WEB,
     when=None,
+    photo: ContentFile | None = None,
 ):
+    if not photo:
+        raise PunchError("Foto selfie wajib untuk clock in.")
+
+    when = when or timezone.now()
+    work_date = timezone.localdate(when)
+
+    record, _created = AttendanceRecord.objects.get_or_create(
+        employee=employee,
+        work_date=work_date,
+        defaults={
+            "tenant": employee.tenant,
+            "plant": employee.plant,
+            "check_in": when,
+            "source": source,
+        },
+    )
+
+    record.check_in = when
+    record.check_out = None
+    record.source = source
+
+    assignment = _get_assignment(employee, work_date)
+    if assignment:
+        record.shift_assignment = assignment
+
+    record.save()
+    _save_photo(record, "check_in_photo", photo)
+    recalculate_daily_timesheet(employee, work_date)
+    return record
+
+
+@transaction.atomic
+def clock_out(
+    employee: Employee,
+    *,
+    when=None,
+    photo: ContentFile | None = None,
+):
+    if not photo:
+        raise PunchError("Foto selfie wajib untuk clock out.")
+
     when = when or timezone.now()
     work_date = timezone.localdate(when)
 
@@ -41,42 +92,15 @@ def clock_in(
             "tenant": employee.tenant,
             "plant": employee.plant,
             "check_in": when,
-            "source": source,
+            "source": AttendanceRecord.Source.WEB,
         },
     )
-    if not created:
-        if record.check_in and not record.check_out:
-            raise PunchError("Sudah clock in hari ini.")
-        record.check_in = when
-        record.check_out = None
-        record.source = source
-        record.save(update_fields=["check_in", "check_out", "source", "updated_at"])
-
-    assignment = _get_assignment(employee, work_date)
-    if assignment:
-        record.shift_assignment = assignment
-        record.save(update_fields=["shift_assignment", "updated_at"])
-
-    recalculate_daily_timesheet(employee, work_date)
-    return record
-
-
-@transaction.atomic
-def clock_out(employee: Employee, *, when=None):
-    when = when or timezone.now()
-    work_date = timezone.localdate(when)
-
-    try:
-        record = AttendanceRecord.objects.get(employee=employee, work_date=work_date)
-    except AttendanceRecord.DoesNotExist as exc:
-        raise PunchError("Belum clock in hari ini.") from exc
 
     if not record.check_in:
-        raise PunchError("Belum clock in hari ini.")
-    if record.check_out:
-        raise PunchError("Sudah clock out hari ini.")
+        record.check_in = when
 
     record.check_out = when
-    record.save(update_fields=["check_out", "updated_at"])
+    record.save(update_fields=["check_in", "check_out", "updated_at"])
+    _save_photo(record, "check_out_photo", photo)
     recalculate_daily_timesheet(employee, work_date)
     return record

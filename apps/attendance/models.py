@@ -68,6 +68,18 @@ class AttendanceRecord(TenantScopedModel):
     )
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    check_in_photo = models.ImageField(
+        upload_to="attendance/%Y/%m/",
+        null=True,
+        blank=True,
+        verbose_name="Foto clock in",
+    )
+    check_out_photo = models.ImageField(
+        upload_to="attendance/%Y/%m/",
+        null=True,
+        blank=True,
+        verbose_name="Foto clock out",
+    )
     notes = models.TextField(blank=True)
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
