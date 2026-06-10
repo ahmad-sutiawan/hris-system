@@ -160,6 +160,37 @@ class WebCRUDTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertTrue(LeaveRequest.objects.filter(employee=self.employee).exists())
 
+    def test_leave_form_date_widget_is_html5(self):
+        from apps.web.forms import LeaveRequestForm
+
+        form = LeaveRequestForm(tenant=self.tenant, show_employee_picker=False, profile=self.employee)
+        html = form.as_table()
+        self.assertIn('type="date"', html)
+        self.assertIn("hris-date-input", html)
+        self.assertEqual(form.fields["start_date"].input_formats, ["%Y-%m-%d"])
+
+    def test_leave_create_as_employee_with_iso_dates(self):
+        emp_user = User.objects.create_user(
+            username="budi-crud",
+            password="TestPassword123!",
+            tenant=self.tenant,
+            plant=self.plant,
+            role=User.Role.EMPLOYEE,
+        )
+        self.employee.user = emp_user
+        self.employee.save(update_fields=["user"])
+        self.client.logout()
+        self.client.login(username="budi-crud", password="TestPassword123!")
+        start = self.today + timedelta(days=14)
+        data = {
+            "leave_type": self.leave_type.pk,
+            "start_date": start.isoformat(),
+            "end_date": (start + timedelta(days=1)).isoformat(),
+            "reason": "Cuti",
+        }
+        response = self.client.post(reverse("web:leave_create"), data)
+        self.assertEqual(response.status_code, 302, msg=response.content.decode()[:500])
+
     def test_employee_deactivate(self):
         response = self.client.post(reverse("web:employee_deactivate", args=[self.employee.pk]))
         self.assertEqual(response.status_code, 302)

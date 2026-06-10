@@ -2,12 +2,13 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import path
 
 from apps.web import views
+from apps.web.auth_views import HRISLoginView, HRISLogoutView
 
 app_name = "web"
 
 urlpatterns = [
-    path("login/", LoginView.as_view(template_name="web/login.html"), name="login"),
-    path("logout/", LogoutView.as_view(), name="logout"),
+    path("login/", HRISLoginView.as_view(), name="login"),
+    path("logout/", HRISLogoutView.as_view(), name="logout"),
     path("", views.dashboard, name="dashboard"),
     path("punch/", views.punch_action, name="punch"),
     path("employees/", views.employee_list, name="employee_list"),

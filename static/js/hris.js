@@ -29,6 +29,7 @@
     btn.addEventListener("click", function (event) {
       event.preventDefault();
       event.stopPropagation();
+      closeUserMenu();
       panel.classList.toggle("is-open");
     });
 
@@ -41,8 +42,43 @@
     });
   }
 
+  function closeUserMenu() {
+    var panel = document.getElementById("hris-user-menu-panel");
+    var btn = document.getElementById("hris-user-menu-btn");
+    if (panel) panel.classList.remove("is-open");
+    if (btn) btn.setAttribute("aria-expanded", "false");
+  }
+
+  function initUserMenu() {
+    var btn = document.getElementById("hris-user-menu-btn");
+    var panel = document.getElementById("hris-user-menu-panel");
+    if (!btn || !panel) return;
+
+    btn.addEventListener("click", function (event) {
+      event.stopPropagation();
+      var notifPanel = document.getElementById("hris-notif-panel");
+      if (notifPanel) notifPanel.classList.remove("is-open");
+      var open = panel.classList.toggle("is-open");
+      btn.setAttribute("aria-expanded", open ? "true" : "false");
+    });
+
+    document.addEventListener("click", closeUserMenu);
+    panel.addEventListener("click", function (event) {
+      event.stopPropagation();
+    });
+
+    panel.querySelectorAll(".hris-user-menu-logout, .hris-sidebar-logout-btn").forEach(function (el) {
+      el.addEventListener("click", function (event) {
+        if (!window.confirm("Keluar dari HRIS-Lite?")) {
+          event.preventDefault();
+        }
+      });
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     initSidebar();
     initNotifications();
+    initUserMenu();
   });
 })();

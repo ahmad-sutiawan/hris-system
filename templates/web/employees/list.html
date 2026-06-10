@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Master Karyawan</h1>
-    <p>Data workforce plant — ID, organisasi, dan status kepegawaian</p>
+    <p>Data workforce plant — hubungkan kolom <strong>Akun login</strong> agar karyawan bisa ajukan cuti</p>
   </div>
   <div class="hris-actions">
     <a href="{% url 'web:employee_import' %}" class="hris-btn hris-btn-secondary">Import CSV</a>
@@ -24,7 +24,7 @@
           <th>Nama</th>
           <th>Plant</th>
           <th>Department</th>
-          <th>Department</th>
+          <th>Akun login</th>
           <th>Status</th>
           <th>Aksi</th>
         </tr>
@@ -36,6 +36,13 @@
           <td class="hris-strong">{{ employee.full_name }}</td>
           <td>{{ employee.plant.code }}</td>
           <td>{{ employee.department.name|default:"-" }}</td>
+          <td>
+            {% if employee.user %}
+            <span class="hris-mono">{{ employee.user.username }}</span>
+            {% else %}
+            <span class="hris-badge hris-badge--pending">Belum dihubungkan</span>
+            {% endif %}
+          </td>
           <td>{% status_badge employee.status employee.get_status_display %}</td>
           <td>
             <div class="hris-inline-actions">
@@ -49,7 +56,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
+        <tr><td colspan="7"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

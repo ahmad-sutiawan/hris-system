@@ -145,3 +145,4 @@ EMAIL_BACKEND = config(
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@hris.local")
 HRIS_SITE_URL = config("HRIS_SITE_URL", default="http://127.0.0.1:8000")
 HRIS_DEFAULT_TENANT_SLUG = config("HRIS_DEFAULT_TENANT_SLUG", default="default")
+HRIS_AUTO_PROVISION_EMPLOYEES = config("HRIS_AUTO_PROVISION_EMPLOYEES", default=DEBUG, cast=bool)

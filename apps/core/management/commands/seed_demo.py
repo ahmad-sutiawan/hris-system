@@ -208,4 +208,37 @@ class Command(BaseCommand):
             employee.user = emp_user
             employee.save(update_fields=["user"])
 
+        ayub_user, created = User.objects.get_or_create(
+            username="ayub",
+            defaults={
+                "tenant": tenant,
+                "plant": plant,
+                "role": User.Role.EMPLOYEE,
+            },
+        )
+        if created:
+            ayub_user.set_password("Employee123!")
+            ayub_user.save()
+            self.stdout.write(self.style.SUCCESS("Created employee user (ayub / Employee123!)"))
+
+        ayub_employee, _ = Employee.objects.update_or_create(
+            tenant=tenant,
+            employee_id="PLT01-2026-002",
+            defaults={
+                "plant": plant,
+                "department": dept,
+                "job_position": job,
+                "manager": manager_employee,
+                "full_name": "Ayub",
+                "join_date": timezone.localdate(),
+                "status": Employee.Status.PERMANENT,
+                "base_salary": Decimal("5000000"),
+                "user": ayub_user,
+            },
+        )
+        if not ayub_employee.user_id:
+            ayub_employee.user = ayub_user
+            ayub_employee.save(update_fields=["user"])
+        get_or_create_balance(ayub_employee, ct)
+
         self.stdout.write(self.style.SUCCESS(f"Seed complete for tenant '{tenant.slug}'"))

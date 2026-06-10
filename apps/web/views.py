@@ -22,6 +22,7 @@ from apps.leave.services.leave_workflow import (
     submit_leave_request,
 )
 from apps.payroll.models import PayrollRun, Payslip
+from apps.employees.services.user_link import ensure_employee_profile
 from apps.employees.services.import_csv import import_employees_csv, template_csv
 from apps.payroll.services.bank_export import export_bank_csv
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
@@ -400,48 +401,58 @@ def leave_list(request):
 @login_required
 def leave_create(request):
     profile = _employee_profile(request.user)
-    show_employee = request.user.is_hr
+    if not profile and request.user.role in {User.Role.EMPLOYEE, User.Role.MANAGER}:
+        profile = ensure_employee_profile(request.user)
+
+    show_employee_picker = request.user.is_hr
+    can_submit = bool(profile or request.user.is_hr)
+
+    form_kwargs = {
+        "tenant": request.user.tenant,
+        "user": request.user,
+        "show_employee_picker": show_employee_picker,
+        "profile": profile,
+    }
 
     if request.method == "POST":
-        form = LeaveRequestForm(
-            request.POST,
-            tenant=request.user.tenant,
-            user=request.user,
-            show_employee=show_employee,
-        )
+        if not can_submit:
+            messages.error(
+                request,
+                "Akun belum terhubung ke data karyawan. Hubungi HR untuk menghubungkan akun Anda.",
+            )
+            return redirect("web:leave_list")
+
+        form = LeaveRequestForm(request.POST, **form_kwargs)
         if form.is_valid():
-            employee = form.cleaned_data.get("employee") if show_employee else profile
-            if not employee:
-                messages.error(
-                    request,
-                    "Pilih karyawan atau hubungkan akun ke data karyawan terlebih dahulu.",
+            employee = form.cleaned_data["employee"]
+            try:
+                submit_leave_request(
+                    employee=employee,
+                    leave_type=form.cleaned_data["leave_type"],
+                    start_date=form.cleaned_data["start_date"],
+                    end_date=form.cleaned_data["end_date"],
+                    reason=form.cleaned_data.get("reason", ""),
+                    is_half_day=form.cleaned_data.get("is_half_day", False),
                 )
-            else:
-                try:
-                    submit_leave_request(
-                        employee=employee,
-                        leave_type=form.cleaned_data["leave_type"],
-                        start_date=form.cleaned_data["start_date"],
-                        end_date=form.cleaned_data["end_date"],
-                        reason=form.cleaned_data.get("reason", ""),
-                        is_half_day=form.cleaned_data.get("is_half_day", False),
-                    )
-                    messages.success(request, "Pengajuan cuti berhasil dikirim.")
-                    return redirect("web:leave_list")
-                except LeaveError as exc:
-                    messages.error(request, str(exc))
+                messages.success(request, "Pengajuan cuti berhasil dikirim.")
+                return redirect("web:leave_list")
+            except LeaveError as exc:
+                messages.error(request, str(exc))
     else:
-        form = LeaveRequestForm(
-            tenant=request.user.tenant,
-            user=request.user,
-            show_employee=show_employee,
-        )
+        form = LeaveRequestForm(**form_kwargs)
 
     ctx = _form_context(
         form,
         "Ajukan Cuti",
         cancel_url="/leave/",
         submit_label="Kirim Pengajuan",
+    )
+    ctx.update(
+        {
+            "profile": profile,
+            "show_employee_picker": show_employee_picker,
+            "can_submit": can_submit,
+        }
     )
     return render(request, "web/leave/form.html", ctx)
 

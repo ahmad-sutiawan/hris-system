@@ -1,2 +1,138 @@
-{% extends "web/employees/form.html" %}
+{% extends "base.html" %}
 {% block title %}Ajukan Cuti — HRIS-Lite{% endblock %}
+{% block page_title %}Ajukan Cuti{% endblock %}
+
+{% block content %}
+<div class="hris-form-card">
+  <div class="hris-page-header">
+    <div>
+      <h1>Ajukan Cuti</h1>
+      <p>Pilih jenis cuti dan rentang tanggal</p>
+    </div>
+  </div>
+
+  {% if not can_submit %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-alert hris-alert--error">
+        Akun <strong>{{ user.username }}</strong> belum terhubung ke data karyawan.
+        Hubungi HR/Admin untuk menghubungkan akun di menu <strong>Karyawan → Edit</strong>,
+        atau pastikan data karyawan dengan nama/email yang sama sudah dibuat.
+      </div>
+      <a href="{% url 'web:leave_list' %}" class="hris-btn hris-btn-secondary">Kembali</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      {% if profile and not show_employee_picker %}
+      <div class="hris-alert hris-alert--info" style="margin-bottom:1rem">
+        Pengajuan cuti untuk: <strong>{{ profile.full_name }}</strong> ({{ profile.employee_id }})
+      </div>
+      {% endif %}
+
+      <form method="post" class="hris-form-grid" id="leave-request-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="hris-alert hris-alert--error hris-field--full">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% if show_employee_picker %}
+        <div class="hris-field hris-field--full">
+          <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+          {{ form.employee }}
+          {% if form.employee.help_text %}<p class="hris-field-help">{{ form.employee.help_text }}</p>{% endif %}
+          {% if form.employee.errors %}<p class="hris-field-error">{{ form.employee.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="hris-field hris-field--full">
+          <label for="{{ form.leave_type.id_for_label }}">{{ form.leave_type.label }}</label>
+          {{ form.leave_type }}
+          {% if form.leave_type.errors %}<p class="hris-field-error">{{ form.leave_type.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-date-row hris-field--full">
+          <div class="hris-field">
+            <label for="{{ form.start_date.id_for_label }}">{{ form.start_date.label }}</label>
+            <div class="hris-date-input-wrap">
+              {{ form.start_date }}
+              <span class="hris-date-input-hint">Klik ikon kalender</span>
+            </div>
+            {% if form.start_date.errors %}<p class="hris-field-error">{{ form.start_date.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="hris-field" id="leave-end-date-field">
+            <label for="{{ form.end_date.id_for_label }}">{{ form.end_date.label }}</label>
+            <div class="hris-date-input-wrap">
+              {{ form.end_date }}
+              <span class="hris-date-input-hint">≥ tanggal mulai</span>
+            </div>
+            {% if form.end_date.errors %}<p class="hris-field-error">{{ form.end_date.errors.0 }}</p>{% endif %}
+          </div>
+        </div>
+
+        <div class="hris-field hris-field--checkbox hris-field--full">
+          <label class="hris-checkbox-label">{{ form.is_half_day }} {{ form.is_half_day.label }}</label>
+          <p class="hris-field-help">Jika setengah hari, tanggal selesai otomatis sama dengan tanggal mulai.</p>
+        </div>
+
+        <div class="hris-field hris-field--full">
+          <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+          {{ form.reason }}
+          {% if form.reason.errors %}<p class="hris-field-error">{{ form.reason.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-inline-actions hris-field--full" style="margin-top:0.5rem">
+          <button type="submit" class="hris-btn hris-btn-primary">{{ submit_label|default:"Kirim Pengajuan" }}</button>
+          <a href="{{ cancel_url|default:'/leave/' }}" class="hris-btn hris-btn-ghost">Batal</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% if can_submit %}
+<script>
+(function () {
+  var form = document.getElementById("leave-request-form");
+  if (!form) return;
+
+  var start = document.getElementById("id_start_date");
+  var end = document.getElementById("id_end_date");
+  var halfDay = document.getElementById("id_is_half_day");
+  var endField = document.getElementById("leave-end-date-field");
+
+  function syncEndDate() {
+    if (!start || !end) return;
+    if (halfDay && halfDay.checked) {
+      end.value = start.value || end.value;
+      end.readOnly = true;
+      if (endField) endField.classList.add("is-disabled");
+      return;
+    }
+    end.readOnly = false;
+    if (endField) endField.classList.remove("is-disabled");
+    if (start.value) {
+      end.min = start.value;
+      if (end.value && end.value < start.value) {
+        end.value = start.value;
+      }
+    }
+  }
+
+  if (start) start.addEventListener("change", syncEndDate);
+  if (halfDay) halfDay.addEventListener("change", syncEndDate);
+  form.addEventListener("submit", function () {
+    if (halfDay && halfDay.checked && start && end) {
+      end.readOnly = false;
+      end.value = start.value;
+    }
+  });
+  syncEndDate();
+})();
+</script>
+{% endif %}
+{% endblock %}
