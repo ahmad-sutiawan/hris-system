@@ -136,7 +136,10 @@ body.hris-body::before {
 .hris-nav {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+  overflow-anchor: none;
   padding: 1rem 0.75rem;
+  scroll-behavior: auto;
 }
 
 .hris-nav-section {

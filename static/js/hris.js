@@ -1,4 +1,31 @@
 (function () {
+  function initSidebarScrollMemory() {
+    var nav = document.querySelector(".hris-nav");
+    if (!nav) return;
+
+    var storageKey = "hris-sidebar-scroll";
+    var saved = sessionStorage.getItem(storageKey);
+    if (saved !== null) {
+      var top = parseInt(saved, 10);
+      if (!isNaN(top)) {
+        nav.scrollTop = top;
+        requestAnimationFrame(function () {
+          nav.scrollTop = top;
+        });
+      }
+    }
+
+    var persist = function () {
+      sessionStorage.setItem(storageKey, String(nav.scrollTop));
+    };
+
+    nav.addEventListener("scroll", persist, { passive: true });
+
+    nav.querySelectorAll(".hris-nav-link").forEach(function (link) {
+      link.addEventListener("click", persist);
+    });
+  }
+
   function initSidebar() {
     var toggle = document.getElementById("hris-menu-toggle");
     var sidebar = document.getElementById("hris-sidebar");
@@ -77,6 +104,7 @@
   }
 
   document.addEventListener("DOMContentLoaded", function () {
+    initSidebarScrollMemory();
     initSidebar();
     initNotifications();
     initUserMenu();
