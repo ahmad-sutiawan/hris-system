@@ -3,11 +3,11 @@
   --hris-bg-elevated: #11151c;
   --hris-surface: #161b24;
   --hris-surface-hover: #1c2330;
-  --hris-border: rgba(148, 163, 184, 0.12);
-  --hris-border-strong: rgba(148, 163, 184, 0.22);
-  --hris-text: #e8edf5;
-  --hris-text-muted: #8b9cb3;
-  --hris-text-dim: #5c6b80;
+  --hris-border: rgba(148, 163, 184, 0.18);
+  --hris-border-strong: rgba(148, 163, 184, 0.32);
+  --hris-text: #f3f6fb;
+  --hris-text-muted: #c4ceda;
+  --hris-text-dim: #a3b0c2;
   --hris-accent: #f59e0b;
   --hris-accent-hover: #fbbf24;
   --hris-accent-glow: rgba(245, 158, 11, 0.25);
@@ -23,8 +23,8 @@
   --hris-info-dim: rgba(96, 165, 250, 0.12);
   --hris-sidebar-w: 12.25rem;
   --hris-topbar-h: 4rem;
-  --hris-radius: 0.875rem;
-  --hris-radius-sm: 0.625rem;
+  --hris-radius: 0;
+  --hris-radius-sm: 0;
   --hris-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
   --hris-font: "Plus Jakarta Sans", system-ui, sans-serif;
   --hris-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -108,7 +108,7 @@ body.hris-body::before {
   place-items: center;
   width: 2.125rem;
   height: 2.125rem;
-  border-radius: 0.75rem;
+  border-radius: 0;
   background: linear-gradient(135deg, var(--hris-accent) 0%, #ea580c 100%);
   box-shadow: 0 0 24px var(--hris-accent-glow);
   color: #0a0c10;
@@ -131,6 +131,33 @@ body.hris-body::before {
   color: var(--hris-text-dim);
   text-transform: uppercase;
   letter-spacing: 0.12em;
+}
+
+.hris-brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 9.5rem;
+  height: auto;
+  object-fit: contain;
+}
+
+.hris-brand--logo {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.625rem;
+}
+
+.hris-brand-logo--sidebar {
+  max-width: 100%;
+}
+
+.hris-brand-logo--hero {
+  max-width: 11rem;
+}
+
+.hris-brand-logo--panel {
+  max-width: 10rem;
+  margin: 0 auto 1rem;
 }
 
 .hris-nav {
@@ -173,7 +200,7 @@ body.hris-body::before {
   width: 1rem;
   height: 1rem;
   flex-shrink: 0;
-  opacity: 0.7;
+  opacity: 0.88;
 }
 
 .hris-nav-link:hover {
@@ -213,7 +240,7 @@ body.hris-body::before {
   content: "";
   width: 0.5rem;
   height: 0.5rem;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--hris-success);
   box-shadow: 0 0 8px var(--hris-success);
 }
@@ -308,7 +335,7 @@ body.hris-body::before {
   min-width: 1.125rem;
   height: 1.125rem;
   padding: 0 0.25rem;
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--hris-danger);
   color: white;
   font-size: 0.625rem;
@@ -398,7 +425,7 @@ body.hris-body::before {
   gap: 0.625rem;
   padding: 0.375rem 0.625rem 0.375rem 0.375rem;
   border: 1px solid var(--hris-border);
-  border-radius: 999px;
+  border-radius: 0;
   background: var(--hris-surface);
   color: inherit;
   cursor: pointer;
@@ -410,7 +437,7 @@ body.hris-body::before {
   place-items: center;
   width: 2rem;
   height: 2rem;
-  border-radius: 999px;
+  border-radius: 0;
   background: linear-gradient(135deg, var(--hris-cyan-dim), var(--hris-accent-glow));
   border: 1px solid var(--hris-border-strong);
   font-size: 0.75rem;
@@ -770,14 +797,14 @@ body.hris-body::before {
   margin: 0 auto 1rem;
   width: 3rem;
   height: 3rem;
-  opacity: 0.35;
+  opacity: 0.5;
 }
 
 .hris-badge {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.625rem;
-  border-radius: 999px;
+  border-radius: 0;
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -858,6 +885,12 @@ textarea.hris-textarea {
   outline: none;
   border-color: var(--hris-accent);
   box-shadow: 0 0 0 3px var(--hris-accent-glow);
+}
+
+.hris-input::placeholder,
+.hris-textarea::placeholder {
+  color: var(--hris-text-dim);
+  opacity: 1;
 }
 
 .hris-field-error {
@@ -1044,7 +1077,7 @@ textarea.hris-textarea {
   height: 3rem;
   max-width: none;
   aspect-ratio: 1;
-  border-radius: 0.5rem;
+  border-radius: 0;
 }
 
 .hris-punch-photo-row {
@@ -1255,7 +1288,7 @@ body.hris-modal-open {
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border-radius: 0.625rem;
+  border-radius: 0;
   background: var(--hris-accent-glow);
   color: var(--hris-accent);
   flex-shrink: 0;
@@ -1273,7 +1306,7 @@ body.hris-modal-open {
   max-width: 26rem;
   padding: 2rem;
   border: 1px solid var(--hris-border);
-  border-radius: 1.25rem;
+  border-radius: 0;
   background: var(--hris-surface);
   box-shadow: var(--hris-shadow);
 }
@@ -1416,6 +1449,7 @@ body.hris-modal-open {
 
 .hris-login-box-head {
   margin-bottom: 0.25rem;
+  text-align: center;
 }
 
 .hris-input-wrap {
@@ -1723,7 +1757,7 @@ body.hris-modal-open {
 .hris-nav-link--admin svg {
   width: 1rem;
   height: 1rem;
-  opacity: 0.7;
+  opacity: 0.88;
 }
 
 .hris-nav-link--admin-hub {
@@ -1751,7 +1785,7 @@ body.hris-modal-open {
 .hris-nav-link--master svg {
   width: 1rem;
   height: 1rem;
-  opacity: 0.7;
+  opacity: 0.88;
 }
 
 .hris-nav-link--master-hub {

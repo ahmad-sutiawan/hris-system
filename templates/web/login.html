@@ -5,8 +5,8 @@
 <div class="hris-login-page">
   <div class="hris-login-hero">
     <div>
-      <div class="hris-brand hris-brand--flat">
-        <div class="hris-brand-mark">BP</div>
+      <div class="hris-brand hris-brand--flat hris-brand--logo">
+        {% include "components/brand_logo.html" with modifier="hero" %}
         <div class="hris-brand-text">
           <strong>PT BPS HRIS</strong>
           <span>Manufaktur Baja</span>
@@ -40,6 +40,7 @@
   <div class="hris-login-panel">
     <div class="hris-login-box">
       <div class="hris-login-box-head">
+        {% include "components/brand_logo.html" with modifier="panel" %}
         <h1>Selamat datang</h1>
         <p>Masuk ke portal HR PT BPS</p>
       </div>
