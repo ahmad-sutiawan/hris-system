@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -152,11 +153,44 @@ def punch_action(request):
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_list(request):
     qs = Employee.objects.filter(tenant=request.user.tenant).select_related(
-        "plant", "department", "job_position"
+        "plant",
+        "legal_entity",
+        "department",
+        "job_position",
+        "manager",
+        "user",
     )
     if request.user.plant_id and not request.user.is_admin:
         qs = qs.filter(plant=request.user.plant)
-    return render(request, "web/employees/list.html", {"employees": qs[:100]})
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        text = query
+        filters = Q(
+            employee_id__icontains=text,
+        ) | Q(full_name__icontains=text) | Q(nik__icontains=text) | Q(email__icontains=text)
+        filters |= Q(phone__icontains=text) | Q(npwp__icontains=text) | Q(tax_status__icontains=text)
+        filters |= Q(bank_name__icontains=text) | Q(bank_account_number__icontains=text)
+        filters |= Q(bank_account_name__icontains=text) | Q(status__icontains=text)
+        filters |= Q(salary_scheme__icontains=text) | Q(bpjs_kesehatan_number__icontains=text)
+        filters |= Q(bpjs_ketenagakerjaan_number__icontains=text)
+        filters |= Q(plant__code__icontains=text) | Q(plant__name__icontains=text)
+        filters |= Q(legal_entity__name__icontains=text) | Q(department__name__icontains=text)
+        filters |= Q(department__code__icontains=text) | Q(job_position__title__icontains=text)
+        filters |= Q(job_position__code__icontains=text) | Q(manager__full_name__icontains=text)
+        filters |= Q(manager__employee_id__icontains=text) | Q(user__username__icontains=text)
+        qs = qs.filter(filters)
+
+    employees = list(qs.order_by("full_name")[:500])
+    return render(
+        request,
+        "web/employees/list.html",
+        {
+            "employees": employees,
+            "search_query": query,
+            "result_count": len(employees),
+        },
+    )
 
 
 @login_required
@@ -267,10 +301,29 @@ def employee_deactivate(request, pk):
 def shift_assignment_list(request):
     qs = ShiftAssignment.objects.filter(tenant=request.user.tenant).select_related(
         "employee", "shift"
-    ).order_by("-work_date")[:100]
+    ).order_by("-work_date")
     if request.user.plant_id and not request.user.is_admin:
         qs = qs.filter(employee__plant=request.user.plant)
-    return render(request, "web/shifts/list.html", {"assignments": qs})
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(employee__full_name__icontains=query)
+            | Q(employee__employee_id__icontains=query)
+            | Q(shift__code__icontains=query)
+            | Q(shift__name__icontains=query)
+        )
+
+    assignments = list(qs[:500])
+    return render(
+        request,
+        "web/shifts/list.html",
+        {
+            "assignments": assignments,
+            "search_query": query,
+            "result_count": len(assignments),
+        },
+    )
 
 
 @login_required
@@ -394,7 +447,16 @@ def attendance_list(request):
     if profile and not request.user.is_hr:
         qs = qs.filter(employee=profile)
 
-    timesheets = list(qs.order_by("-work_date")[:100])
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(employee__employee_id__icontains=query)
+            | Q(employee__full_name__icontains=query)
+            | Q(shift_code__icontains=query)
+            | Q(attendance_code__code__icontains=query)
+        )
+
+    timesheets = list(qs.order_by("-work_date")[:500])
     record_map = {}
     if timesheets:
         records = AttendanceRecord.objects.filter(
@@ -414,6 +476,8 @@ def attendance_list(request):
             "timesheets": timesheets,
             "record_map": record_map,
             "profile": profile,
+            "search_query": query,
+            "result_count": len(timesheets),
         },
     )
 
@@ -439,7 +503,18 @@ def attendance_export(request):
 def leave_list(request):
     qs = LeaveRequest.objects.filter(tenant=request.user.tenant).select_related(
         "employee", "leave_type"
-    ).order_by("-created_at")[:100]
+    ).order_by("-created_at")
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(employee__full_name__icontains=query)
+            | Q(employee__employee_id__icontains=query)
+            | Q(leave_type__code__icontains=query)
+            | Q(leave_type__name__icontains=query)
+            | Q(status__icontains=query)
+            | Q(reason__icontains=query)
+        )
+    leave_requests = list(qs[:500])
     can_approve = request.user.role in {
         User.Role.ADMIN,
         User.Role.HR,
@@ -450,9 +525,11 @@ def leave_list(request):
         request,
         "web/leave/list.html",
         {
-            "leave_requests": qs,
+            "leave_requests": leave_requests,
             "can_approve": can_approve,
             "profile": profile,
+            "search_query": query,
+            "result_count": len(leave_requests),
         },
     )
 
@@ -566,8 +643,27 @@ def leave_reject(request, pk):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_list(request):
-    runs = PayrollRun.objects.filter(tenant=request.user.tenant).select_related("plant")[:50]
-    return render(request, "web/payroll/list.html", {"payroll_runs": runs})
+    qs = PayrollRun.objects.filter(tenant=request.user.tenant).select_related("plant").order_by(
+        "-period_end"
+    )
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(plant__code__icontains=query)
+            | Q(plant__name__icontains=query)
+            | Q(status__icontains=query)
+            | Q(notes__icontains=query)
+        )
+    payroll_runs = list(qs[:500])
+    return render(
+        request,
+        "web/payroll/list.html",
+        {
+            "payroll_runs": payroll_runs,
+            "search_query": query,
+            "result_count": len(payroll_runs),
+        },
+    )
 
 
 @login_required
@@ -652,11 +748,23 @@ def payroll_cancel(request, pk):
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_detail(request, pk):
     run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
-    payslips = Payslip.objects.filter(payroll_run=run).select_related("employee")
+    qs = Payslip.objects.filter(payroll_run=run).select_related("employee")
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(employee__full_name__icontains=query)
+            | Q(employee__employee_id__icontains=query)
+        )
+    payslips = list(qs)
     return render(
         request,
         "web/payroll/detail.html",
-        {"payroll_run": run, "payslips": payslips},
+        {
+            "payroll_run": run,
+            "payslips": payslips,
+            "search_query": query,
+            "result_count": len(payslips),
+        },
     )
 
 
@@ -692,12 +800,33 @@ def payslip_list(request):
     if request.user.is_hr or request.user.is_admin:
         qs = Payslip.objects.filter(tenant=request.user.tenant).select_related(
             "employee", "payroll_run"
-        )[:50]
+        ).order_by("-payroll_run__period_end")
     elif profile:
-        qs = Payslip.objects.filter(employee=profile).select_related("payroll_run")[:12]
+        qs = Payslip.objects.filter(employee=profile).select_related("payroll_run").order_by(
+            "-payroll_run__period_end"
+        )
     else:
         qs = Payslip.objects.none()
-    return render(request, "web/payroll/payslips.html", {"payslips": qs})
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(employee__full_name__icontains=query)
+            | Q(employee__employee_id__icontains=query)
+            | Q(verification_hash__icontains=query)
+            | Q(payroll_run__plant__code__icontains=query)
+        )
+
+    payslips = list(qs[:500])
+    return render(
+        request,
+        "web/payroll/payslips.html",
+        {
+            "payslips": payslips,
+            "search_query": query,
+            "result_count": len(payslips),
+        },
+    )
 
 
 @login_required
@@ -736,8 +865,24 @@ def payroll_bank_export(request, pk):
 
 @login_required
 def notification_list(request):
-    qs = Notification.objects.filter(user=request.user).order_by("-created_at")[:100]
-    return render(request, "web/notifications/list.html", {"notifications": qs})
+    qs = Notification.objects.filter(user=request.user).order_by("-created_at")
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(title__icontains=query)
+            | Q(message__icontains=query)
+            | Q(category__icontains=query)
+        )
+    notifications = list(qs[:500])
+    return render(
+        request,
+        "web/notifications/list.html",
+        {
+            "notifications": notifications,
+            "search_query": query,
+            "result_count": len(notifications),
+        },
+    )
 
 
 @login_required
@@ -760,12 +905,29 @@ def notification_mark_all_read(request):
 def audit_log_list(request):
     qs = AuditLog.objects.filter(tenant=request.user.tenant).select_related("user").order_by(
         "-created_at"
-    )[:200]
-    model_name = request.GET.get("model")
+    )
+    model_name = request.GET.get("model", "").strip()
     if model_name:
-        qs = qs.filter(model_name=model_name)
+        qs = qs.filter(model_name__icontains=model_name)
+
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(model_name__icontains=query)
+            | Q(object_repr__icontains=query)
+            | Q(changes__icontains=query)
+            | Q(action__icontains=query)
+            | Q(user__username__icontains=query)
+        )
+
+    audit_logs = list(qs[:500])
     return render(
         request,
         "web/audit/list.html",
-        {"audit_logs": qs, "model_filter": model_name or ""},
+        {
+            "audit_logs": audit_logs,
+            "model_filter": model_name,
+            "search_query": query,
+            "result_count": len(audit_logs),
+        },
     )

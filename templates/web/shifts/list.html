@@ -7,16 +7,19 @@
 <div class="hris-page-header">
   <div>
     <h1>Shift Assignment</h1>
-    <p>Penjadwalan shift harian per karyawan</p>
+    <p>Penjadwalan shift harian per karyawan — {{ result_count }} baris ditampilkan</p>
   </div>
   <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-primary">+ Assign Shift</a>
 </div>
 
-<div class="hris-table-wrap">
+{% include "components/list_search.html" with search_placeholder="Cari karyawan, kode shift…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
     <table class="hris-table">
       <thead>
         <tr>
+          <th class="hris-col-no">No</th>
           <th>Tanggal</th>
           <th>Karyawan</th>
           <th>Shift</th>
@@ -28,6 +31,7 @@
       <tbody>
         {% for row in assignments %}
         <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           <td>{{ row.work_date }}</td>
           <td class="hris-strong">{{ row.employee.full_name }}</td>
           <td><span class="hris-mono">{{ row.shift.code }}</span></td>
@@ -43,7 +47,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6"><div class="hris-empty">Belum ada assignment shift.</div></td></tr>
+        <tr><td colspan="7"><div class="hris-empty">{% if search_query %}Tidak ada assignment shift yang cocok dengan pencarian.{% else %}Belum ada assignment shift.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

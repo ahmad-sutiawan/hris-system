@@ -6,25 +6,29 @@
 <div class="hris-page-header">
   <div>
     <h1>Slip Gaji</h1>
-    <p>Arsip payslip karyawan — download PDF terverifikasi</p>
+    <p>Arsip payslip karyawan — {{ result_count }} baris ditampilkan</p>
   </div>
 </div>
 
-<div class="hris-table-wrap">
+{% include "components/list_search.html" with search_placeholder="Cari karyawan, periode, hash verifikasi…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
     <table class="hris-table">
       <thead>
         <tr>
+          <th class="hris-col-no">No</th>
           <th>Periode</th>
           <th>Karyawan</th>
           <th class="hris-num">THP</th>
           <th>Hash</th>
-          <th></th>
+          <th>Aksi</th>
         </tr>
       </thead>
       <tbody>
         {% for slip in payslips %}
         <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           <td>{{ slip.payroll_run.period_start }} — {{ slip.payroll_run.period_end }}</td>
           <td class="hris-strong">{{ slip.employee.full_name }}</td>
           <td class="hris-num hris-strong">Rp {{ slip.net_amount }}</td>
@@ -32,7 +36,7 @@
           <td><a href="{% url 'web:payslip_download' slip.pk %}" class="hris-link">PDF →</a></td>
         </tr>
         {% empty %}
-        <tr><td colspan="5"><div class="hris-empty">Belum ada slip gaji.</div></td></tr>
+        <tr><td colspan="6"><div class="hris-empty">{% if search_query %}Tidak ada slip gaji yang cocok dengan pencarian.{% else %}Belum ada slip gaji.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

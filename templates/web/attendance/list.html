@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Daily Timesheet</h1>
-    <p>Rekap absensi harian — clock in/out, shift, jam kerja & lembur</p>
+    <p>Rekap absensi harian — {{ result_count }} baris ditampilkan</p>
   </div>
   <div class="hris-actions">
     {% if user.role == 'admin' or user.role == 'hr' %}
@@ -20,11 +20,14 @@
   </div>
 </div>
 
-<div class="hris-table-wrap">
+{% include "components/list_search.html" with search_placeholder="Cari employee ID, nama, shift, kode absensi…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
     <table class="hris-table">
       <thead>
         <tr>
+          <th class="hris-col-no">No</th>
           {% if user.role == 'admin' or user.role == 'hr' %}
           <th>Employee ID</th>
           <th>Nama</th>
@@ -42,6 +45,7 @@
       <tbody>
         {% for row in timesheets %}
         <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           {% if user.role == 'admin' or user.role == 'hr' %}
           <td><span class="hris-mono">{{ row.employee.employee_id }}</span></td>
           <td class="hris-strong">{{ row.employee.full_name }}</td>
@@ -50,13 +54,13 @@
           <td>
             {% if row.check_in %}
             <span class="hris-strong">{{ row.check_in|local_datetime:"H:i" }}</span>
-            <span class="hris-text-dim" style="display:block;font-size:0.75rem">{{ row.check_in|local_datetime:"d M Y" }}</span>
+            <span class="hris-text-dim" style="display:block;font-size:0.6875rem">{{ row.check_in|local_datetime:"d M Y" }}</span>
             {% else %}—{% endif %}
           </td>
           <td>
             {% if row.check_out %}
             <span class="hris-strong">{{ row.check_out|local_datetime:"H:i" }}</span>
-            <span class="hris-text-dim" style="display:block;font-size:0.75rem">{{ row.check_out|local_datetime:"d M Y" }}</span>
+            <span class="hris-text-dim" style="display:block;font-size:0.6875rem">{{ row.check_out|local_datetime:"d M Y" }}</span>
             {% else %}—{% endif %}
           </td>
           <td>{{ row.shift_code|default:"-" }}</td>
@@ -80,7 +84,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="10"><div class="hris-empty">Belum ada timesheet.</div></td></tr>
+        <tr><td colspan="{% if user.role == 'admin' or user.role == 'hr' %}11{% else %}9{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada timesheet yang cocok dengan pencarian.{% else %}Belum ada timesheet.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

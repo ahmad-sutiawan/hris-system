@@ -7,19 +7,25 @@
 <div class="hris-page-header">
   <div>
     <h1>Audit Log</h1>
-    <p>Jejak perubahan data sensitif — karyawan, cuti, payroll</p>
+    <p>Jejak perubahan data sensitif — {{ result_count }} baris ditampilkan</p>
   </div>
-  <form method="get" class="hris-actions">
-    <input type="text" name="model" value="{{ model_filter }}" placeholder="Filter model..." class="hris-input" style="width:16rem">
-    <button class="hris-btn hris-btn-secondary">Filter</button>
-  </form>
 </div>
 
-<div class="hris-table-wrap">
+<form method="get" class="hris-search-bar">
+  <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Cari user, aksi, model, objek, perubahan…" class="hris-input">
+  <input type="text" name="model" value="{{ model_filter }}" placeholder="Filter model (opsional)…" class="hris-input" style="max-width:14rem">
+  <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
+  {% if search_query or model_filter %}
+  <a href="{% url 'web:audit_log_list' %}" class="hris-btn hris-btn-ghost">Reset</a>
+  {% endif %}
+</form>
+
+<div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
     <table class="hris-table">
       <thead>
         <tr>
+          <th class="hris-col-no">No</th>
           <th>Waktu</th>
           <th>User</th>
           <th>Aksi</th>
@@ -31,6 +37,7 @@
       <tbody>
         {% for log in audit_logs %}
         <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           <td style="white-space:nowrap">{{ log.created_at|date:"d M Y H:i" }}</td>
           <td class="hris-strong">{{ log.user.username|default:"-" }}</td>
           <td>{% status_badge log.action log.get_action_display %}</td>
@@ -39,7 +46,7 @@
           <td><span class="hris-mono">{{ log.changes|default:"-" }}</span></td>
         </tr>
         {% empty %}
-        <tr><td colspan="6"><div class="hris-empty">Belum ada entri audit.</div></td></tr>
+        <tr><td colspan="7"><div class="hris-empty">{% if search_query or model_filter %}Tidak ada entri audit yang cocok dengan pencarian.{% else %}Belum ada entri audit.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

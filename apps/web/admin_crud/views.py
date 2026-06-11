@@ -56,6 +56,7 @@ def resource_list(request, slug):
             "resource": resource,
             "rows": rows,
             "search_query": request.GET.get("q", ""),
+            "result_count": len(rows),
         },
     )
 

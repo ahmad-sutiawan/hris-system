@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load hris_ui %}
-{% block title %}Karyawan — HRIS-Lite{% endblock %}
+{% block title %}Karyawan — PT BPS HRIS{% endblock %}
 {% block page_title %}Karyawan{% endblock %}
 
 {% block content %}
 <div class="hris-page-header">
   <div>
     <h1>Master Karyawan</h1>
-    <p>Data workforce plant — hubungkan kolom <strong>Akun login</strong> agar karyawan bisa ajukan cuti</p>
+    <p>Data lengkap workforce plant — {{ result_count }} baris ditampilkan</p>
   </div>
   <div class="hris-actions">
     <a href="{% url 'web:employee_import' %}" class="hris-btn hris-btn-secondary">Import CSV</a>
@@ -15,27 +15,58 @@
   </div>
 </div>
 
-<div class="hris-table-wrap">
+{% include "components/list_search.html" with search_placeholder="Cari semua kolom: ID, nama, NIK, email, plant, bank, BPJS…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
     <table class="hris-table">
       <thead>
         <tr>
+          <th class="hris-col-no">No</th>
           <th>Employee ID</th>
           <th>Nama</th>
+          <th>NIK</th>
+          <th>Email</th>
+          <th>Telepon</th>
           <th>Plant</th>
+          <th>Legal Entity</th>
           <th>Department</th>
+          <th>Jabatan</th>
+          <th>Atasan</th>
           <th>Akun login</th>
+          <th>Bergabung</th>
+          <th>Akhir Kontrak</th>
+          <th>Resign</th>
           <th>Status</th>
+          <th>Skema Gaji</th>
+          <th>Gaji Pokok</th>
+          <th>Tunj. Transport</th>
+          <th>Tunj. Makan</th>
+          <th>Tunj. Jabatan</th>
+          <th>Bank</th>
+          <th>No. Rekening</th>
+          <th>Nama Rekening</th>
+          <th>NPWP</th>
+          <th>Status PPh21</th>
+          <th>BPJS Kesehatan</th>
+          <th>BPJS Ketenagakerjaan</th>
           <th>Aksi</th>
         </tr>
       </thead>
       <tbody>
         {% for employee in employees %}
         <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
           <td class="hris-strong">{{ employee.full_name }}</td>
+          <td><span class="hris-mono">{{ employee.nik|default:"-" }}</span></td>
+          <td>{{ employee.email|default:"-" }}</td>
+          <td>{{ employee.phone|default:"-" }}</td>
           <td>{{ employee.plant.code }}</td>
+          <td>{{ employee.legal_entity.name|default:"-" }}</td>
           <td>{{ employee.department.name|default:"-" }}</td>
+          <td>{{ employee.job_position.title|default:"-" }}</td>
+          <td>{{ employee.manager.full_name|default:"-" }}</td>
           <td>
             {% if employee.user %}
             <span class="hris-mono">{{ employee.user.username }}</span>
@@ -43,7 +74,22 @@
             <span class="hris-badge hris-badge--pending">Belum dihubungkan</span>
             {% endif %}
           </td>
+          <td>{{ employee.join_date|local_date|default:"-" }}</td>
+          <td>{{ employee.contract_end_date|local_date|default:"-" }}</td>
+          <td>{{ employee.resign_date|local_date|default:"-" }}</td>
           <td>{% status_badge employee.status employee.get_status_display %}</td>
+          <td>{{ employee.get_salary_scheme_display }}</td>
+          <td class="hris-num">{{ employee.base_salary|floatformat:0 }}</td>
+          <td class="hris-num">{{ employee.allowance_transport|floatformat:0 }}</td>
+          <td class="hris-num">{{ employee.allowance_meal|floatformat:0 }}</td>
+          <td class="hris-num">{{ employee.allowance_position|floatformat:0 }}</td>
+          <td>{{ employee.bank_name|default:"-" }}</td>
+          <td><span class="hris-mono">{{ employee.bank_account_number|default:"-" }}</span></td>
+          <td>{{ employee.bank_account_name|default:"-" }}</td>
+          <td><span class="hris-mono">{{ employee.npwp|default:"-" }}</span></td>
+          <td>{{ employee.tax_status|default:"-" }}</td>
+          <td><span class="hris-mono">{{ employee.bpjs_kesehatan_number|default:"-" }}</span></td>
+          <td><span class="hris-mono">{{ employee.bpjs_ketenagakerjaan_number|default:"-" }}</span></td>
           <td>
             <div class="hris-inline-actions">
               <a href="{% url 'web:employee_edit' employee.pk %}" class="hris-link">Edit</a>
@@ -56,7 +102,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
+        <tr><td colspan="29"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

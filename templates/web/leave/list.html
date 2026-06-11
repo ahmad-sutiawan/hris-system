@@ -7,27 +7,31 @@
 <div class="hris-page-header">
   <div>
     <h1>Pengajuan Cuti</h1>
-    <p>Kelola dan approve permohonan cuti karyawan</p>
+    <p>Kelola dan approve permohonan cuti — {{ result_count }} baris ditampilkan</p>
   </div>
   <a href="{% url 'web:leave_create' %}" class="hris-btn hris-btn-primary">+ Ajukan Cuti</a>
 </div>
 
-<div class="hris-table-wrap">
+{% include "components/list_search.html" with search_placeholder="Cari karyawan, jenis cuti, status, alasan…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
     <table class="hris-table">
       <thead>
         <tr>
+          <th class="hris-col-no">No</th>
           <th>Karyawan</th>
           <th>Jenis</th>
           <th>Periode</th>
           <th>Hari</th>
           <th>Status</th>
-          {% if can_approve %}<th>Aksi</th>{% else %}<th></th>{% endif %}
+          <th>Aksi</th>
         </tr>
       </thead>
       <tbody>
         {% for req in leave_requests %}
         <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           <td class="hris-strong">{{ req.employee.full_name }}</td>
           <td><span class="hris-mono">{{ req.leave_type.code }}</span></td>
           <td>{{ req.start_date }} — {{ req.end_date }}</td>
@@ -55,7 +59,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6"><div class="hris-empty">Belum ada pengajuan cuti.</div></td></tr>
+        <tr><td colspan="7"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan cuti yang cocok dengan pencarian.{% else %}Belum ada pengajuan cuti.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

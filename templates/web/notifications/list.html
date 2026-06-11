@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Notifikasi</h1>
-    <p>Pembaruan cuti, payroll, dan aktivitas sistem</p>
+    <p>Pembaruan cuti, payroll, dan aktivitas sistem — {{ result_count }} baris ditampilkan</p>
   </div>
   {% if unread_notifications %}
   <form method="post" action="{% url 'web:notification_mark_all_read' %}">{% csrf_token %}
@@ -16,30 +16,56 @@
   {% endif %}
 </div>
 
-<div class="hris-notif-list">
-  {% for n in notifications %}
-  <article class="hris-notif-card{% if not n.is_read %} is-unread{% endif %}">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
-      <div>
-        <h3>{{ n.title }}</h3>
-        <p>{{ n.message }}</p>
-        <time>{{ n.get_category_display }} · {{ n.created_at|date:"d M Y H:i" }}</time>
-      </div>
-      <div class="hris-inline-actions" style="flex-direction:column;align-items:flex-end">
-        {% if n.link %}
-        <a href="{{ n.link }}" class="hris-link">Buka</a>
-        {% endif %}
-        {% if not n.is_read %}
-        <form method="post" action="{% url 'web:notification_mark_read' n.pk %}">{% csrf_token %}
-          <input type="hidden" name="next" value="{% url 'web:notification_list' %}">
-          <button class="hris-btn hris-btn-ghost hris-btn-sm">Tandai dibaca</button>
-        </form>
-        {% endif %}
-      </div>
-    </div>
-  </article>
-  {% empty %}
-  <div class="hris-card"><div class="hris-empty">Tidak ada notifikasi.</div></div>
-  {% endfor %}
+{% include "components/list_search.html" with search_placeholder="Cari judul, pesan, kategori…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th class="hris-col-no">No</th>
+          <th>Judul</th>
+          <th>Pesan</th>
+          <th>Kategori</th>
+          <th>Waktu</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notifications %}
+        <tr{% if not n.is_read %} style="background:rgba(245,158,11,0.04)"{% endif %}>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-strong">{{ n.title }}</td>
+          <td>{{ n.message|truncatechars:80 }}</td>
+          <td>{{ n.get_category_display }}</td>
+          <td style="white-space:nowrap">{{ n.created_at|date:"d M Y H:i" }}</td>
+          <td>
+            {% if n.is_read %}
+            <span class="hris-badge hris-badge--default">Dibaca</span>
+            {% else %}
+            <span class="hris-badge hris-badge--pending">Baru</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="hris-inline-actions">
+              {% if n.link %}
+              <a href="{{ n.link }}" class="hris-link">Buka</a>
+              {% endif %}
+              {% if not n.is_read %}
+              <form method="post" action="{% url 'web:notification_mark_read' n.pk %}">{% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'web:notification_list' %}">
+                <button class="hris-btn hris-btn-ghost hris-btn-sm">Tandai dibaca</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7"><div class="hris-empty">{% if search_query %}Tidak ada notifikasi yang cocok dengan pencarian.{% else %}Tidak ada notifikasi.{% endif %}</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

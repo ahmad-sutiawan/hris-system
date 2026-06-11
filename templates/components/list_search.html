@@ -1,0 +1,7 @@
+<form method="get" class="hris-search-bar">
+  <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="{{ search_placeholder }}" class="hris-input">
+  <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
+  {% if search_query %}
+  <a href="{{ search_reset_url }}" class="hris-btn hris-btn-ghost">Reset</a>
+  {% endif %}
+</form>

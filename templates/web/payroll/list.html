@@ -7,45 +7,51 @@
 <div class="hris-page-header">
   <div>
     <h1>Payroll Run</h1>
-    <p>Proses gaji periodik per plant</p>
+    <p>Proses gaji periodik per plant — {{ result_count }} baris ditampilkan</p>
   </div>
   <a href="{% url 'web:payroll_create' %}" class="hris-btn hris-btn-primary">+ Buat Payroll</a>
 </div>
 
-<div class="hris-table-wrap">
-  <table class="hris-table">
-    <thead>
-      <tr>
-        <th>Plant</th>
-        <th>Periode</th>
-        <th>Status</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for run in payroll_runs %}
-      <tr>
-        <td class="hris-strong">{{ run.plant.code }}</td>
-        <td>{{ run.period_start }} — {{ run.period_end }}</td>
-        <td>{% status_badge run.status run.get_status_display %}</td>
-        <td>
-          <div class="hris-inline-actions">
-            <a href="{% url 'web:payroll_detail' run.pk %}" class="hris-link">Detail</a>
-            {% if run.status == 'draft' %}
-            <a href="{% url 'web:payroll_edit' run.pk %}" class="hris-link">Edit</a>
-            {% endif %}
-            {% if run.status != 'finalized' and run.status != 'cancelled' %}
-            <form method="post" action="{% url 'web:payroll_cancel' run.pk %}" onsubmit="return confirm('Batalkan payroll run ini?')">{% csrf_token %}
-              <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Batalkan</button>
-            </form>
-            {% endif %}
-          </div>
-        </td>
-      </tr>
-      {% empty %}
-      <tr><td colspan="4"><div class="hris-empty">Belum ada payroll run.</div></td></tr>
-      {% endfor %}
-    </tbody>
-  </table>
+{% include "components/list_search.html" with search_placeholder="Cari plant, periode, status, catatan…" search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th class="hris-col-no">No</th>
+          <th>Plant</th>
+          <th>Periode</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for run in payroll_runs %}
+        <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-strong">{{ run.plant.code }}</td>
+          <td>{{ run.period_start }} — {{ run.period_end }}</td>
+          <td>{% status_badge run.status run.get_status_display %}</td>
+          <td>
+            <div class="hris-inline-actions">
+              <a href="{% url 'web:payroll_detail' run.pk %}" class="hris-link">Detail</a>
+              {% if run.status == 'draft' %}
+              <a href="{% url 'web:payroll_edit' run.pk %}" class="hris-link">Edit</a>
+              {% endif %}
+              {% if run.status != 'finalized' and run.status != 'cancelled' %}
+              <form method="post" action="{% url 'web:payroll_cancel' run.pk %}" onsubmit="return confirm('Batalkan payroll run ini?')">{% csrf_token %}
+                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Batalkan</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="hris-empty">{% if search_query %}Tidak ada payroll run yang cocok dengan pencarian.{% else %}Belum ada payroll run.{% endif %}</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
