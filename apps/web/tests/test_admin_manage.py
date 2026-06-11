@@ -49,10 +49,14 @@ class AdminManageTests(TestCase):
         self.client.login(username="admin-manage", password="TestPassword123!")
         response = self.client.get(reverse("web:dashboard"))
         self.assertContains(response, "Administration")
-        self.assertContains(response, "Core")
+        self.assertContains(response, "Master Data")
+        self.assertContains(response, "Department")
+        self.assertContains(response, "Komponen Gaji")
+        self.assertContains(response, "Penjadwalan Shift")
+        self.assertContains(response, "Pengajuan Cuti")
+        self.assertNotContains(response, "Struktur Organisasi")
         self.assertContains(response, "Audit Logs")
-        self.assertContains(response, "Organization")
-        self.assertContains(response, "Employees")
+        self.assertNotContains(response, "/manage/employees/")
 
     def test_hr_cannot_access_manage_hub(self):
         self.client.login(username="hr-manage", password="TestPassword123!")
@@ -61,7 +65,7 @@ class AdminManageTests(TestCase):
 
     def test_department_crud(self):
         self.client.login(username="admin-manage", password="TestPassword123!")
-        create_url = reverse("web:manage_create", args=["departments"])
+        create_url = reverse("web:master_create", args=["departments"])
         response = self.client.post(
             create_url,
             {
@@ -75,7 +79,7 @@ class AdminManageTests(TestCase):
         dept = Department.objects.get(code="HR", tenant=self.tenant)
         self.assertEqual(dept.name, "Human Resources")
 
-        edit_url = reverse("web:manage_edit", args=["departments", dept.pk])
+        edit_url = reverse("web:master_edit", args=["departments", dept.pk])
         response = self.client.post(
             edit_url,
             {
@@ -89,7 +93,7 @@ class AdminManageTests(TestCase):
         dept.refresh_from_db()
         self.assertEqual(dept.name, "HR Dept")
 
-        delete_url = reverse("web:manage_delete", args=["departments", dept.pk])
+        delete_url = reverse("web:master_delete", args=["departments", dept.pk])
         response = self.client.post(delete_url)
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Department.objects.filter(pk=dept.pk).exists())
@@ -102,7 +106,7 @@ class AdminManageTests(TestCase):
             name="Production",
         )
         self.client.login(username="admin-manage", password="TestPassword123!")
-        url = reverse("web:manage_list", args=["departments"])
+        url = reverse("web:master_list", args=["departments"])
         response = self.client.get(url, {"q": "Production"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Production")

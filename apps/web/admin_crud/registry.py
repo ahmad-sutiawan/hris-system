@@ -25,6 +25,9 @@ class AdminResource:
     tenant_scoped: bool = True
     list_limit: int = 100
     subtitle: str = ""
+    master_data: bool = False
+    master_group: str = ""
+    hide_from_admin_nav: bool = False
 
 
 REGISTRY: dict[str, AdminResource] = {}
@@ -59,15 +62,61 @@ def resources_by_section() -> dict[str, list[AdminResource]]:
     return grouped
 
 
-def resources_by_app() -> list[tuple[str, list[AdminResource]]]:
+MASTER_GROUP_ORDER = [
+    "Struktur Organisasi",
+    "Operasional",
+    "Keuangan",
+]
+
+
+def resources_master_data() -> list[tuple[str, list[AdminResource]]]:
+    grouped: dict[str, list[AdminResource]] = {}
+    for resource in REGISTRY.values():
+        if not resource.master_data:
+            continue
+        grouped.setdefault(resource.master_group or "Lainnya", []).append(resource)
+    ordered = []
+    for group in MASTER_GROUP_ORDER:
+        if group in grouped:
+            items = grouped.pop(group)
+            items.sort(key=lambda r: r.title)
+            ordered.append((group, items))
+    for group, items in sorted(grouped.items()):
+        items.sort(key=lambda r: r.title)
+        ordered.append((group, items))
+    return ordered
+
+
+def master_nav_items() -> list[AdminResource]:
+    items: list[AdminResource] = []
+    for _, resources in resources_master_data():
+        items.extend(resources)
+    return items
+
+
+def resources_by_app(*, exclude_master: bool = False) -> list[tuple[str, list[AdminResource]]]:
     grouped = resources_by_section()
     ordered = []
     for section in APP_SECTION_ORDER:
         if section in grouped:
-            ordered.append((section, grouped[section]))
+            items = [
+                resource
+                for resource in grouped[section]
+                if not (exclude_master and resource.master_data)
+                and not resource.hide_from_admin_nav
+            ]
+            if items:
+                ordered.append((section, items))
     for section, items in grouped.items():
         if section not in APP_SECTION_ORDER:
-            ordered.append((section, items))
+            filtered = [
+                resource
+                for resource in items
+                if not (exclude_master and resource.master_data)
+                and not resource.hide_from_admin_nav
+            ]
+            if filtered:
+                ordered.append((section, filtered))
     return ordered
 
 

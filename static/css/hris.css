@@ -1739,3 +1739,31 @@ body.hris-modal-open {
   color: var(--hris-accent-hover);
 }
 
+.hris-nav-section--master {
+  margin-bottom: 0.5rem;
+}
+
+.hris-nav-link--master {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.hris-nav-link--master svg {
+  width: 1rem;
+  height: 1rem;
+  opacity: 0.7;
+}
+
+.hris-nav-link--master-hub {
+  margin-bottom: 0.5rem;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.hris-nav-link--master-hub.is-active,
+.hris-nav-link--master.is-active {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--hris-cyan);
+}
+

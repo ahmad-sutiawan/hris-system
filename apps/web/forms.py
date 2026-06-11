@@ -86,6 +86,7 @@ class EmployeeForm(forms.ModelForm):
             "email",
             "phone",
             "plant",
+            "legal_entity",
             "department",
             "job_position",
             "manager",
@@ -102,6 +103,7 @@ class EmployeeForm(forms.ModelForm):
         labels = {
             "employee_id": "ID Karyawan",
             "full_name": "Nama lengkap",
+            "legal_entity": "Legal entity",
             "join_date": "Tanggal bergabung",
             "base_salary": "Gaji pokok",
             "allowance_transport": "Tunjangan transport",
@@ -114,15 +116,26 @@ class EmployeeForm(forms.ModelForm):
         _style_fields(self)
         apply_date_fields(self, "join_date")
         self.fields["user"].required = False
+        self.fields["legal_entity"].required = False
         self.fields["user"].help_text = (
             "Hubungkan ke akun login agar karyawan bisa clock in, ajukan cuti, dan lihat slip gaji."
         )
         if tenant:
-            from apps.organization.models import Department, JobPosition
+            from apps.organization.models import Department, JobPosition, LegalEntity
 
             _filter_plant_queryset(self, tenant, user)
-            self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
-            self.fields["job_position"].queryset = JobPosition.objects.filter(tenant=tenant)
+            self.fields["legal_entity"].queryset = LegalEntity.objects.filter(
+                tenant=tenant, is_active=True
+            )
+
+            plant_id = self._resolve_plant_id(user)
+            dept_qs = Department.objects.filter(tenant=tenant, is_active=True)
+            job_qs = JobPosition.objects.filter(tenant=tenant, is_active=True)
+            if plant_id:
+                dept_qs = dept_qs.filter(plant_id=plant_id)
+                job_qs = job_qs.filter(plant_id=plant_id)
+            self.fields["department"].queryset = dept_qs
+            self.fields["job_position"].queryset = job_qs
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )
@@ -133,8 +146,24 @@ class EmployeeForm(forms.ModelForm):
                     pk=self.instance.pk
                 )
 
+    def _resolve_plant_id(self, user):
+        if self.data.get("plant"):
+            return self.data.get("plant")
+        if self.instance.pk and self.instance.plant_id:
+            return self.instance.plant_id
+        if user and user.plant_id and not user.is_admin:
+            return user.plant_id
+        return None
+
     def clean(self):
         cleaned = super().clean()
+        plant = cleaned.get("plant")
+        department = cleaned.get("department")
+        job_position = cleaned.get("job_position")
+        if department and plant and department.plant_id != plant.pk:
+            self.add_error("department", "Department harus sesuai plant yang dipilih.")
+        if job_position and plant and job_position.plant_id != plant.pk:
+            self.add_error("job_position", "Jabatan harus sesuai plant yang dipilih.")
         linked_user = cleaned.get("user")
         email = cleaned.get("email")
         if linked_user and email and not linked_user.email:

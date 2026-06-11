@@ -1,23 +1,23 @@
 {% extends "base.html" %}
-{% block title %}{{ resource.title_plural }} — Admin{% endblock %}
+{% block title %}{{ resource.title_plural }} — Master Data{% endblock %}
 {% block page_title %}{{ resource.title_plural }}{% endblock %}
 
 {% block content %}
 <div class="hris-page-header">
   <div>
     <h1>{{ resource.title_plural }}</h1>
-    <p>Kelola data {{ resource.title|lower }} — {{ result_count }} baris ditampilkan</p>
+    <p>Master data {{ resource.title|lower }} — {{ result_count }} baris ditampilkan</p>
   </div>
   <div class="hris-actions">
-    <a href="{% url crud_url_names.hub %}" class="hris-btn hris-btn-secondary">← Console</a>
+    <a href="{% url crud_url_names.hub %}" class="hris-btn hris-btn-secondary">← Master Data</a>
     {% if resource.allow_create %}
     <a href="{% url crud_url_names.create resource.slug %}" class="hris-btn hris-btn-primary">+ Tambah</a>
     {% endif %}
   </div>
 </div>
 
-{% url crud_url_names.list resource.slug as manage_list_url %}
-{% include "components/list_search.html" with search_placeholder="Cari semua kolom…" search_reset_url=manage_list_url %}
+{% url crud_url_names.list resource.slug as master_list_url %}
+{% include "components/list_search.html" with search_placeholder="Cari semua kolom…" search_reset_url=master_list_url %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -44,7 +44,7 @@
               <a href="{% url crud_url_names.edit resource.slug row.obj.pk %}" class="hris-link">Edit</a>
               {% endif %}
               {% if resource.allow_delete %}
-              <form method="post" action="{% url crud_url_names.delete resource.slug row.obj.pk %}" onsubmit="return confirm('Hapus data ini?')">{% csrf_token %}
+              <form method="post" action="{% url crud_url_names.delete resource.slug row.obj.pk %}" onsubmit="return confirm('Hapus data master ini?')">{% csrf_token %}
                 <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Hapus</button>
               </form>
               {% endif %}
@@ -54,7 +54,7 @@
         {% empty %}
         <tr>
           <td colspan="{{ resource.columns|length|add:2 }}">
-            <div class="hris-empty">{% if search_query %}Tidak ada data yang cocok dengan pencarian.{% else %}Belum ada data.{% endif %}</div>
+            <div class="hris-empty">{% if search_query %}Tidak ada data yang cocok dengan pencarian.{% else %}Belum ada data master.{% endif %}</div>
           </td>
         </tr>
         {% endfor %}

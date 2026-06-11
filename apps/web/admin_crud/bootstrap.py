@@ -69,6 +69,9 @@ def bootstrap_registry():
             select_related=["tenant"],
             order_by=["code"],
             tenant_scoped=False,
+            master_data=True,
+            master_group="Struktur Organisasi",
+            list_limit=500,
         )
     )
     register(
@@ -122,6 +125,9 @@ def bootstrap_registry():
             columns=[Column("Nama", "name"), Column("NPWP", "npwp"), Column("Aktif", "is_active")],
             search_fields=["name", "npwp"],
             order_by=["name"],
+            master_data=True,
+            master_group="Struktur Organisasi",
+            list_limit=500,
         )
     )
     register(
@@ -141,6 +147,9 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             select_related=["plant"],
             order_by=["name"],
+            master_data=True,
+            master_group="Struktur Organisasi",
+            list_limit=500,
         )
     )
     register(
@@ -160,6 +169,9 @@ def bootstrap_registry():
             search_fields=["code", "title"],
             select_related=["department", "plant"],
             order_by=["title"],
+            master_data=True,
+            master_group="Struktur Organisasi",
+            list_limit=500,
         )
     )
     register(
@@ -179,6 +191,7 @@ def bootstrap_registry():
             search_fields=["employee_id", "full_name", "nik", "email"],
             select_related=["plant", "department"],
             order_by=["full_name"],
+            hide_from_admin_nav=True,
         )
     )
     register(
@@ -216,6 +229,9 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             select_related=["plant"],
             order_by=["code"],
+            master_data=True,
+            master_group="Operasional",
+            list_limit=500,
         )
     )
     register(
@@ -234,6 +250,7 @@ def bootstrap_registry():
             search_fields=["employee__full_name", "employee__employee_id"],
             select_related=["employee", "shift"],
             order_by=["-work_date"],
+            hide_from_admin_nav=True,
         )
     )
     register(
@@ -253,6 +270,9 @@ def bootstrap_registry():
             search_fields=["name"],
             select_related=["plant"],
             order_by=["name"],
+            master_data=True,
+            master_group="Operasional",
+            list_limit=500,
         )
     )
     register(
@@ -271,6 +291,9 @@ def bootstrap_registry():
             ],
             search_fields=["code", "label"],
             order_by=["code"],
+            master_data=True,
+            master_group="Operasional",
+            list_limit=500,
         )
     )
     register(
@@ -309,6 +332,7 @@ def bootstrap_registry():
             search_fields=["employee__full_name", "employee__employee_id", "shift_code"],
             select_related=["employee", "plant"],
             order_by=["-work_date"],
+            hide_from_admin_nav=True,
         )
     )
     register(
@@ -327,6 +351,9 @@ def bootstrap_registry():
             ],
             search_fields=["code", "name"],
             order_by=["code"],
+            master_data=True,
+            master_group="Operasional",
+            list_limit=500,
         )
     )
     register(
@@ -365,6 +392,7 @@ def bootstrap_registry():
             search_fields=["employee__full_name", "reason"],
             select_related=["employee", "leave_type"],
             order_by=["-created_at"],
+            hide_from_admin_nav=True,
         )
     )
     register(
@@ -400,6 +428,9 @@ def bootstrap_registry():
             ],
             search_fields=["code", "name"],
             order_by=["code"],
+            master_data=True,
+            master_group="Keuangan",
+            list_limit=500,
         )
     )
     register(
@@ -418,6 +449,7 @@ def bootstrap_registry():
             search_fields=["notes"],
             select_related=["plant"],
             order_by=["-period_start"],
+            hide_from_admin_nav=True,
         )
     )
     register(
@@ -436,6 +468,7 @@ def bootstrap_registry():
             search_fields=["employee__full_name", "employee__employee_id"],
             select_related=["employee", "payroll_run"],
             order_by=["-pk"],
+            hide_from_admin_nav=True,
         )
     )
     register(

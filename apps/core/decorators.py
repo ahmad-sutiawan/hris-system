@@ -35,3 +35,20 @@ def require_admin(view_func):
 
 def user_has_admin_console(user) -> bool:
     return bool(user.is_authenticated and (user.is_admin or user.is_superuser))
+
+
+def user_can_manage_master_data(user) -> bool:
+    return bool(user.is_authenticated and (user.is_admin or user.is_hr or user.is_superuser))
+
+
+def require_master_data(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect("web:login")
+        if not user_can_manage_master_data(request.user):
+            messages.error(request, "Halaman Master Data hanya untuk Admin / HR.")
+            return redirect("web:dashboard")
+        return view_func(request, *args, **kwargs)
+
+    return wrapper

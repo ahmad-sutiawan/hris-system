@@ -1,8 +1,12 @@
 from django.urls import reverse
 
-from apps.core.decorators import user_has_admin_console
+from apps.core.decorators import user_can_manage_master_data, user_has_admin_console
 from apps.core.models import Notification
-from apps.web.admin_crud.registry import ensure_bootstrapped, resources_by_app
+from apps.web.admin_crud.registry import (
+    ensure_bootstrapped,
+    master_nav_items,
+    resources_by_app,
+)
 
 
 def notifications(request):
@@ -23,7 +27,7 @@ def admin_navigation(request):
 
     ensure_bootstrapped()
     apps = []
-    for section, resources in resources_by_app():
+    for section, resources in resources_by_app(exclude_master=True):
         items = []
         for resource in resources:
             items.append(
@@ -38,4 +42,25 @@ def admin_navigation(request):
     return {
         "show_admin_nav": True,
         "admin_nav_apps": apps,
+    }
+
+
+def master_data_navigation(request):
+    if not user_can_manage_master_data(request.user):
+        return {"show_master_nav": False, "master_nav_items": []}
+
+    ensure_bootstrapped()
+    items = []
+    for resource in master_nav_items():
+        items.append(
+            {
+                "slug": resource.slug,
+                "label": resource.title_plural,
+                "url": reverse("web:master_list", kwargs={"slug": resource.slug}),
+            }
+        )
+
+    return {
+        "show_master_nav": True,
+        "master_nav_items": items,
     }

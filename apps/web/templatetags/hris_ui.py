@@ -33,6 +33,31 @@ def status_badge(status, label=None):
     return mark_safe(f'<span class="hris-badge hris-badge--{css}">{text}</span>')
 
 
+@register.simple_tag(takes_context=True)
+def nav_is_active(context, *url_names):
+    request = context.get("request")
+    if not request or not getattr(request, "resolver_match", None):
+        return ""
+    if request.resolver_match.url_name in url_names:
+        return " is-active"
+    return ""
+
+
+@register.simple_tag(takes_context=True)
+def nav_master_active(context, slug):
+    request = context.get("request")
+    if not request or not getattr(request, "resolver_match", None):
+        return ""
+    match = request.resolver_match
+    if match.kwargs.get("slug") == slug and match.url_name in {
+        "master_list",
+        "master_create",
+        "master_edit",
+    }:
+        return " is-active"
+    return ""
+
+
 @register.filter
 def initials(value):
     if not value:

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Master Data — PT BPS HRIS{% endblock %}
+{% block page_title %}Master Data{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>Master Data</h1>
+    <p>Referensi terpusat untuk plant, organisasi, shift, cuti, dan komponen gaji — dipakai di seluruh modul operasional</p>
+  </div>
+</div>
+
+{% for section, resources in sections.items %}
+<div class="hris-card" style="margin-bottom:1rem">
+  <div class="hris-card-body">
+    <h2 class="hris-manage-section-title">{{ section }}</h2>
+    <div class="hris-manage-links">
+      {% for resource in resources %}
+      <a href="{% url 'web:master_list' resource.slug %}" class="hris-manage-link">
+        <strong>{{ resource.title_plural }}</strong>
+        <span>{% if resource.allow_create %}Tambah · {% endif %}Edit · {% if resource.allow_delete %}Hapus{% else %}Lihat{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -7,7 +7,7 @@
 <div class="hris-nav-section hris-nav-section--admin">
   <div class="hris-nav-label">{{ app.section }}</div>
   {% for item in app.items %}
-  <a href="{{ item.url }}" class="hris-nav-link hris-nav-link--admin{% if request.resolver_match.kwargs.slug|default:'' == item.slug %} is-active{% endif %}">
+  <a href="{{ item.url }}" class="hris-nav-link hris-nav-link--admin{% if '/manage/' in request.path and request.resolver_match.kwargs.slug|default:'' == item.slug %} is-active{% endif %}">
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
     {{ item.label }}
   </a>
