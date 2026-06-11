@@ -83,6 +83,8 @@ def calculate_timesheet_metrics(
     paid_hours = max(Decimal("0"), paid_hours - late_deduction - early_deduction)
     ot_hours = _decimal_hours(ot_after)
     paid_hours += ot_hours
+    if ot_before_enabled:
+        paid_hours += _decimal_hours(ot_before)
 
     return {
         "late_in_minutes": late_in,
@@ -93,3 +95,21 @@ def calculate_timesheet_metrics(
         "ot_before_minutes": ot_before,
         "ot_after_minutes": ot_after,
     }
+
+
+def reconcile_paid_hours(metrics, *, ot_before_enabled=False):
+    """Rebuild paid hours from capped OT minutes (post-approval)."""
+    schedule_hours = metrics["schedule_working_hours"]
+    actual_hours = metrics["actual_working_hours"]
+    late_deduction = _decimal_hours(metrics["late_in_minutes"])
+    early_deduction = _decimal_hours(metrics["early_out_minutes"])
+
+    paid = actual_hours
+    if schedule_hours > 0:
+        paid = min(actual_hours, schedule_hours)
+    paid = max(Decimal("0"), paid - late_deduction - early_deduction)
+    paid += _decimal_hours(metrics["ot_after_minutes"])
+    if ot_before_enabled:
+        paid += _decimal_hours(metrics["ot_before_minutes"])
+    metrics["paid_working_hours"] = paid.quantize(Decimal("0.01"))
+    return metrics

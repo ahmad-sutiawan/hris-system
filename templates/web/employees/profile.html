@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+{% load hris_ui %}
+{% block title %}Detail Karyawan — BPS HRIS{% endblock %}
+{% block page_title %}Detail Karyawan{% endblock %}
+
+{% block content %}
+{% if missing_profile %}
+<div class="hris-page-header">
+  <div>
+    <h1>Detail Karyawan</h1>
+    <p>Profil karyawan belum terhubung ke akun login Anda.</p>
+  </div>
+</div>
+<div class="hris-card">
+  <div class="hris-card-body">
+    <p class="hris-text-dim">Hubungi HR atau IT untuk menghubungkan akun dengan data karyawan.</p>
+  </div>
+</div>
+{% else %}
+
+<div class="hris-page-header">
+  <div>
+    <h1>{{ employee.full_name }}</h1>
+    <p>
+      <span class="hris-mono">{{ employee.employee_id }}</span>
+      · {{ employee.plant.code }} — {{ employee.plant.name }}
+      · {% status_badge employee.status employee.get_status_display %}
+    </p>
+  </div>
+  <div class="hris-actions">
+    <a href="{% url 'web:payslip_list' %}" class="hris-btn hris-btn-secondary">Slip Gaji</a>
+    <a href="{% url 'web:attendance_list' %}" class="hris-btn hris-btn-secondary">Riwayat Absensi</a>
+    <a href="{% url 'web:dashboard' %}" class="hris-btn hris-btn-primary">Clock In / Out</a>
+  </div>
+</div>
+
+<div class="hris-stat-grid hris-profile-stats">
+  <div class="hris-stat-card hris-stat-card--cyan">
+    <div class="hris-stat-label">Hadir Bulan Ini</div>
+    <div class="hris-stat-value">{{ month_stats.present_days }}</div>
+    <div class="hris-stat-sub">hari · {{ month_start|local_date:"M Y" }}</div>
+  </div>
+  <div class="hris-stat-card hris-stat-card--green">
+    <div class="hris-stat-label">Jam Dibayar</div>
+    <div class="hris-stat-value">{{ month_stats.paid_hours|floatformat:1 }}</div>
+    <div class="hris-stat-sub">jam kerja bulan ini</div>
+  </div>
+  <div class="hris-stat-card hris-stat-card--amber">
+    <div class="hris-stat-label">Lembur</div>
+    <div class="hris-stat-value">{{ month_stats.ot_before_minutes|add:month_stats.ot_after_minutes }}</div>
+    <div class="hris-stat-sub">menit (before + after)</div>
+  </div>
+  <div class="hris-stat-card hris-stat-card--rose">
+    <div class="hris-stat-label">Terlambat</div>
+    <div class="hris-stat-value">{{ month_stats.late_minutes }}</div>
+    <div class="hris-stat-sub">menit bulan ini</div>
+  </div>
+</div>
+
+<div class="hris-profile-grid">
+  <section class="hris-card">
+    <div class="hris-card-body">
+      <h2 class="hris-profile-section-title">Data Diri</h2>
+      <dl class="hris-dl">
+        <div><dt>NIK</dt><dd>{{ employee.nik|default:"—" }}</dd></div>
+        <div><dt>Email</dt><dd>{{ employee.email|default:"—" }}</dd></div>
+        <div><dt>Telepon</dt><dd>{{ employee.phone|default:"—" }}</dd></div>
+        <div><dt>Tanggal Bergabung</dt><dd>{% if employee.join_date %}{{ employee.join_date|local_date }}{% else %}—{% endif %}</dd></div>
+        <div><dt>Akhir Kontrak</dt><dd>{% if employee.contract_end_date %}{{ employee.contract_end_date|local_date }}{% else %}—{% endif %}</dd></div>
+        <div><dt>Skema Gaji</dt><dd>{{ employee.get_salary_scheme_display }}</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="hris-card">
+    <div class="hris-card-body">
+      <h2 class="hris-profile-section-title">Organisasi</h2>
+      <dl class="hris-dl">
+        <div><dt>Plant</dt><dd>{{ employee.plant.code }} — {{ employee.plant.name }}</dd></div>
+        <div><dt>Departemen</dt><dd>{{ employee.department.name|default:"—" }}</dd></div>
+        <div><dt>Jabatan</dt><dd>{{ employee.job_position.name|default:"—" }}</dd></div>
+        <div><dt>Atasan Langsung</dt><dd>{{ employee.manager.full_name|default:"—" }}</dd></div>
+        <div><dt>Entitas Legal</dt><dd>{{ employee.legal_entity.name|default:"—" }}</dd></div>
+        <div><dt>Akun Login</dt><dd>{{ employee.user.username|default:"—" }}</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="hris-card">
+    <div class="hris-card-body">
+      <h2 class="hris-profile-section-title">Shift &amp; Jadwal</h2>
+      {% if today_assignment %}
+      <div class="hris-profile-highlight">
+        <span class="hris-profile-highlight-label">Shift Hari Ini · {{ today|local_date }}</span>
+        <strong>{{ today_assignment.shift.name }} ({{ today_assignment.shift.code }})</strong>
+        <span class="hris-text-dim">
+          {{ today_assignment.scheduled_check_in|time:"H:i" }} — {{ today_assignment.scheduled_check_out|time:"H:i" }}
+        </span>
+      </div>
+      {% else %}
+      <p class="hris-text-dim">Belum ada penjadwalan shift untuk hari ini.</p>
+      {% endif %}
+      {% if default_shift %}
+      <p class="hris-profile-note">Shift default plant: <strong>{{ default_shift.name }}</strong> ({{ default_shift.code }})</p>
+      {% endif %}
+      {% if upcoming_shifts %}
+      <div class="hris-table-wrap" style="margin-top:0.75rem">
+        <table class="hris-table hris-table--compact">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Shift</th>
+              <th>Jam</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in upcoming_shifts %}
+            <tr>
+              <td>{{ row.work_date|local_date }}</td>
+              <td>{{ row.shift.code }}</td>
+              <td class="hris-mono">{{ row.scheduled_check_in|time:"H:i" }}–{{ row.scheduled_check_out|time:"H:i" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="hris-card">
+    <div class="hris-card-body">
+      <h2 class="hris-profile-section-title">Absensi Hari Ini</h2>
+      {% if today_timesheet %}
+      <dl class="hris-dl">
+        <div><dt>Clock In</dt><dd>{% if today_timesheet.check_in %}{{ today_timesheet.check_in|local_datetime:"H:i" }}{% else %}—{% endif %}</dd></div>
+        <div><dt>Clock Out</dt><dd>{% if today_timesheet.check_out %}{{ today_timesheet.check_out|local_datetime:"H:i" }}{% else %}—{% endif %}</dd></div>
+        <div><dt>Kode</dt><dd><span class="hris-mono">{{ today_timesheet.attendance_code.code|default:"—" }}</span></dd></div>
+        <div><dt>Terlambat</dt><dd>{{ today_timesheet.late_in_minutes }} menit</dd></div>
+        <div><dt>Jam Dibayar</dt><dd>{{ today_timesheet.paid_working_hours }} jam</dd></div>
+        <div><dt>Lembur</dt><dd>Before {{ today_timesheet.ot_before_minutes }} m · After {{ today_timesheet.ot_after_minutes }} m</dd></div>
+      </dl>
+      {% else %}
+      <p class="hris-text-dim">Belum ada timesheet untuk hari ini.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="hris-card">
+    <div class="hris-card-body">
+      <h2 class="hris-profile-section-title">Komponen Gaji</h2>
+      <dl class="hris-dl">
+        <div><dt>Gaji Pokok</dt><dd class="hris-num">{{ employee.base_salary|rupiah }}</dd></div>
+        <div><dt>Tunj. Transport</dt><dd class="hris-num">{{ employee.allowance_transport|rupiah }}</dd></div>
+        <div><dt>Tunj. Makan</dt><dd class="hris-num">{{ employee.allowance_meal|rupiah }}</dd></div>
+        <div><dt>Tunj. Jabatan</dt><dd class="hris-num">{{ employee.allowance_position|rupiah }}</dd></div>
+        <div><dt>Total Paket</dt><dd class="hris-num hris-strong">{{ total_compensation|rupiah }}</dd></div>
+      </dl>
+      <h3 class="hris-profile-subtitle">Pajak &amp; BPJS</h3>
+      <dl class="hris-dl">
+        <div><dt>Status Pajak</dt><dd>{{ employee.tax_status|default:"—" }}</dd></div>
+        <div><dt>NPWP</dt><dd>{{ employee.npwp|default:"—" }}</dd></div>
+        <div><dt>BPJS Kesehatan</dt><dd>{{ employee.bpjs_kesehatan_number|default:"—" }}</dd></div>
+        <div><dt>BPJS Ketenagakerjaan</dt><dd>{{ employee.bpjs_ketenagakerjaan_number|default:"—" }}</dd></div>
+      </dl>
+      <h3 class="hris-profile-subtitle">Rekening Payroll</h3>
+      <dl class="hris-dl">
+        <div><dt>Bank</dt><dd>{{ employee.bank_name|default:"—" }}</dd></div>
+        <div><dt>No. Rekening</dt><dd class="hris-mono">{{ employee.bank_account_number|default:"—" }}</dd></div>
+        <div><dt>Atas Nama</dt><dd>{{ employee.bank_account_name|default:"—" }}</dd></div>
+      </dl>
+      {% if latest_payslip %}
+      <p class="hris-profile-note">
+        Slip terakhir:
+        <strong>{{ latest_payslip.payroll_run.period_start|local_date }} — {{ latest_payslip.payroll_run.period_end|local_date }}</strong>
+        · THP {{ latest_payslip.net_amount|rupiah }}
+        · <a href="{% url 'web:payslip_download' latest_payslip.pk %}" class="hris-link">Unduh PDF</a>
+      </p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="hris-card">
+    <div class="hris-card-body">
+      <h2 class="hris-profile-section-title">Saldo Cuti {{ today.year }}</h2>
+      {% if leave_balances %}
+      <div class="hris-table-wrap">
+        <table class="hris-table hris-table--compact">
+          <thead>
+            <tr>
+              <th>Jenis</th>
+              <th class="hris-num">Kuota</th>
+              <th class="hris-num">Terpakai</th>
+              <th class="hris-num">Pending</th>
+              <th class="hris-num">Sisa</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for balance in leave_balances %}
+            <tr>
+              <td>{{ balance.leave_type.name }} <span class="hris-mono hris-text-dim">({{ balance.leave_type.code }})</span></td>
+              <td class="hris-num">{{ balance.opening_balance|add:balance.accrued }}</td>
+              <td class="hris-num">{{ balance.used }}</td>
+              <td class="hris-num">{{ balance.pending }}</td>
+              <td class="hris-num hris-strong">{{ balance.remaining }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="hris-text-dim">Belum ada saldo cuti.</p>
+      {% endif %}
+    </div>
+  </section>
+</div>
+
+<section class="hris-card" style="margin-top:1.25rem">
+  <div class="hris-card-body">
+    <h2 class="hris-profile-section-title">Riwayat Absensi (14 Hari Terakhir)</h2>
+    <div class="hris-table-wrap">
+      <div class="hris-table-scroll">
+        <table class="hris-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Shift</th>
+              <th>CI</th>
+              <th>CO</th>
+              <th>Kode</th>
+              <th class="hris-num">Paid Hrs</th>
+              <th>Lembur</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in recent_timesheets %}
+            <tr>
+              <td>{{ row.work_date|local_date }}</td>
+              <td class="hris-mono">{{ row.shift_code|default:"—" }}</td>
+              <td>{% if row.check_in %}{{ row.check_in|local_datetime:"H:i" }}{% else %}—{% endif %}</td>
+              <td>{% if row.check_out %}{{ row.check_out|local_datetime:"H:i" }}{% else %}—{% endif %}</td>
+              <td class="hris-mono">{{ row.attendance_code.code|default:"—" }}</td>
+              <td class="hris-num">{{ row.paid_working_hours }}</td>
+              <td>{{ row.ot_before_minutes }} / {{ row.ot_after_minutes }} m</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7"><div class="hris-empty">Belum ada riwayat absensi.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

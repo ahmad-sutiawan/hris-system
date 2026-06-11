@@ -96,7 +96,7 @@
 
     panel.querySelectorAll(".hris-user-menu-logout, .hris-sidebar-logout-btn").forEach(function (el) {
       el.addEventListener("click", function (event) {
-        if (!window.confirm("Keluar dari HRIS-Lite?")) {
+        if (!window.confirm("Keluar dari BPS HRIS?")) {
           event.preventDefault();
         }
       });

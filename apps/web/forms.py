@@ -197,15 +197,35 @@ class EmployeeForm(forms.ModelForm):
 class ShiftAssignmentForm(forms.ModelForm):
     class Meta:
         model = ShiftAssignment
-        fields = ["employee", "shift", "work_date"]
+        fields = [
+            "employee",
+            "shift",
+            "work_date",
+            "scheduled_check_in",
+            "scheduled_check_out",
+        ]
         labels = {
             "work_date": "Tanggal kerja",
+            "scheduled_check_in": "Jam masuk (override)",
+            "scheduled_check_out": "Jam pulang (override)",
+        }
+        widgets = {
+            "scheduled_check_in": forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
+            "scheduled_check_out": forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
         }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style_fields(self)
         apply_date_fields(self, "work_date")
+        self.fields["scheduled_check_in"].required = False
+        self.fields["scheduled_check_out"].required = False
+        self.fields["scheduled_check_in"].help_text = (
+            "Kosongkan untuk pakai jam dari master shift. Isi manual untuk long shift / perubahan dadakan."
+        )
+        self.fields["scheduled_check_out"].help_text = (
+            "Bisa melewati tengah malam (contoh masuk 22:00, pulang 06:00)."
+        )
         if tenant:
             emp_qs = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
@@ -217,10 +237,27 @@ class ShiftAssignmentForm(forms.ModelForm):
             self.fields["employee"].queryset = emp_qs
             self.fields["shift"].queryset = shift_qs
 
+    def clean(self):
+        cleaned = super().clean()
+        shift = cleaned.get("shift")
+        sched_in = cleaned.get("scheduled_check_in") or (shift.scheduled_check_in if shift else None)
+        sched_out = cleaned.get("scheduled_check_out") or (shift.scheduled_check_out if shift else None)
+        if shift and sched_in and sched_out:
+            if not shift.cross_day and sched_out <= sched_in:
+                self.add_error(
+                    "scheduled_check_out",
+                    "Jam pulang harus setelah jam masuk, atau aktifkan cross-day di master shift.",
+                )
+        cleaned["scheduled_check_in"] = sched_in
+        cleaned["scheduled_check_out"] = sched_out
+        return cleaned
+
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.scheduled_check_in = instance.shift.scheduled_check_in
-        instance.scheduled_check_out = instance.shift.scheduled_check_out
+        if not instance.scheduled_check_in and instance.shift_id:
+            instance.scheduled_check_in = instance.shift.scheduled_check_in
+        if not instance.scheduled_check_out and instance.shift_id:
+            instance.scheduled_check_out = instance.shift.scheduled_check_out
         if commit:
             instance.save()
         return instance

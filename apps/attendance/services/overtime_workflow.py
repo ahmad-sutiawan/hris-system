@@ -42,7 +42,7 @@ def get_raw_overtime_minutes(employee, work_date) -> tuple[int, int]:
         check_out=record.check_out,
         break_minutes=shift.break_minutes if shift else 0,
         grace_period_minutes=shift.grace_period_minutes if shift else 15,
-        schedule_working_hours=shift.schedule_working_hours if shift else None,
+        schedule_working_hours=None,
         ot_before_enabled=ot_before_enabled,
     )
     return metrics["ot_before_minutes"], metrics["ot_after_minutes"]
@@ -131,10 +131,22 @@ def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequ
     if request.status != OvertimeRequest.Status.PENDING:
         raise OvertimeError("Pengajuan sudah diproses.")
 
+    raw_before, raw_after = get_raw_overtime_minutes(request.employee, request.work_date)
+    request.ot_before_minutes = min(request.ot_before_minutes, raw_before)
+    request.ot_after_minutes = min(request.ot_after_minutes, raw_after)
     request.status = OvertimeRequest.Status.APPROVED
     request.approver = approver
     request.approved_at = timezone.now()
-    request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
+    request.save(
+        update_fields=[
+            "status",
+            "ot_before_minutes",
+            "ot_after_minutes",
+            "approver",
+            "approved_at",
+            "updated_at",
+        ]
+    )
 
     recalculate_daily_timesheet(request.employee, request.work_date)
     _notify_employee_status(request, approved=True)

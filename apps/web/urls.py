@@ -28,6 +28,7 @@ urlpatterns = [
     path("employees/<int:pk>/deactivate/", views.employee_deactivate, name="employee_deactivate"),
     path("employees/import/", views.employee_import, name="employee_import"),
     path("employees/import/template/", views.employee_import_template, name="employee_import_template"),
+    path("profile/", views.employee_profile, name="employee_profile"),
     path("shifts/", views.shift_assignment_list, name="shift_assignment_list"),
     path("shifts/assign/", views.shift_assign, name="shift_assign"),
     path("shifts/<int:pk>/edit/", views.shift_edit, name="shift_edit"),

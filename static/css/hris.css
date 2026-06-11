@@ -143,12 +143,14 @@ body.hris-body::before {
 
 .hris-brand--logo {
   flex-direction: column;
-  align-items: stretch;
-  gap: 0.625rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
 }
 
 .hris-brand-logo--sidebar {
-  max-width: 100%;
+  max-width: 5.25rem;
+  margin: 0 auto;
 }
 
 .hris-brand-logo--hero {
@@ -1926,5 +1928,102 @@ body.hris-modal-open {
   border-color: rgba(56, 189, 248, 0.45);
   background: rgba(56, 189, 248, 0.12);
   color: var(--hris-cyan);
+}
+
+.hris-profile-stats {
+  margin-top: 1.25rem;
+}
+
+.hris-stat-sub {
+  margin-top: 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--hris-text-dim);
+}
+
+.hris-profile-grid {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+@media (min-width: 960px) {
+  .hris-profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.hris-profile-section-title {
+  margin: 0 0 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.hris-profile-subtitle {
+  margin: 1rem 0 0.625rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--hris-text-dim);
+}
+
+.hris-dl {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+}
+
+.hris-dl > div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 38%) 1fr;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--hris-border);
+}
+
+.hris-dl > div:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.hris-dl dt {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--hris-text-dim);
+}
+
+.hris-dl dd {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.hris-profile-highlight {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem;
+  border: 1px solid var(--hris-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hris-profile-highlight-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--hris-cyan);
+}
+
+.hris-profile-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--hris-text-dim);
+}
+
+.hris-table--compact th,
+.hris-table--compact td {
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+  font-size: 0.8125rem;
 }
 

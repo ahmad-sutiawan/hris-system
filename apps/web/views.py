@@ -34,6 +34,7 @@ from apps.leave.services.leave_workflow import (
     submit_leave_request,
 )
 from apps.employees.services.onboarding import employee_leave_balances_summary
+from apps.employees.services.profile import build_employee_profile_context
 from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.employees.services.import_csv import import_employees_csv, template_csv
@@ -169,6 +170,24 @@ def punch_action(request):
     except PunchError as exc:
         messages.error(request, str(exc))
     return redirect("web:dashboard")
+
+
+@login_required
+def employee_profile(request):
+    profile = _employee_profile(request.user)
+    if not profile and request.user.role in {User.Role.EMPLOYEE, User.Role.MANAGER}:
+        profile = ensure_employee_profile(request.user)
+
+    if not profile:
+        return render(
+            request,
+            "web/employees/profile.html",
+            {"missing_profile": True},
+        )
+
+    ctx = build_employee_profile_context(profile)
+    ctx["missing_profile"] = False
+    return render(request, "web/employees/profile.html", ctx)
 
 
 @login_required
@@ -376,20 +395,11 @@ def shift_assign(request):
         if form.is_valid():
             from apps.attendance.services.timesheet import recalculate_daily_timesheet
 
-            employee = form.cleaned_data["employee"]
-            shift = form.cleaned_data["shift"]
-            work_date = form.cleaned_data["work_date"]
-            assignment, created = ShiftAssignment.objects.update_or_create(
-                employee=employee,
-                work_date=work_date,
-                defaults={
-                    "tenant": request.user.tenant,
-                    "shift": shift,
-                    "scheduled_check_in": shift.scheduled_check_in,
-                    "scheduled_check_out": shift.scheduled_check_out,
-                },
-            )
-            recalculate_daily_timesheet(employee, work_date)
+            assignment = form.save(commit=False)
+            assignment.tenant = request.user.tenant
+            assignment.save()
+            recalculate_daily_timesheet(assignment.employee, assignment.work_date)
+            created = instance is None
             verb = "di-assign" if created else "diperbarui"
             messages.success(request, f"Shift berhasil {verb}.")
             return redirect("web:shift_assignment_list")

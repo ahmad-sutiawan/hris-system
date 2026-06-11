@@ -62,11 +62,18 @@ def calc_pph21(gross: Decimal, tax_status: str) -> Decimal:
     return (gross * rate).quantize(Decimal("0.01"))
 
 
-def calc_ot_pay(employee, ot_after_minutes: int) -> Decimal:
-    if ot_after_minutes <= 0:
+def calc_ot_pay(employee, ot_minutes: int) -> Decimal:
+    if ot_minutes <= 0:
         return Decimal("0")
-    hours = (Decimal(ot_after_minutes) / Decimal("60")).quantize(Decimal("0.01"))
+    hours = (Decimal(ot_minutes) / Decimal("60")).quantize(Decimal("0.01"))
     return (hours * hourly_rate(employee) * OT_HOURLY_MULTIPLIER).quantize(Decimal("0.01"))
+
+
+def calc_period_base(employee, *, present_days: int = 0) -> Decimal:
+    """Monthly fixed base, or daily rate × hari hadir for daily scheme."""
+    if employee.salary_scheme == employee.SalaryScheme.DAILY:
+        return (daily_rate(employee) * Decimal(present_days)).quantize(Decimal("0.01"))
+    return monthly_base(employee)
 
 
 def calc_alpha_deduction(employee, alpha_days: int) -> Decimal:

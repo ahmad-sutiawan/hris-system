@@ -17,8 +17,8 @@ from apps.payroll.services.calculator import (
     calc_bpjs_jp,
     calc_bpjs_kes,
     calc_ot_pay,
+    calc_period_base,
     calc_pph21,
-    monthly_base,
 )
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 
@@ -34,12 +34,18 @@ def _aggregate_timesheets(employee, period_start, period_end):
         work_date__lte=period_end,
     )
     ot_after = sum(ts.ot_after_minutes for ts in qs)
+    ot_before = sum(ts.ot_before_minutes for ts in qs)
     alpha_days = qs.filter(attendance_code__code="A").count()
     paid_hours = sum(ts.paid_working_hours for ts in qs)
+    present_days = qs.filter(check_in__isnull=False).exclude(
+        attendance_code__code="A"
+    ).count()
     return {
         "ot_after_minutes": ot_after,
+        "ot_before_minutes": ot_before,
         "alpha_days": alpha_days,
         "paid_hours": paid_hours,
+        "present_days": present_days,
     }
 
 
@@ -61,10 +67,11 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             payroll_run.period_start,
             payroll_run.period_end,
         )
-        base = monthly_base(employee)
-        ot_pay = calc_ot_pay(employee, stats["ot_after_minutes"])
+        base = calc_period_base(employee, present_days=stats["present_days"])
+        ot_after_pay = calc_ot_pay(employee, stats["ot_after_minutes"])
+        ot_before_pay = calc_ot_pay(employee, stats["ot_before_minutes"])
         alpha_deduction = calc_alpha_deduction(employee, stats["alpha_days"])
-        gross = base + ot_pay
+        gross = base + ot_after_pay + ot_before_pay
 
         bpjs_kes = calc_bpjs_kes(employee)
         bpjs_jht = calc_bpjs_jht(employee)
@@ -76,8 +83,10 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
 
         earnings = {
             "base_salary": str(base),
-            "ot_after": str(ot_pay),
+            "ot_after": str(ot_after_pay),
         }
+        if ot_before_pay > 0:
+            earnings["ot_before"] = str(ot_before_pay)
         deductions_breakdown = {
             "bpjs_kesehatan": str(bpjs_kes),
             "bpjs_jht": str(bpjs_jht),

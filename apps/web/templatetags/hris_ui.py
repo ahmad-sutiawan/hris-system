@@ -1,4 +1,5 @@
 from django import template
+from decimal import Decimal
 from django.utils.safestring import mark_safe
 
 from apps.web.nav_icons import resolve_nav_icon
@@ -77,6 +78,17 @@ def initials(value):
     if len(parts) >= 2:
         return (parts[0][0] + parts[1][0]).upper()
     return parts[0][:2].upper()
+
+
+@register.filter
+def rupiah(value):
+    if value is None or value == "":
+        return "—"
+    try:
+        amount = int(Decimal(str(value)))
+    except Exception:
+        return str(value)
+    return f"Rp {amount:,}".replace(",", ".")
 
 
 @register.filter

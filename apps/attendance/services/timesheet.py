@@ -1,10 +1,11 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeRequest
-from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics
+from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics, reconcile_paid_hours
 from apps.core.models import FeatureFlag
 from apps.leave.models import LeaveRequest
 from apps.shifts.models import ShiftAssignment
@@ -39,6 +40,13 @@ def _approved_overtime_caps(employee, work_date):
     return req.ot_before_minutes, req.ot_after_minutes
 
 
+def _sync_attendance_assignment(record, assignment):
+    if not record or not assignment or record.shift_assignment_id == assignment.pk:
+        return
+    record.shift_assignment = assignment
+    record.save(update_fields=["shift_assignment", "updated_at"])
+
+
 @transaction.atomic
 def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
     assignment = ShiftAssignment.objects.filter(
@@ -51,6 +59,8 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
         work_date=work_date,
     ).first()
 
+    _sync_attendance_assignment(record, assignment)
+
     leave = _leave_for_date(employee, work_date)
     hadir_code = AttendanceCode.objects.filter(
         tenant=employee.tenant,
@@ -62,7 +72,10 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
     scheduled_out = assignment.scheduled_check_out if assignment else None
     break_minutes = shift.break_minutes if shift else 0
     grace = shift.grace_period_minutes if shift else 15
-    schedule_hours = shift.schedule_working_hours if shift else None
+    # Derive schedule cap from assignment window (supports long shift / dynamic override).
+    schedule_hours = None if assignment and scheduled_in and scheduled_out else (
+        shift.schedule_working_hours if shift else None
+    )
 
     check_in = record.check_in if record else None
     check_out = record.check_out if record else None
@@ -85,6 +98,7 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
     elif record and not attendance_code:
         attendance_code = hadir_code
 
+    ot_before_enabled = _ot_before_enabled(employee.tenant, employee.plant)
     metrics = calculate_timesheet_metrics(
         work_date=work_date,
         scheduled_check_in=scheduled_in,
@@ -94,12 +108,13 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
         break_minutes=break_minutes,
         grace_period_minutes=grace,
         schedule_working_hours=schedule_hours,
-        ot_before_enabled=_ot_before_enabled(employee.tenant, employee.plant),
+        ot_before_enabled=ot_before_enabled,
     )
 
     approved_before, approved_after = _approved_overtime_caps(employee, work_date)
     metrics["ot_before_minutes"] = min(metrics["ot_before_minutes"], approved_before)
     metrics["ot_after_minutes"] = min(metrics["ot_after_minutes"], approved_after)
+    reconcile_paid_hours(metrics, ot_before_enabled=ot_before_enabled)
 
     if attendance_code and attendance_code.code == "A":
         metrics["paid_working_hours"] = metrics["paid_working_hours"] * 0
