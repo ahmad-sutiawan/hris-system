@@ -1,6 +1,8 @@
 from django import template
 from django.utils.safestring import mark_safe
 
+from apps.web.nav_icons import resolve_nav_icon
+
 register = template.Library()
 
 STATUS_BADGE_MAP = {
@@ -24,6 +26,15 @@ STATUS_BADGE_MAP = {
     "access": "default",
     "cancelled": "default",
 }
+
+
+@register.simple_tag
+def nav_icon(key):
+    inner = resolve_nav_icon(key)
+    return mark_safe(
+        f'<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" '
+        f'stroke-width="1.75" aria-hidden="true">{inner}</svg>'
+    )
 
 
 @register.simple_tag
