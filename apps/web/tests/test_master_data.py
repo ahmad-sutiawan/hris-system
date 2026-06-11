@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
@@ -109,6 +111,32 @@ class MasterDataTests(TestCase):
         response = self.client.get(url, {"q": "Cuti"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Cuti Tahunan")
+
+    def test_overtime_type_master_crud(self):
+        self.client.login(username="hr-master", password="TestPassword123!")
+        create_url = reverse("web:master_create", args=["overtime-types"])
+        response = self.client.post(
+            create_url,
+            {
+                "code": "OT-HK-1",
+                "name": "Lembur Hari Kerja Jam I",
+                "day_category": "workday",
+                "hour_from": 1,
+                "hour_to": 1,
+                "multiplier": "1.5",
+                "is_active": True,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        from apps.attendance.models import OvertimeType
+
+        ot_type = OvertimeType.objects.get(code="OT-HK-1", tenant=self.tenant)
+        self.assertEqual(ot_type.multiplier, Decimal("1.5"))
+
+        list_url = reverse("web:master_list", args=["overtime-types"])
+        response = self.client.get(list_url, {"q": "Jam I"})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Lembur Hari Kerja Jam I")
 
     def test_non_hr_cannot_access_master_data(self):
         employee = User.objects.create_user(

@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 
-from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet
+from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
 from apps.core.models import FeatureFlag, Notification, Plant, Tenant
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
@@ -309,6 +309,25 @@ class AttendanceCodeForm(forms.ModelForm):
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style_fields(self)
+
+
+class OvertimeTypeForm(forms.ModelForm):
+    class Meta:
+        model = OvertimeType
+        fields = [
+            "code",
+            "name",
+            "day_category",
+            "hour_from",
+            "hour_to",
+            "multiplier",
+            "is_active",
+        ]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_fields(self)
+        self.fields["hour_to"].help_text = "Kosongkan jika berlaku tanpa batas atas (mis. jam II+)."
 
 
 class AttendanceRecordForm(forms.ModelForm):

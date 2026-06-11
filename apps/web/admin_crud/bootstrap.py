@@ -1,4 +1,4 @@
-from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet
+from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
 from apps.core.models import AuditLog, FeatureFlag, Notification, Plant, Tenant, User
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
@@ -13,6 +13,7 @@ from apps.web.admin_crud.forms import (
     AdminUserForm,
     AttendanceCodeForm,
     AttendanceRecordForm,
+    OvertimeTypeForm,
     DailyTimesheetForm,
     DepartmentForm,
     EmployeeDocumentForm,
@@ -291,6 +292,29 @@ def bootstrap_registry():
             ],
             search_fields=["code", "label"],
             order_by=["code"],
+            master_data=True,
+            master_group="Operasional",
+            list_limit=500,
+        )
+    )
+    register(
+        AdminResource(
+            slug="overtime-types",
+            model=OvertimeType,
+            form_class=OvertimeTypeForm,
+            section="Attendance",
+            title="Jenis Lembur",
+            title_plural="Jenis Lembur",
+            columns=[
+                Column("Kode", "code"),
+                Column("Nama", "name"),
+                Column("Kategori", "day_category"),
+                Column("Jam", "hour_from"),
+                Column("Pengali", "multiplier"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["code", "name"],
+            order_by=["day_category", "hour_from", "code"],
             master_data=True,
             master_group="Operasional",
             list_limit=500,

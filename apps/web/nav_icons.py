@@ -135,6 +135,7 @@ NAV_ICON_ALIASES: dict[str, str] = {
     "attendance_export": "attendance",
     "attendance-records": "clock",
     "attendance-codes": "tag",
+    "overtime-types": "overtime",
     "shift_assignment_list": "shift-schedule",
     "shift_assign": "shift-schedule",
     "shift-assignments": "shift-schedule",

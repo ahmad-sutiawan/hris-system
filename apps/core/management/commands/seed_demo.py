@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from apps.attendance.models import AttendanceCode
+from apps.attendance.models import AttendanceCode, OvertimeType
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.models import LeaveType
@@ -93,6 +93,29 @@ class Command(BaseCommand):
                     "name": name,
                     "is_paid": is_paid,
                     "default_quota_days": quota,
+                },
+            )
+
+        overtime_types = [
+            ("OT-HK-1", "Lembur Hari Kerja Jam I", OvertimeType.DayCategory.WORKDAY, 1, 1, Decimal("1.5")),
+            ("OT-HK-2", "Lembur Hari Kerja Jam II+", OvertimeType.DayCategory.WORKDAY, 2, None, Decimal("2")),
+            ("OT-L6-1", "Lembur Libur 6 Jam Pertama", OvertimeType.DayCategory.HOLIDAY_6H, 1, 6, Decimal("2")),
+            ("OT-L6-2", "Lembur Libur Jam 7–8", OvertimeType.DayCategory.HOLIDAY_6H, 7, 8, Decimal("3")),
+            ("OT-L6-3", "Lembur Libur Jam 9–10", OvertimeType.DayCategory.HOLIDAY_6H, 9, 10, Decimal("4")),
+            ("OT-L8-1", "Lembur Libur ≤8 Jam", OvertimeType.DayCategory.HOLIDAY_8H, 1, 8, Decimal("2")),
+            ("OT-L8-2", "Lembur Libur Jam 9", OvertimeType.DayCategory.HOLIDAY_8H, 9, 9, Decimal("3")),
+            ("OT-L8-3", "Lembur Libur Jam 10", OvertimeType.DayCategory.HOLIDAY_8H, 10, 10, Decimal("4")),
+        ]
+        for code, name, category, hour_from, hour_to, multiplier in overtime_types:
+            OvertimeType.objects.get_or_create(
+                tenant=tenant,
+                code=code,
+                defaults={
+                    "name": name,
+                    "day_category": category,
+                    "hour_from": hour_from,
+                    "hour_to": hour_to,
+                    "multiplier": multiplier,
                 },
             )
 

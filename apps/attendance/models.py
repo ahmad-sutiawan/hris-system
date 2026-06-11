@@ -181,6 +181,28 @@ class DailyTimesheet(TenantScopedModel):
         return f"{self.employee.employee_id} — {self.work_date}"
 
 
+class OvertimeType(TenantScopedModel):
+    class DayCategory(models.TextChoices):
+        WORKDAY = "workday", "Hari Kerja"
+        HOLIDAY_6H = "holiday_6h", "Hari Libur (6 jam pertama)"
+        HOLIDAY_8H = "holiday_8h", "Hari Libur (≤8 jam)"
+
+    code = models.CharField(max_length=16)
+    name = models.CharField(max_length=100)
+    day_category = models.CharField(max_length=20, choices=DayCategory.choices)
+    hour_from = models.PositiveSmallIntegerField(default=1)
+    hour_to = models.PositiveSmallIntegerField(null=True, blank=True)
+    multiplier = models.DecimalField(max_digits=4, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["day_category", "hour_from", "code"]
+        unique_together = [["tenant", "code"]]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}"
+
+
 class OvertimeRequest(TenantScopedModel):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
