@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Ajukan Lembur — HRIS-Lite{% endblock %}
+{% block page_title %}Ajukan Lembur{% endblock %}
+
+{% block content %}
+<div class="hris-form-card">
+  <div class="hris-page-header">
+    <div>
+      <h1>Ajukan Lembur</h1>
+      <p>Isi durasi lembur sebelum/sesudah shift — harus disetujui HR/Manager</p>
+    </div>
+  </div>
+
+  {% if not can_submit %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-alert hris-alert--error">
+        Akun <strong>{{ user.username }}</strong> belum terhubung ke data karyawan.
+        Hubungi HR/Admin untuk menghubungkan akun di menu <strong>Karyawan → Edit</strong>.
+      </div>
+      <a href="{% url 'web:overtime_list' %}" class="hris-btn hris-btn-secondary">Kembali</a>
+    </div>
+  </div>
+  {% else %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      {% if profile and not show_employee_picker %}
+      <div class="hris-alert hris-alert--info" style="margin-bottom:1rem">
+        Pengajuan lembur untuk: <strong>{{ profile.full_name }}</strong> ({{ profile.employee_id }})
+      </div>
+      {% endif %}
+
+      {% if suggested_ot %}
+      <div class="hris-alert hris-alert--info" style="margin-bottom:1rem">
+        Estimasi dari absensi hari ini: sebelum shift <strong>{{ suggested_ot.0 }}</strong> menit,
+        sesudah shift <strong>{{ suggested_ot.1 }}</strong> menit.
+      </div>
+      {% endif %}
+
+      <form method="post" class="hris-form-grid" id="overtime-request-form">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="hris-alert hris-alert--error hris-field--full">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        {% if show_employee_picker %}
+        <div class="hris-field hris-field--full">
+          <label for="{{ form.employee.id_for_label }}">{{ form.employee.label }}</label>
+          {{ form.employee }}
+          {% if form.employee.help_text %}<p class="hris-field-help">{{ form.employee.help_text }}</p>{% endif %}
+          {% if form.employee.errors %}<p class="hris-field-error">{{ form.employee.errors.0 }}</p>{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="hris-field">
+          <label for="{{ form.work_date.id_for_label }}">{{ form.work_date.label }}</label>
+          <div class="hris-date-input-wrap">{{ form.work_date }}</div>
+          {% if form.work_date.errors %}<p class="hris-field-error">{{ form.work_date.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-field">
+          <label for="{{ form.ot_before_minutes.id_for_label }}">{{ form.ot_before_minutes.label }}</label>
+          {{ form.ot_before_minutes }}
+          {% if form.ot_before_minutes.errors %}<p class="hris-field-error">{{ form.ot_before_minutes.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-field">
+          <label for="{{ form.ot_after_minutes.id_for_label }}">{{ form.ot_after_minutes.label }}</label>
+          {{ form.ot_after_minutes }}
+          {% if form.ot_after_minutes.errors %}<p class="hris-field-error">{{ form.ot_after_minutes.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-field hris-field--full">
+          <label for="{{ form.reason.id_for_label }}">{{ form.reason.label }}</label>
+          {{ form.reason }}
+          {% if form.reason.errors %}<p class="hris-field-error">{{ form.reason.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-inline-actions hris-field--full" style="margin-top:0.5rem">
+          <button type="submit" class="hris-btn hris-btn-primary">{{ submit_label|default:"Kirim Pengajuan" }}</button>
+          <a href="{{ cancel_url|default:'/overtime/' }}" class="hris-btn hris-btn-ghost">Batal</a>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

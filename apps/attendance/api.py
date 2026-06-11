@@ -3,10 +3,21 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.attendance.models import AttendanceRecord, DailyTimesheet
+from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
 from apps.core.viewsets import TenantScopedViewSet
 from apps.attendance.serializers import AttendanceRecordSerializer, DailyTimesheetSerializer
+
+
+def _parse_punch_photo(request):
+    photo_data = request.data.get("photo") or request.data.get("photo_base64")
+    if not photo_data:
+        raise PunchError("Foto selfie wajib untuk absensi.")
+    try:
+        return decode_selfie(photo_data)
+    except PhotoError as exc:
+        raise PunchError(str(exc)) from exc
 
 
 class AttendanceRecordViewSet(TenantScopedViewSet):
@@ -25,7 +36,8 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         if not profile:
             return Response({"detail": "No employee profile."}, status=400)
         try:
-            record = clock_in(profile, source=AttendanceRecord.Source.MOBILE)
+            photo = _parse_punch_photo(request)
+            record = clock_in(profile, source=AttendanceRecord.Source.MOBILE, photo=photo)
             return Response(AttendanceRecordSerializer(record).data)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
@@ -36,7 +48,8 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         if not profile:
             return Response({"detail": "No employee profile."}, status=400)
         try:
-            record = clock_out(profile)
+            photo = _parse_punch_photo(request)
+            record = clock_out(profile, photo=photo)
             return Response(AttendanceRecordSerializer(record).data)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)

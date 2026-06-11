@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from django.db import transaction
 from django.utils import timezone
 
-from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet
+from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeRequest
 from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics
 from apps.core.models import FeatureFlag
 from apps.leave.models import LeaveRequest
@@ -26,6 +26,17 @@ def _leave_for_date(employee, work_date):
         start_date__lte=work_date,
         end_date__gte=work_date,
     ).select_related("leave_type").first()
+
+
+def _approved_overtime_caps(employee, work_date):
+    req = OvertimeRequest.objects.filter(
+        employee=employee,
+        work_date=work_date,
+        status=OvertimeRequest.Status.APPROVED,
+    ).first()
+    if not req:
+        return 0, 0
+    return req.ot_before_minutes, req.ot_after_minutes
 
 
 @transaction.atomic
@@ -85,6 +96,10 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
         schedule_working_hours=schedule_hours,
         ot_before_enabled=_ot_before_enabled(employee.tenant, employee.plant),
     )
+
+    approved_before, approved_after = _approved_overtime_caps(employee, work_date)
+    metrics["ot_before_minutes"] = min(metrics["ot_before_minutes"], approved_before)
+    metrics["ot_after_minutes"] = min(metrics["ot_after_minutes"], approved_after)
 
     if attendance_code and attendance_code.code == "A":
         metrics["paid_working_hours"] = metrics["paid_working_hours"] * 0

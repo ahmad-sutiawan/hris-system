@@ -179,3 +179,41 @@ class DailyTimesheet(TenantScopedModel):
 
     def __str__(self):
         return f"{self.employee.employee_id} — {self.work_date}"
+
+
+class OvertimeRequest(TenantScopedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+        CANCELLED = "cancelled", "Cancelled"
+
+    employee = models.ForeignKey(
+        "employees.Employee",
+        on_delete=models.CASCADE,
+        related_name="overtime_requests",
+    )
+    work_date = models.DateField(db_index=True)
+    ot_before_minutes = models.PositiveIntegerField(default=0)
+    ot_after_minutes = models.PositiveIntegerField(default=0)
+    reason = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    approver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_overtime_requests",
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["tenant", "status", "-created_at"]),
+            models.Index(fields=["employee", "work_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.employee.employee_id} — {self.work_date} (OT)"

@@ -53,6 +53,7 @@ class PlantForm(forms.ModelForm):
             "timezone",
             "address",
             "geo_fence_radius_m",
+            "default_shift",
             "is_active",
         ]
 
@@ -61,6 +62,10 @@ class PlantForm(forms.ModelForm):
         _base_init(self, tenant, user)
         if tenant:
             self.fields["tenant"].queryset = Tenant.objects.filter(pk=tenant.pk)
+            self.fields["default_shift"].queryset = Shift.objects.filter(
+                tenant=tenant, is_active=True
+            )
+            self.fields["default_shift"].required = False
 
 
 class FeatureFlagForm(forms.ModelForm):

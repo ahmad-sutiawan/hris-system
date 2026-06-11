@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
-from apps.leave.models import LeaveRequest, LeaveType
+from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
 from apps.organization.models import Department, JobPosition
 from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
@@ -84,6 +84,7 @@ class WebCRUDTests(TestCase):
             reverse("web:shift_assign"),
             reverse("web:payroll_create"),
             reverse("web:leave_create"),
+            reverse("web:overtime_create"),
         ]
         for url in pages:
             response = self.client.get(url)
@@ -102,9 +103,15 @@ class WebCRUDTests(TestCase):
             "manager": self.manager.pk,
             "join_date": self.today.isoformat(),
             "status": "permanent",
+            "salary_scheme": "monthly",
             "base_salary": "4500000",
             "allowance_transport": "0",
+            "allowance_meal": "0",
+            "allowance_position": "0",
             "tax_status": "TK/0",
+            "npwp": "",
+            "bpjs_kesehatan_number": "",
+            "bpjs_ketenagakerjaan_number": "",
             "bank_name": "",
             "bank_account_number": "",
             "bank_account_name": "",
@@ -112,6 +119,8 @@ class WebCRUDTests(TestCase):
         response = self.client.post(reverse("web:employee_create"), data)
         self.assertEqual(response.status_code, 302)
         emp = Employee.objects.get(employee_id="P1-NEW")
+        balance = LeaveBalance.objects.get(employee=emp, leave_type=self.leave_type)
+        self.assertEqual(balance.remaining, Decimal("12"))
         data["full_name"] = "Baru Updated"
         response = self.client.post(reverse("web:employee_edit", args=[emp.pk]), data)
         self.assertEqual(response.status_code, 302)

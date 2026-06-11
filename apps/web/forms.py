@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 
+from apps.attendance.models import OvertimeRequest
 from apps.core.models import Plant
 from apps.employees.models import Employee
 from apps.leave.models import LeaveRequest, LeaveType
@@ -92,10 +93,18 @@ class EmployeeForm(forms.ModelForm):
             "manager",
             "user",
             "join_date",
+            "contract_end_date",
+            "resign_date",
             "status",
+            "salary_scheme",
             "base_salary",
             "allowance_transport",
+            "allowance_meal",
+            "allowance_position",
             "tax_status",
+            "npwp",
+            "bpjs_kesehatan_number",
+            "bpjs_ketenagakerjaan_number",
             "bank_name",
             "bank_account_number",
             "bank_account_name",
@@ -105,16 +114,24 @@ class EmployeeForm(forms.ModelForm):
             "full_name": "Nama lengkap",
             "legal_entity": "Legal entity",
             "join_date": "Tanggal bergabung",
+            "contract_end_date": "Akhir kontrak",
+            "resign_date": "Tanggal resign",
+            "salary_scheme": "Skema gaji",
             "base_salary": "Gaji pokok",
             "allowance_transport": "Tunjangan transport",
+            "allowance_meal": "Tunjangan makan",
+            "allowance_position": "Tunjangan jabatan",
             "tax_status": "Status PPh21",
+            "npwp": "NPWP",
+            "bpjs_kesehatan_number": "No. BPJS Kesehatan",
+            "bpjs_ketenagakerjaan_number": "No. BPJS Ketenagakerjaan",
             "user": "Akun login",
         }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style_fields(self)
-        apply_date_fields(self, "join_date")
+        apply_date_fields(self, "join_date", "contract_end_date", "resign_date")
         self.fields["user"].required = False
         self.fields["legal_entity"].required = False
         self.fields["user"].help_text = (
@@ -296,6 +313,84 @@ class LeaveRequestForm(forms.ModelForm):
         if not self.is_valid():
             return None
         return self.cleaned_data.get("employee")
+
+
+class OvertimeRequestForm(forms.ModelForm):
+    employee = forms.ModelChoiceField(
+        queryset=Employee.objects.none(),
+        required=False,
+        label="Karyawan",
+        help_text="Pilih karyawan yang mengajukan lembur.",
+    )
+
+    class Meta:
+        model = OvertimeRequest
+        fields = ["work_date", "ot_before_minutes", "ot_after_minutes", "reason"]
+        labels = {
+            "work_date": "Tanggal lembur",
+            "ot_before_minutes": "Lembur sebelum shift (menit)",
+            "ot_after_minutes": "Lembur sesudah shift (menit)",
+            "reason": "Alasan / keterangan",
+        }
+
+    def __init__(
+        self,
+        *args,
+        tenant=None,
+        user=None,
+        show_employee_picker=False,
+        profile=None,
+        suggested_ot=None,
+        **kwargs,
+    ):
+        super().__init__(*args, **kwargs)
+        self.profile = profile
+        self.show_employee_picker = show_employee_picker
+        _style_fields(self)
+        apply_date_fields(self, "work_date")
+        self.fields["ot_before_minutes"].widget.attrs.setdefault("min", "0")
+        self.fields["ot_after_minutes"].widget.attrs.setdefault("min", "0")
+
+        if suggested_ot and not self.is_bound:
+            before, after = suggested_ot
+            if before:
+                self.fields["ot_before_minutes"].initial = before
+            if after:
+                self.fields["ot_after_minutes"].initial = after
+
+        if show_employee_picker:
+            emp_qs = Employee.objects.filter(tenant=tenant).exclude(
+                status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
+            )
+            if user and user.plant_id and not user.is_admin:
+                emp_qs = emp_qs.filter(plant=user.plant)
+            self.fields["employee"].queryset = emp_qs
+            self.fields["employee"].required = profile is None
+            if profile:
+                self.fields["employee"].empty_label = f"Diri sendiri — {profile.full_name}"
+        else:
+            del self.fields["employee"]
+
+    def clean(self):
+        cleaned = super().clean()
+        before = cleaned.get("ot_before_minutes") or 0
+        after = cleaned.get("ot_after_minutes") or 0
+        if before <= 0 and after <= 0:
+            self.add_error(
+                "ot_after_minutes",
+                "Isi durasi lembur sebelum atau sesudah shift (minimal satu > 0).",
+            )
+
+        if self.show_employee_picker:
+            employee = cleaned.get("employee") or self.profile
+            if not employee:
+                self.add_error("employee", "Pilih karyawan yang mengajukan lembur.")
+            else:
+                cleaned["employee"] = employee
+        elif self.profile:
+            cleaned["employee"] = self.profile
+
+        return cleaned
 
 
 class PayrollRunForm(forms.ModelForm):

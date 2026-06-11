@@ -8,7 +8,16 @@ from django.views.decorators.http import require_POST
 
 from apps.attendance.models import DailyTimesheet
 from apps.attendance.models import AttendanceRecord
+from apps.attendance.models import OvertimeRequest
 from apps.attendance.services.export import export_timesheets_csv
+from apps.attendance.services.overtime_workflow import (
+    OvertimeError,
+    approve_overtime_request,
+    cancel_overtime_request,
+    get_raw_overtime_minutes,
+    reject_overtime_request,
+    submit_overtime_request,
+)
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
 from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch_ui import get_punch_ui_state
@@ -24,14 +33,22 @@ from apps.leave.services.leave_workflow import (
     reject_leave_request,
     submit_leave_request,
 )
+from apps.employees.services.onboarding import employee_leave_balances_summary
 from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.employees.services.import_csv import import_employees_csv, template_csv
+from apps.employees.services.onboarding import provision_new_employee
 from apps.payroll.services.bank_export import export_bank_csv
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
 from apps.shifts.models import ShiftAssignment
-from apps.web.forms import EmployeeForm, LeaveRequestForm, PayrollRunForm, ShiftAssignmentForm
+from apps.web.forms import (
+    EmployeeForm,
+    LeaveRequestForm,
+    OvertimeRequestForm,
+    PayrollRunForm,
+    ShiftAssignmentForm,
+)
 
 
 def _employee_profile(user):
@@ -55,6 +72,7 @@ def dashboard(request):
     stats = {
         "employee_count": 0,
         "pending_leave": 0,
+        "pending_overtime": 0,
         "today_timesheets": 0,
         "draft_payroll": 0,
     }
@@ -79,6 +97,10 @@ def dashboard(request):
         stats["pending_leave"] = LeaveRequest.objects.filter(
             tenant=tenant,
             status=LeaveRequest.Status.PENDING,
+        ).count()
+        stats["pending_overtime"] = OvertimeRequest.objects.filter(
+            tenant=tenant,
+            status=OvertimeRequest.Status.PENDING,
         ).count()
         stats["today_timesheets"] = DailyTimesheet.objects.filter(
             tenant=tenant, work_date=today
@@ -236,7 +258,11 @@ def employee_create(request):
             employee = form.save(commit=False)
             employee.tenant = request.user.tenant
             employee.save()
-            messages.success(request, "Karyawan berhasil ditambahkan.")
+            provision_new_employee(employee, assign_shift=True)
+            messages.success(
+                request,
+                "Karyawan berhasil ditambahkan. Jatah cuti dan shift default telah diinisialisasi.",
+            )
             return redirect("web:employee_list")
     else:
         form = EmployeeForm(
@@ -267,6 +293,7 @@ def employee_edit(request, pk):
             updated = form.save(commit=False)
             updated.tenant = request.user.tenant
             updated.save()
+            provision_new_employee(updated)
             messages.success(request, "Data karyawan berhasil diperbarui.")
             return redirect("web:employee_list")
     else:
@@ -583,11 +610,13 @@ def leave_create(request):
         cancel_url="/leave/",
         submit_label="Kirim Pengajuan",
     )
+    leave_balances = employee_leave_balances_summary(profile) if profile else []
     ctx.update(
         {
             "profile": profile,
             "show_employee_picker": show_employee_picker,
             "can_submit": can_submit,
+            "leave_balances": leave_balances,
         }
     )
     return render(request, "web/leave/form.html", ctx)
@@ -638,6 +667,149 @@ def leave_reject(request, pk):
     except LeaveError as exc:
         messages.error(request, str(exc))
     return redirect("web:leave_list")
+
+
+@login_required
+def overtime_list(request):
+    qs = OvertimeRequest.objects.filter(tenant=request.user.tenant).select_related(
+        "employee", "approver"
+    ).order_by("-created_at")
+    query = request.GET.get("q", "").strip()
+    if query:
+        qs = qs.filter(
+            Q(employee__full_name__icontains=query)
+            | Q(employee__employee_id__icontains=query)
+            | Q(status__icontains=query)
+            | Q(reason__icontains=query)
+        )
+    overtime_requests = list(qs[:500])
+    can_approve = request.user.role in {
+        User.Role.ADMIN,
+        User.Role.HR,
+        User.Role.MANAGER,
+    }
+    profile = _employee_profile(request.user)
+    return render(
+        request,
+        "web/overtime/list.html",
+        {
+            "overtime_requests": overtime_requests,
+            "can_approve": can_approve,
+            "profile": profile,
+            "search_query": query,
+            "result_count": len(overtime_requests),
+        },
+    )
+
+
+@login_required
+def overtime_create(request):
+    profile = _employee_profile(request.user)
+    if not profile and request.user.role in {User.Role.EMPLOYEE, User.Role.MANAGER}:
+        profile = ensure_employee_profile(request.user)
+
+    show_employee_picker = request.user.is_hr
+    can_submit = bool(profile or request.user.is_hr)
+    suggested_ot = None
+    if profile:
+        suggested_ot = get_raw_overtime_minutes(profile, timezone.localdate())
+
+    form_kwargs = {
+        "tenant": request.user.tenant,
+        "user": request.user,
+        "show_employee_picker": show_employee_picker,
+        "profile": profile,
+        "suggested_ot": suggested_ot,
+    }
+
+    if request.method == "POST":
+        if not can_submit:
+            messages.error(
+                request,
+                "Akun belum terhubung ke data karyawan. Hubungi HR untuk menghubungkan akun Anda.",
+            )
+            return redirect("web:overtime_list")
+
+        form = OvertimeRequestForm(request.POST, **form_kwargs)
+        if form.is_valid():
+            employee = form.cleaned_data["employee"]
+            try:
+                submit_overtime_request(
+                    employee=employee,
+                    work_date=form.cleaned_data["work_date"],
+                    ot_before_minutes=form.cleaned_data.get("ot_before_minutes") or 0,
+                    ot_after_minutes=form.cleaned_data.get("ot_after_minutes") or 0,
+                    reason=form.cleaned_data.get("reason", ""),
+                )
+                messages.success(request, "Pengajuan lembur berhasil dikirim.")
+                return redirect("web:overtime_list")
+            except OvertimeError as exc:
+                messages.error(request, str(exc))
+    else:
+        form = OvertimeRequestForm(**form_kwargs)
+
+    ctx = _form_context(
+        form,
+        "Ajukan Lembur",
+        cancel_url="/overtime/",
+        submit_label="Kirim Pengajuan",
+    )
+    ctx.update(
+        {
+            "profile": profile,
+            "show_employee_picker": show_employee_picker,
+            "can_submit": can_submit,
+            "suggested_ot": suggested_ot,
+        }
+    )
+    return render(request, "web/overtime/form.html", ctx)
+
+
+@login_required
+@require_POST
+def overtime_cancel(request, pk):
+    overtime_req = get_object_or_404(OvertimeRequest, pk=pk, tenant=request.user.tenant)
+    profile = _employee_profile(request.user)
+    if not (
+        request.user.is_hr
+        or (profile and profile.pk == overtime_req.employee_id)
+    ):
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:overtime_list")
+
+    try:
+        cancel_overtime_request(overtime_req, request.user)
+        messages.success(request, "Pengajuan lembur dibatalkan.")
+    except OvertimeError as exc:
+        messages.error(request, str(exc))
+    return redirect("web:overtime_list")
+
+
+@login_required
+@require_POST
+@require_roles(User.Role.ADMIN, User.Role.HR, User.Role.MANAGER)
+def overtime_approve(request, pk):
+    overtime_req = get_object_or_404(OvertimeRequest, pk=pk, tenant=request.user.tenant)
+    try:
+        approve_overtime_request(overtime_req, request.user)
+        messages.success(request, "Lembur disetujui.")
+    except OvertimeError as exc:
+        messages.error(request, str(exc))
+    return redirect("web:overtime_list")
+
+
+@login_required
+@require_POST
+@require_roles(User.Role.ADMIN, User.Role.HR, User.Role.MANAGER)
+def overtime_reject(request, pk):
+    overtime_req = get_object_or_404(OvertimeRequest, pk=pk, tenant=request.user.tenant)
+    reason = request.POST.get("reason", "")
+    try:
+        reject_overtime_request(overtime_req, request.user, reason=reason)
+        messages.success(request, "Lembur ditolak.")
+    except OvertimeError as exc:
+        messages.error(request, str(exc))
+    return redirect("web:overtime_list")
 
 
 @login_required

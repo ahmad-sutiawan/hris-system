@@ -4,6 +4,7 @@ from django.dispatch import receiver
 from apps.core.models import AuditLog
 from apps.core.services.audit import diff_instance, log_audit
 from apps.employees.models import Employee
+from apps.attendance.models import OvertimeRequest
 from apps.leave.models import LeaveRequest
 from apps.payroll.models import PayrollRun, Payslip
 
@@ -20,7 +21,7 @@ def audit_pre_save(sender, instance, **kwargs):
         return
     if not getattr(instance, "pk", None):
         return
-    if sender not in {Employee, LeaveRequest, PayrollRun, Payslip}:
+    if sender not in {Employee, LeaveRequest, OvertimeRequest, PayrollRun, Payslip}:
         return
     try:
         old = sender.objects.get(pk=instance.pk)
@@ -33,7 +34,7 @@ def audit_pre_save(sender, instance, **kwargs):
 def audit_post_save(sender, instance, created, **kwargs):
     if sender is AuditLog:
         return
-    if sender not in {Employee, LeaveRequest, PayrollRun, Payslip}:
+    if sender not in {Employee, LeaveRequest, OvertimeRequest, PayrollRun, Payslip}:
         return
 
     if created:
@@ -50,6 +51,6 @@ def audit_post_save(sender, instance, created, **kwargs):
 def audit_post_delete(sender, instance, **kwargs):
     if sender is AuditLog:
         return
-    if sender not in {Employee, LeaveRequest, PayrollRun, Payslip}:
+    if sender not in {Employee, LeaveRequest, OvertimeRequest, PayrollRun, Payslip}:
         return
     log_audit(AuditLog.Action.DELETE, instance)

@@ -31,6 +31,34 @@
       </div>
       {% endif %}
 
+      {% if leave_balances %}
+      <div class="hris-card" style="margin-bottom:1rem">
+        <div class="hris-card-body">
+          <h2 class="hris-card-title" style="margin:0 0 0.75rem;font-size:0.95rem">Saldo Cuti Tahun Berjalan</h2>
+          <table class="hris-table hris-table--compact">
+            <thead>
+              <tr>
+                <th>Jenis</th>
+                <th>Sisa</th>
+                <th>Pending</th>
+                <th>Terpakai</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for bal in leave_balances %}
+              <tr>
+                <td><span class="hris-mono">{{ bal.leave_type.code }}</span> — {{ bal.leave_type.name }}</td>
+                <td>{{ bal.remaining }}</td>
+                <td>{{ bal.pending }}</td>
+                <td>{{ bal.used }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
       <form method="post" class="hris-form-grid" id="leave-request-form">
         {% csrf_token %}
         {% if form.non_field_errors %}

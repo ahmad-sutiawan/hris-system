@@ -94,6 +94,11 @@
     <div class="hris-stat-value">{{ stats.pending_leave }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
   </div>
+  <div class="hris-stat-card hris-stat-card--amber">
+    <div class="hris-stat-label">Lembur Pending</div>
+    <div class="hris-stat-value">{{ stats.pending_overtime }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  </div>
   <div class="hris-stat-card hris-stat-card--cyan">
     <div class="hris-stat-label">Timesheet Hari Ini</div>
     <div class="hris-stat-value">{{ stats.today_timesheets }}</div>
@@ -112,6 +117,7 @@
       <h2 style="margin:0;font-size:1.125rem;font-weight:700">Quick Actions</h2>
       <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.625rem">
         <a href="{% url 'web:leave_create' %}" class="hris-quick-link">Ajukan Cuti</a>
+        <a href="{% url 'web:overtime_create' %}" class="hris-quick-link">Ajukan Lembur</a>
         <a href="{% url 'web:payslip_list' %}" class="hris-quick-link">Lihat Slip Gaji</a>
         <a href="{% url 'web:attendance_list' %}" class="hris-quick-link">Riwayat Absensi</a>
         {% if user.role == 'admin' or user.role == 'hr' %}
@@ -127,7 +133,7 @@
     <div class="hris-card-body">
       <h2 style="margin:0;font-size:1.125rem;font-weight:700">Alur MVP</h2>
       <div class="hris-flow">
-        Karyawan → Assign Shift → Clock In/Out + Selfie → Daily Timesheet → Cuti → Payroll → Slip Gaji
+        Karyawan → Shift default → Clock In/Out + Selfie → Ajukan Lembur → Cuti → Payroll → Slip Gaji
       </div>
     </div>
   </div>

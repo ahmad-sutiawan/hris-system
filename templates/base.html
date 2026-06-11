@@ -27,7 +27,16 @@
         </div>
       </div>
 
-      <nav class="hris-nav">
+      <div class="hris-sidebar-search">
+        <label class="hris-sidebar-search-label" for="hris-sidebar-search">Cari menu</label>
+        <div class="hris-sidebar-search-wrap">
+          <svg class="hris-sidebar-search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          <input type="search" id="hris-sidebar-search" class="hris-sidebar-search-input" placeholder="Cari submenu…" autocomplete="off" enterkeyhint="search">
+        </div>
+      </div>
+
+      <nav class="hris-nav" id="hris-nav">
+        <p id="hris-sidebar-search-empty" class="hris-sidebar-search-empty" hidden>Tidak ada menu ditemukan.</p>
         <div class="hris-nav-section">
           <div class="hris-nav-label">Utama</div>
           <a href="{% url 'web:dashboard' %}" class="hris-nav-link{% if request.path == '/' %} is-active{% endif %}">
@@ -69,6 +78,10 @@
           <a href="{% url 'web:leave_list' %}" class="hris-nav-link{% nav_is_active 'leave_list' 'leave_create' 'leave_approve' 'leave_reject' 'leave_cancel' %}">
             <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
             Pengajuan Cuti
+          </a>
+          <a href="{% url 'web:overtime_list' %}" class="hris-nav-link{% nav_is_active 'overtime_list' 'overtime_create' 'overtime_approve' 'overtime_reject' 'overtime_cancel' %}">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            Pengajuan Lembur
           </a>
         </div>
 

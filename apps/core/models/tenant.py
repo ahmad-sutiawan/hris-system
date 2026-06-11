@@ -26,6 +26,14 @@ class Plant(TimeStampedModel):
         blank=True,
         help_text="Tier C: GPS geo-fence radius in meters",
     )
+    default_shift = models.ForeignKey(
+        "shifts.Shift",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="default_for_plants",
+        help_text="Shift otomatis untuk karyawan baru di plant ini.",
+    )
     is_active = models.BooleanField(default=True)
 
     class Meta:

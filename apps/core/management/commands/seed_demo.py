@@ -61,6 +61,10 @@ class Command(BaseCommand):
             },
         )
 
+        if plant.default_shift_id != shift.pk:
+            plant.default_shift = shift
+            plant.save(update_fields=["default_shift"])
+
         attendance_codes = [
             ("H", "Hadir", AttendanceCode.PayrollImpact.PAID),
             ("A", "Alpha", AttendanceCode.PayrollImpact.UNPAID),

@@ -7,6 +7,7 @@ from django.db import transaction
 
 from apps.core.models import Plant
 from apps.employees.models import Employee
+from apps.employees.services.onboarding import provision_new_employee
 from apps.organization.models import Department, JobPosition
 
 IMPORT_HEADERS = [
@@ -149,6 +150,7 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
             )
             if was_created:
                 created += 1
+                provision_new_employee(obj, assign_shift=True)
             else:
                 updated += 1
         except ImportErrorRow as exc:
