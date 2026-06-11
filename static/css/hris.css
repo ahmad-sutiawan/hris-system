@@ -780,7 +780,7 @@ body.hris-body::before {
 }
 
 .hris-table th {
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.5rem;
   text-align: left;
   font-size: 0.6875rem;
   font-weight: 700;
@@ -792,11 +792,11 @@ body.hris-body::before {
 }
 
 .hris-table td {
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 0.5rem;
   border-bottom: 1px solid var(--hris-border);
   color: var(--hris-text-muted);
   font-size: 0.75rem;
-  line-height: 1.25;
+  line-height: 1.35;
 }
 
 .hris-table .hris-badge {
@@ -1292,6 +1292,37 @@ body.hris-modal-open {
 
 .hris-link:hover {
   text-decoration: underline;
+}
+
+.hris-link-danger,
+.hris-inline-actions .hris-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--hris-danger);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.hris-link-danger:hover,
+.hris-inline-actions .hris-btn-danger:hover {
+  background: transparent;
+  color: #fda4af;
+  text-decoration: underline;
+  transform: none;
+  filter: none;
+}
+
+.hris-inline-actions form {
+  display: inline-flex;
+  margin: 0;
 }
 
 .hris-login-page {

@@ -41,7 +41,7 @@
             <div class="hris-inline-actions">
               <a href="{% url 'web:shift_edit' row.pk %}" class="hris-link">Edit</a>
               <form method="post" action="{% url 'web:shift_delete' row.pk %}" onsubmit="return confirm('Hapus assignment shift ini?')">{% csrf_token %}
-                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Hapus</button>
+                <button type="submit" class="hris-link-danger">Hapus</button>
               </form>
             </div>
           </td>

@@ -41,7 +41,7 @@
               {% endif %}
               {% if run.status != 'finalized' and run.status != 'cancelled' %}
               <form method="post" action="{% url 'web:payroll_cancel' run.pk %}" onsubmit="return confirm('Batalkan payroll run ini?')">{% csrf_token %}
-                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Batalkan</button>
+                <button type="submit" class="hris-link-danger">Batalkan</button>
               </form>
               {% endif %}
             </div>

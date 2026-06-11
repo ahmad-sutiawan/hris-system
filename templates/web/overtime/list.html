@@ -44,7 +44,7 @@
                 <button class="hris-btn hris-btn-success hris-btn-sm">Approve</button>
               </form>
               <form method="post" action="{% url 'web:overtime_reject' req.pk %}">{% csrf_token %}
-                <button class="hris-btn hris-btn-danger hris-btn-sm">Reject</button>
+                <button class="hris-link-danger">Reject</button>
               </form>
             </div>
             {% elif req.status == 'pending' and profile and profile.pk == req.employee_id %}

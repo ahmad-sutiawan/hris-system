@@ -95,7 +95,7 @@
               <a href="{% url 'web:employee_edit' employee.pk %}" class="hris-link">Edit</a>
               {% if employee.status != 'inactive' and employee.status != 'resigned' %}
               <form method="post" action="{% url 'web:employee_deactivate' employee.pk %}" onsubmit="return confirm('Nonaktifkan karyawan ini?')">{% csrf_token %}
-                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Nonaktifkan</button>
+                <button type="submit" class="hris-link-danger">Nonaktifkan</button>
               </form>
               {% endif %}
             </div>

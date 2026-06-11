@@ -45,7 +45,7 @@
               {% endif %}
               {% if resource.allow_delete %}
               <form method="post" action="{% url crud_url_names.delete resource.slug row.obj.pk %}" onsubmit="return confirm('Hapus data master ini?')">{% csrf_token %}
-                <button type="submit" class="hris-btn hris-btn-danger hris-btn-sm">Hapus</button>
+                <button type="submit" class="hris-link-danger">Hapus</button>
               </form>
               {% endif %}
             </div>
