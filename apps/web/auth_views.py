@@ -1,6 +1,5 @@
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib import messages
-from django.conf import settings
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 
@@ -17,9 +16,7 @@ class HRISLoginView(LoginView):
         return self.get_redirect_url() or reverse_lazy("web:dashboard")
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["show_demo_accounts"] = settings.DEBUG
-        return context
+        return super().get_context_data(**kwargs)
 
     def form_valid(self, form):
         user = form.get_user()

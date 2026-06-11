@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Login — HRIS-Lite{% endblock %}
+{% block title %}Login — PT BPS HRIS{% endblock %}
 
 {% block auth_content %}
 <div class="hris-login-page">
   <div class="hris-login-hero">
     <div>
       <div class="hris-brand hris-brand--flat">
-        <div class="hris-brand-mark">HR</div>
+        <div class="hris-brand-mark">BP</div>
         <div class="hris-brand-text">
-          <strong>HRIS-Lite</strong>
-          <span>Manufacturing Suite</span>
+          <strong>PT BPS HRIS</strong>
+          <span>Manufaktur Baja</span>
         </div>
       </div>
-      <h2>HR yang presisi untuk lantai produksi</h2>
-      <p>Kelola absensi, timesheet 24 kolom, cuti, dan payroll — dirancang untuk operasional manufaktur multi-plant.</p>
+      <h2>HR terintegrasi untuk operasional pabrik baja</h2>
+      <p>Absensi selfie, penjadwalan shift, timesheet harian, cuti, payroll, dan slip gaji — dalam satu portal untuk workforce plant PT BPS.</p>
     </div>
     <div class="hris-login-features">
       <div class="hris-login-feature">
@@ -21,8 +21,8 @@
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
         </div>
         <div>
-          <strong>Real-time Attendance</strong>
-          <span>Clock in/out web & mobile dengan engine timesheet otomatis</span>
+          <strong>Absensi & Timesheet</strong>
+          <span>Clock in/out dengan verifikasi selfie, rekap jam CI/CO, dan export timesheet CSV</span>
         </div>
       </div>
       <div class="hris-login-feature">
@@ -30,8 +30,8 @@
           <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
         <div>
-          <strong>Compliance Ready</strong>
-          <span>BPJS, PPh21 TER, audit trail, dan export bank payroll</span>
+          <strong>HR, Cuti & Payroll</strong>
+          <span>Pengajuan cuti, payroll run, slip gaji PDF, master karyawan, dan Admin Console lengkap</span>
         </div>
       </div>
     </div>
@@ -41,7 +41,7 @@
     <div class="hris-login-box">
       <div class="hris-login-box-head">
         <h1>Selamat datang</h1>
-        <p>Masuk ke portal HRD manufaktur Anda</p>
+        <p>Masuk ke portal HR PT BPS</p>
       </div>
 
       {% include "components/messages.html" %}
@@ -79,34 +79,14 @@
           {% if form.password.errors %}<p class="hris-field-error">{{ form.password.errors.0 }}</p>{% endif %}
         </div>
 
-        <div class="hris-field hris-field--checkbox hris-login-remember-row">
+        <!-- <div class="hris-field hris-field--checkbox hris-login-remember-row">
           <label class="hris-checkbox-label">{{ form.remember_me }} {{ form.remember_me.label }}</label>
-        </div>
+        </div> -->
 
         <button type="submit" class="hris-btn hris-btn-primary hris-login-submit" id="hris-login-submit">
           <span class="hris-login-submit-text">Masuk ke Dashboard</span>
         </button>
       </form>
-
-      {% if show_demo_accounts %}
-      <div class="hris-demo-panel">
-        <p class="hris-demo-label">Akun demo — klik untuk isi otomatis</p>
-        <div class="hris-demo-grid">
-          <button type="button" class="hris-demo-card" data-username="admin" data-password="Admin123456!">
-            <strong>Admin</strong>
-            <span>Full access HRIS</span>
-          </button>
-          <button type="button" class="hris-demo-card" data-username="budi" data-password="Employee123!">
-            <strong>Budi</strong>
-            <span>Employee · clock & cuti</span>
-          </button>
-          <button type="button" class="hris-demo-card" data-username="manager" data-password="Manager123!">
-            <strong>Manager</strong>
-            <span>Approve pengajuan cuti</span>
-          </button>
-        </div>
-      </div>
-      {% endif %}
     </div>
   </div>
 </div>
@@ -124,16 +104,6 @@
       toggle.setAttribute("aria-label", show ? "Sembunyikan password" : "Tampilkan password");
     });
   }
-
-  document.querySelectorAll(".hris-demo-card").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var user = document.getElementById("id_username");
-      var pass = document.getElementById("id_password");
-      if (user) user.value = btn.dataset.username || "";
-      if (pass) pass.value = btn.dataset.password || "";
-      if (user) user.focus();
-    });
-  });
 
   var form = document.getElementById("hris-login-form");
   var submit = document.getElementById("hris-login-submit");
