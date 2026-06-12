@@ -4,14 +4,13 @@
 {% block auth_content %}
 <div class="hris-login-page">
   <aside class="hris-login-hero" aria-hidden="false">
+    <div class="hris-login-hero-media" aria-hidden="true"></div>
+    <div class="hris-login-hero-overlay" aria-hidden="true"></div>
     <div class="hris-login-hero-inner">
-      <div class="hris-brand hris-brand--flat hris-brand--logo">
+      <div class="hris-login-hero-brand">
         {% include "components/brand_logo.html" with modifier="hero" %}
-        <div class="hris-brand-text">
-          <strong>BPS HRIS</strong>
-        </div>
+        <p class="hris-login-hero-logo">BPS HRIS</p>
       </div>
-
       <div class="hris-login-hero-copy">
         <h2>Transformasi Digital HR</h2>
         <p>Dukung Pertumbuhan Perusahaan.</p>
