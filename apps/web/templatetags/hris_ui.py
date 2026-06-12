@@ -8,6 +8,7 @@ register = template.Library()
 
 STATUS_BADGE_MAP = {
     "pending": "pending",
+    "pending_approval": "review",
     "draft": "draft",
     "probation": "probation",
     "approved": "approved",

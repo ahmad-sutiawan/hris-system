@@ -119,6 +119,7 @@ def aggregate_overtime_pay(employee, period_start, period_end) -> tuple[Decimal,
         work_date__gte=period_start,
         work_date__lte=period_end,
         status=OvertimeRequest.Status.APPROVED,
+        compensation_mode=OvertimeRequest.CompensationMode.CASH,
     ).select_related("overtime_type")
 
     total = Decimal("0")

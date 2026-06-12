@@ -25,6 +25,7 @@
           <th>Tanggal</th>
           <th>Sebelum (m)</th>
           <th>Sesudah (m)</th>
+          <th>Kompensasi</th>
           <th>Status</th>
           <th>Aksi</th>
         </tr>
@@ -38,6 +39,12 @@
           <td>{{ req.work_date }}</td>
           <td>{{ req.ot_before_minutes|num:0 }}</td>
           <td>{{ req.ot_after_minutes|num:0 }}</td>
+          <td>
+            {{ req.get_compensation_mode_display }}
+            {% if req.compensation_mode == 'leave' and req.leave_days_credited %}
+            <span class="hris-text-dim">(+{{ req.leave_days_credited|num:2 }} hari)</span>
+            {% endif %}
+          </td>
           <td>{% status_badge req.status req.get_status_display %}</td>
           <td>
             {% if can_approve and req.status == 'pending' %}
@@ -61,7 +68,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan lembur yang cocok dengan pencarian.{% else %}Belum ada pengajuan lembur.{% endif %}</div></td></tr>
+        <tr><td colspan="9"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan lembur yang cocok dengan pencarian.{% else %}Belum ada pengajuan lembur.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

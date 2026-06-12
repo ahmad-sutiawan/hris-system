@@ -32,10 +32,17 @@
       </div>
       {% endif %}
 
-      {% if leave_balances %}
-      <div class="hris-card" style="margin-bottom:1rem">
+      {% if leave_balance_rows or show_employee_picker %}
+      <div class="hris-card" style="margin-bottom:1rem" id="leave-balance-card">
         <div class="hris-card-body">
-          <h2 class="hris-card-title" style="margin:0 0 0.75rem;font-size:0.95rem">Saldo Cuti Tahun Berjalan</h2>
+          <h2 class="hris-card-title" style="margin:0 0 0.75rem;font-size:0.95rem">
+            Saldo Cuti Tahun Berjalan
+            {% if employee_label %}
+            <span class="hris-text-dim" id="leave-balance-employee">— {{ employee_label }}</span>
+            {% elif show_employee_picker %}
+            <span class="hris-text-dim" id="leave-balance-employee"></span>
+            {% endif %}
+          </h2>
           <table class="hris-table hris-table--compact">
             <thead>
               <tr>
@@ -45,13 +52,17 @@
                 <th>Terpakai</th>
               </tr>
             </thead>
-            <tbody>
-              {% for bal in leave_balances %}
+            <tbody id="leave-balance-tbody">
+              {% for row in leave_balance_rows %}
               <tr>
-                <td><span class="hris-mono">{{ bal.leave_type.code }}</span> — {{ bal.leave_type.name }}</td>
-                <td>{{ bal.remaining|num:1 }}</td>
-                <td>{{ bal.pending|num:1 }}</td>
-                <td>{{ bal.used|num:1 }}</td>
+                <td><span class="hris-mono">{{ row.code }}</span> — {{ row.name }}</td>
+                <td>{{ row.remaining }}</td>
+                <td>{{ row.pending }}</td>
+                <td>{{ row.used }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="4" class="hris-text-dim">Pilih karyawan untuk melihat saldo cuti.</td>
               </tr>
               {% endfor %}
             </tbody>
@@ -124,6 +135,10 @@
 
 {% block extra_js %}
 {% if can_submit %}
+{% if show_employee_picker %}
+{{ leave_balances_by_employee|json_script:"leave-balances-by-employee" }}
+{{ leave_employee_labels|json_script:"leave-employee-labels" }}
+{% endif %}
 <script>
 (function () {
   var form = document.getElementById("leave-request-form");
@@ -133,6 +148,52 @@
   var end = document.getElementById("id_end_date");
   var halfDay = document.getElementById("id_is_half_day");
   var endField = document.getElementById("leave-end-date-field");
+  var employeeSelect = document.getElementById("id_employee");
+  var balanceTbody = document.getElementById("leave-balance-tbody");
+  var balanceEmployee = document.getElementById("leave-balance-employee");
+  var balancesByEmployee = null;
+  var employeeLabels = null;
+  var profileEmployeeId = "{{ default_employee_id|default:'' }}";
+  var balancesNode = document.getElementById("leave-balances-by-employee");
+  var labelsNode = document.getElementById("leave-employee-labels");
+
+  if (balancesNode) {
+    balancesByEmployee = JSON.parse(balancesNode.textContent);
+  }
+  if (labelsNode) {
+    employeeLabels = JSON.parse(labelsNode.textContent);
+  }
+
+  function renderLeaveBalances(employeeId) {
+    if (!balanceTbody || !balancesByEmployee) return;
+    var rows = balancesByEmployee[employeeId] || [];
+    if (!rows.length) {
+      balanceTbody.innerHTML = '<tr><td colspan="4" class="hris-text-dim">Belum ada saldo cuti untuk karyawan ini.</td></tr>';
+    } else {
+      balanceTbody.innerHTML = rows.map(function (row) {
+        return '<tr><td><span class="hris-mono">' + row.code + '</span> — ' + row.name + '</td>'
+          + '<td>' + row.remaining + '</td>'
+          + '<td>' + row.pending + '</td>'
+          + '<td>' + row.used + '</td></tr>';
+      }).join("");
+    }
+    if (balanceEmployee) {
+      var label = employeeLabels && employeeLabels[employeeId];
+      balanceEmployee.textContent = label ? "— " + label : "";
+    }
+  }
+
+  function selectedEmployeeId() {
+    if (!employeeSelect) return profileEmployeeId;
+    return employeeSelect.value || profileEmployeeId;
+  }
+
+  if (employeeSelect && balancesByEmployee) {
+    employeeSelect.addEventListener("change", function () {
+      renderLeaveBalances(selectedEmployeeId());
+    });
+    renderLeaveBalances(selectedEmployeeId());
+  }
 
   function syncEndDate() {
     if (!start || !end) return;

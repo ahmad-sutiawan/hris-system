@@ -66,6 +66,7 @@ def bulk_overtime_pay(employees, period_start, period_end) -> dict[int, tuple[De
         work_date__gte=period_start,
         work_date__lte=period_end,
         status=OvertimeRequest.Status.APPROVED,
+        compensation_mode=OvertimeRequest.CompensationMode.CASH,
     ).select_related("overtime_type")
 
     ts_index: dict[tuple[int, object], DailyTimesheet] = {}

@@ -374,13 +374,24 @@ class OvertimeRequestForm(forms.ModelForm):
 
     class Meta:
         model = OvertimeRequest
-        fields = ["overtime_type", "work_date", "ot_before_minutes", "ot_after_minutes", "reason"]
+        fields = [
+            "overtime_type",
+            "work_date",
+            "ot_before_minutes",
+            "ot_after_minutes",
+            "compensation_mode",
+            "reason",
+        ]
         labels = {
             "overtime_type": "Jenis lembur",
             "work_date": "Tanggal lembur",
             "ot_before_minutes": "Lembur sebelum shift (menit)",
             "ot_after_minutes": "Lembur sesudah shift (menit)",
+            "compensation_mode": "Kompensasi lembur",
             "reason": "Alasan / keterangan",
+        }
+        widgets = {
+            "compensation_mode": forms.RadioSelect,
         }
 
     def __init__(
@@ -400,6 +411,12 @@ class OvertimeRequestForm(forms.ModelForm):
         apply_date_fields(self, "work_date")
         self.fields["ot_before_minutes"].widget.attrs.setdefault("min", "0")
         self.fields["ot_after_minutes"].widget.attrs.setdefault("min", "0")
+        self.fields["compensation_mode"].help_text = (
+            "Diuangkan: masuk slip gaji sesuai grade dan tarif lembur. "
+            "Tambah jatah cuti: 8 jam lembur disetujui = 1 hari cuti (jenis CL)."
+        )
+        self.fields["compensation_mode"].initial = OvertimeRequest.CompensationMode.CASH
+        self.fields["compensation_mode"].required = False
 
         if suggested_ot and not self.is_bound:
             before, after = suggested_ot
@@ -445,6 +462,9 @@ class OvertimeRequestForm(forms.ModelForm):
                 cleaned["employee"] = employee
         elif self.profile:
             cleaned["employee"] = self.profile
+
+        if not cleaned.get("compensation_mode"):
+            cleaned["compensation_mode"] = OvertimeRequest.CompensationMode.CASH
 
         return cleaned
 

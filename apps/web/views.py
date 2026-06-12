@@ -39,7 +39,7 @@ from apps.leave.services.leave_workflow import (
     reject_leave_request,
     submit_leave_request,
 )
-from apps.employees.services.onboarding import employee_leave_balances_summary
+from apps.web.services.leave_form import build_leave_balance_context
 from apps.employees.services.profile import build_employee_profile_context
 from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
@@ -55,6 +55,7 @@ from apps.payroll.services.compliance_export import export_bpjs_csv, export_pph2
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
 from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_csv
+from apps.attendance.services.overtime_compensation import build_compensation_preview
 from apps.shifts.models import ShiftAssignment
 from apps.web.services.dashboard import build_dashboard_context
 from apps.web.services.list_exports import (
@@ -621,13 +622,16 @@ def leave_create(request):
         cancel_url="/leave/",
         submit_label="Kirim Pengajuan",
     )
-    leave_balances = employee_leave_balances_summary(profile) if profile else []
     ctx.update(
         {
             "profile": profile,
             "show_employee_picker": show_employee_picker,
             "can_submit": can_submit,
-            "leave_balances": leave_balances,
+            **build_leave_balance_context(
+                profile=profile,
+                show_employee_picker=show_employee_picker,
+                form=form,
+            ),
         }
     )
     return render(request, "web/leave/form.html", ctx)
@@ -750,6 +754,10 @@ def overtime_create(request):
                     overtime_type=form.cleaned_data["overtime_type"],
                     ot_before_minutes=form.cleaned_data.get("ot_before_minutes") or 0,
                     ot_after_minutes=form.cleaned_data.get("ot_after_minutes") or 0,
+                    compensation_mode=form.cleaned_data.get(
+                        "compensation_mode",
+                        OvertimeRequest.CompensationMode.CASH,
+                    ),
                     reason=form.cleaned_data.get("reason", ""),
                 )
                 messages.success(request, "Pengajuan lembur berhasil dikirim.")
@@ -765,12 +773,53 @@ def overtime_create(request):
         cancel_url="/overtime/",
         submit_label="Kirim Pengajuan",
     )
+    preview_employee = profile
+    if form.is_bound:
+        preview_employee = form.cleaned_data.get("employee") if form.is_valid() else None
+        if not preview_employee:
+            raw_employee = form.data.get("employee")
+            preview_employee = (
+                Employee.objects.select_related("employee_grade").filter(pk=raw_employee).first()
+                if raw_employee
+                else profile
+            )
+    if show_employee_picker and preview_employee is None and form.fields.get("employee"):
+        first_option = form.fields["employee"].queryset.first()
+        preview_employee = first_option or profile
+
+    def _preview_int(field_name, default=0):
+        if form.is_valid():
+            return form.cleaned_data.get(field_name) or default
+        raw = form.data.get(field_name)
+        try:
+            return int(raw) if raw not in (None, "") else default
+        except (TypeError, ValueError):
+            return default
+
+    preview_type = None
+    if form.is_valid():
+        preview_type = form.cleaned_data.get("overtime_type")
+    elif form.data.get("overtime_type"):
+        from apps.attendance.models import OvertimeType
+
+        preview_type = OvertimeType.objects.filter(pk=form.data.get("overtime_type")).first()
+
+    compensation_preview = None
+    if preview_employee:
+        compensation_preview = build_compensation_preview(
+            preview_employee,
+            ot_before_minutes=_preview_int("ot_before_minutes", suggested_ot[0] if suggested_ot else 0),
+            ot_after_minutes=_preview_int("ot_after_minutes", suggested_ot[1] if suggested_ot else 0),
+            overtime_type=preview_type,
+        )
+
     ctx.update(
         {
             "profile": profile,
             "show_employee_picker": show_employee_picker,
             "can_submit": can_submit,
             "suggested_ot": suggested_ot,
+            "compensation_preview": compensation_preview,
         }
     )
     return render(request, "web/overtime/form.html", ctx)

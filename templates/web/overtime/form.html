@@ -37,6 +37,30 @@
       </div>
       {% endif %}
 
+      {% if compensation_preview %}
+      <div class="hris-card" style="margin-bottom:1rem" id="overtime-compensation-preview">
+        <div class="hris-card-body">
+          <h2 class="hris-card-title" style="margin:0 0 0.75rem;font-size:0.95rem">Estimasi Kompensasi</h2>
+          <p class="hris-text-dim" style="margin:0 0 0.75rem">
+            Grade: <strong>{{ compensation_preview.grade_label }}</strong> ·
+            Tarif per jam: <strong>{{ compensation_preview.hourly_rate }}</strong> ·
+            Total lembur: <strong>{{ compensation_preview.total_minutes }}</strong> menit
+          </p>
+          <div class="hris-inline-actions" style="gap:1rem;flex-wrap:wrap">
+            <div>
+              <span class="hris-text-dim">Jika diuangkan</span><br>
+              <strong id="preview-cash-amount">{{ compensation_preview.cash_amount }}</strong>
+            </div>
+            <div>
+              <span class="hris-text-dim">Jika jatah cuti</span><br>
+              <strong id="preview-leave-days">{{ compensation_preview.leave_days }}</strong> hari
+            </div>
+          </div>
+          <p class="hris-field-help" style="margin:0.75rem 0 0">Konversi cuti: 8 jam lembur disetujui = 1 hari cuti (jenis CL).</p>
+        </div>
+      </div>
+      {% endif %}
+
       <form method="post" class="hris-form-grid" id="overtime-request-form">
         {% csrf_token %}
         {% if form.non_field_errors %}
@@ -74,6 +98,13 @@
           <label for="{{ form.ot_after_minutes.id_for_label }}">{{ form.ot_after_minutes.label }}</label>
           {{ form.ot_after_minutes }}
           {% if form.ot_after_minutes.errors %}<p class="hris-field-error">{{ form.ot_after_minutes.errors.0 }}</p>{% endif %}
+        </div>
+
+        <div class="hris-field hris-field--full">
+          <label>{{ form.compensation_mode.label }}</label>
+          <div class="hris-radio-group">{{ form.compensation_mode }}</div>
+          {% if form.compensation_mode.help_text %}<p class="hris-field-help">{{ form.compensation_mode.help_text }}</p>{% endif %}
+          {% if form.compensation_mode.errors %}<p class="hris-field-error">{{ form.compensation_mode.errors.0 }}</p>{% endif %}
         </div>
 
         <div class="hris-field hris-field--full">

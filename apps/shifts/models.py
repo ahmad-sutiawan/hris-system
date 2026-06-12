@@ -73,3 +73,4 @@ class ShiftRotationTemplate(TenantScopedModel):
 
     def __str__(self):
         return self.name
+

@@ -14,6 +14,13 @@ class LeaveError(Exception):
     pass
 
 
+BALANCE_TRACKED_LEAVE_CODES = frozenset({"CT", "CL"})
+
+
+def _tracks_leave_balance(leave_type: LeaveType) -> bool:
+    return leave_type.code in BALANCE_TRACKED_LEAVE_CODES
+
+
 def _business_days(start, end, is_half_day=False) -> Decimal:
     if is_half_day:
         return Decimal("0.5")
@@ -96,8 +103,10 @@ def submit_leave_request(
     days = _business_days(start_date, end_date, is_half_day)
     balance = get_or_create_balance(employee, leave_type)
 
-    if leave_type.code == "CT" and balance.remaining < days:
-        raise LeaveError(f"Saldo cuti tidak cukup. Sisa: {balance.remaining} hari.")
+    if _tracks_leave_balance(leave_type) and balance.remaining < days:
+        raise LeaveError(
+            f"Saldo cuti {leave_type.code} tidak cukup. Sisa: {balance.remaining} hari."
+        )
 
     req = LeaveRequest.objects.create(
         tenant=employee.tenant,
@@ -111,7 +120,7 @@ def submit_leave_request(
         status=LeaveRequest.Status.PENDING,
     )
 
-    if leave_type.code == "CT":
+    if _tracks_leave_balance(leave_type):
         balance.pending += days
         balance.remaining -= days
         balance.save(update_fields=["pending", "remaining", "updated_at"])
@@ -130,7 +139,7 @@ def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
     request.approved_at = timezone.now()
     request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
 
-    if request.leave_type.code == "CT":
+    if _tracks_leave_balance(request.leave_type):
         balance = get_or_create_balance(request.employee, request.leave_type)
         balance.pending -= request.days
         balance.used += request.days
@@ -158,7 +167,7 @@ def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveReq
         update_fields=["status", "approver", "approved_at", "rejection_reason", "updated_at"]
     )
 
-    if request.leave_type.code == "CT":
+    if _tracks_leave_balance(request.leave_type):
         balance = get_or_create_balance(request.employee, request.leave_type)
         balance.pending -= request.days
         balance.remaining += request.days
@@ -178,7 +187,7 @@ def cancel_leave_request(request: LeaveRequest, actor) -> LeaveRequest:
     request.approved_at = timezone.now()
     request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
 
-    if request.leave_type.code == "CT":
+    if _tracks_leave_balance(request.leave_type):
         balance = get_or_create_balance(request.employee, request.leave_type)
         balance.pending -= request.days
         balance.remaining += request.days

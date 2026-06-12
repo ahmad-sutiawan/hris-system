@@ -210,6 +210,10 @@ class OvertimeRequest(TenantScopedModel):
         REJECTED = "rejected", "Rejected"
         CANCELLED = "cancelled", "Cancelled"
 
+    class CompensationMode(models.TextChoices):
+        CASH = "cash", "Diuangkan"
+        LEAVE = "leave", "Tambah Jatah Cuti"
+
     employee = models.ForeignKey(
         "employees.Employee",
         on_delete=models.CASCADE,
@@ -225,6 +229,16 @@ class OvertimeRequest(TenantScopedModel):
     work_date = models.DateField(db_index=True)
     ot_before_minutes = models.PositiveIntegerField(default=0)
     ot_after_minutes = models.PositiveIntegerField(default=0)
+    compensation_mode = models.CharField(
+        max_length=16,
+        choices=CompensationMode.choices,
+        default=CompensationMode.CASH,
+    )
+    leave_days_credited = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("0"),
+    )
     reason = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     approver = models.ForeignKey(

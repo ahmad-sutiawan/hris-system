@@ -3,6 +3,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.models import OvertimeRequest
+from apps.attendance.services.overtime_compensation import credit_overtime_as_leave
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
 from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
@@ -73,10 +74,15 @@ def _notify_employee_status(overtime_request: OvertimeRequest, *, approved=True)
         return
     if approved:
         title = "Lembur disetujui"
+        comp_label = (
+            "ditambahkan ke jatah cuti"
+            if overtime_request.compensation_mode == OvertimeRequest.CompensationMode.LEAVE
+            else "akan diuangkan di payroll"
+        )
         message = (
             f"Pengajuan lembur {overtime_request.work_date} telah disetujui "
             f"(sebelum: {overtime_request.ot_before_minutes} m, "
-            f"sesudah: {overtime_request.ot_after_minutes} m)."
+            f"sesudah: {overtime_request.ot_after_minutes} m) — kompensasi {comp_label}."
         )
     else:
         title = "Lembur ditolak"
@@ -102,6 +108,7 @@ def submit_overtime_request(
     overtime_type=None,
     ot_before_minutes=0,
     ot_after_minutes=0,
+    compensation_mode=OvertimeRequest.CompensationMode.CASH,
     reason="",
 ) -> OvertimeRequest:
     if not overtime_type:
@@ -124,6 +131,7 @@ def submit_overtime_request(
         work_date=work_date,
         ot_before_minutes=ot_before_minutes,
         ot_after_minutes=ot_after_minutes,
+        compensation_mode=compensation_mode,
         reason=reason,
         status=OvertimeRequest.Status.PENDING,
     )
@@ -154,6 +162,10 @@ def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequ
     )
 
     recalculate_daily_timesheet(request.employee, request.work_date)
+
+    if request.compensation_mode == OvertimeRequest.CompensationMode.LEAVE:
+        credit_overtime_as_leave(request)
+
     _notify_employee_status(request, approved=True)
     return request
 
