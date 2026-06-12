@@ -6,6 +6,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/brand_logo.dart';
 import '../../core/widgets/hris_widgets.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -31,12 +32,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loadServerUrl() async {
     final url = await ref.read(apiClientProvider).loadBaseUrl();
     if (mounted) {
-      _serverCtrl.text = _displayServerUrl(url);
+      _serverCtrl.text = url.replaceAll(AppConfig.apiPathSuffix, '');
     }
-  }
-
-  String _displayServerUrl(String apiUrl) {
-    return apiUrl.replaceAll(AppConfig.apiPathSuffix, '');
   }
 
   @override
@@ -71,57 +68,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.accentSoft,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.accentBorder),
-                      ),
-                      child: Column(
+                    // Hero brand — sama web login
+                    ClipRect(
+                      child: Stack(
                         children: [
-                          Icon(Icons.factory_outlined, size: 48, color: AppColors.accent),
-                          const SizedBox(height: 12),
-                          Text(
-                            'BPS HRIS',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
+                          Image.asset(
+                            'assets/images/login-hero.jpg',
+                            height: 160,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                          Container(
+                            height: 160,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  AppColors.bg.withValues(alpha: 0.35),
+                                  AppColors.bg.withValues(alpha: 0.92),
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Portal Karyawan',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 15,
-                              color: AppColors.textSecondary,
+                          SizedBox(
+                            height: 160,
+                            child: Center(
+                              child: const BrandLogo(
+                                size: BrandLogoSize.panel,
+                                showHrisLabel: true,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.only(top: 20),
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: AppColors.accentBorder, width: 2),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(
+                            'Transformasi Digital HR',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.text,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Dukung Pertumbuhan Perusahaan.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              color: AppColors.textMuted,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
                     HrisCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'Masuk ke akun Anda',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Gunakan username dan password dari HR',
-                            style: TextStyle(color: AppColors.textMuted, fontSize: 14),
-                          ),
+                          const Center(child: BrandLogo(size: BrandLogoSize.sidebar)),
                           const SizedBox(height: 20),
+                          Text(
+                            'Masuk',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: AppColors.text,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 6),
+                          const Text(
+                            'Gunakan akun yang diberikan HR atau IT',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 13,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
                           TextField(
                             controller: _userCtrl,
+                            style: const TextStyle(color: AppColors.text),
                             decoration: const InputDecoration(
                               labelText: 'Username',
                               prefixIcon: Icon(Icons.person_outline),
@@ -133,6 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           TextField(
                             controller: _passCtrl,
                             obscureText: _obscure,
+                            style: const TextStyle(color: AppColors.text),
                             decoration: InputDecoration(
                               labelText: 'Password',
                               prefixIcon: const Icon(Icons.lock_outline),
@@ -160,6 +203,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           if (_showServer) ...[
                             TextField(
                               controller: _serverCtrl,
+                              style: const TextStyle(color: AppColors.text),
                               decoration: const InputDecoration(
                                 labelText: 'Alamat server HRIS',
                                 hintText: 'http://192.168.1.10:8000',
@@ -177,21 +221,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: AppColors.errorSoft,
-                                borderRadius: BorderRadius.circular(8),
+                                color: AppColors.dangerDim,
+                                border: Border.all(
+                                  color: AppColors.danger.withValues(alpha: 0.35),
+                                ),
                               ),
                               child: Text(
                                 auth.error!,
-                                style: const TextStyle(color: AppColors.error),
+                                style: const TextStyle(color: AppColors.danger),
                               ),
                             ),
                           ],
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
                           PrimaryButton(
                             label: 'Masuk',
                             loading: auth.isLoading,
                             onPressed: _submit,
-                            icon: Icons.login,
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.only(top: 16),
+                            decoration: const BoxDecoration(
+                              border: Border(top: BorderSide(color: AppColors.border)),
+                            ),
+                            child: const Text(
+                              'Lupa akun atau password? Hubungi tim HR plant Anda.',
+                              style: TextStyle(
+                                color: AppColors.textDim,
+                                fontSize: 12,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ],
                       ),

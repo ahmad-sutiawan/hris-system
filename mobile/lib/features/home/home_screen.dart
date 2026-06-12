@@ -33,22 +33,37 @@ class HomeScreen extends ConsumerWidget {
           SliverAppBar(
             floating: true,
             pinned: true,
-            backgroundColor: AppColors.surface,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            backgroundColor: AppColors.bgElevated,
+            title: Row(
               children: [
-                Text(
-                  'Halo, ${name.split(' ').first}',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
+                Image.asset(
+                  'assets/images/logo.png',
+                  height: 28,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Halo, ${name.split(' ').first}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (employeeId.isNotEmpty)
+                        Text(
+                          employeeId,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                if (employeeId.isNotEmpty)
-                  Text(
-                    employeeId,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
-                  ),
               ],
             ),
             actions: [

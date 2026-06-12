@@ -27,7 +27,15 @@ class MenuScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Akun Saya')),
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Image.asset('assets/images/logo.png', height: 24),
+            const SizedBox(width: 10),
+            const Text('Akun Saya'),
+          ],
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -175,7 +183,11 @@ class _MenuTile extends StatelessWidget {
                   ),
                   child: Text(
                     badge!,
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      color: Color(0xFF0A0C10),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               const Icon(Icons.chevron_right, color: AppColors.textMuted),

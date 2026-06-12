@@ -1,6 +1,6 @@
-# HRIS Employee Mobile (Flutter)
+# PT BPS HRIS — Mobile Karyawan (Flutter)
 
-Aplikasi mobile **employee-only** untuk HRIS-Lite — terhubung ke REST API Django.
+Aplikasi mobile **employee-only** untuk HRIS-Lite — terhubung ke REST API Django. Branding, palet warna, logo, dan konten login **identik dengan portal web**.
 
 ## Fitur employee (parity web)
 
@@ -90,8 +90,10 @@ Login demo: `budi` / `Employee123!`
 
 ## Desain UI
 
-- Tema terang industrial — ramah untuk karyawan pabrik
-- Font Plus Jakarta Sans, tombol besar (min 48px)
+- Tema gelap industrial — **sama dengan web** (`static/css/hris.css`)
+- Palet: `#0a0c10` bg, `#161b24` surface, `#f59e0b` accent, `#22d3ee` cyan
+- Logo & hero login dari `static/img/` (logo.png, login-hero.jpg)
+- Font Plus Jakarta Sans, sudut tajam (radius 0), tombol min 48px
 - Nav: Beranda · Absensi · Cuti · Lembur · Akun
 
 ## Izin Android

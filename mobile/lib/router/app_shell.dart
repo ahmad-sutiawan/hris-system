@@ -66,7 +66,7 @@ class _BottomNav extends StatelessWidget {
               return Expanded(
                 child: InkWell(
                   onTap: () => onTap(index),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.zero,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(

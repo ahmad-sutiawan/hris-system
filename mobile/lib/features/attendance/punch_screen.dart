@@ -21,7 +21,6 @@ class PunchScreen extends ConsumerStatefulWidget {
 class _PunchScreenState extends ConsumerState<PunchScreen> {
   final _picker = ImagePicker();
   bool _loading = false;
-  XFile? _photo;
   Uint8List? _photoBytes;
 
   bool get _isClockOut {
@@ -39,7 +38,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     if (photo != null) {
       final bytes = await photo.readAsBytes();
       setState(() {
-        _photo = photo;
         _photoBytes = bytes;
       });
     }

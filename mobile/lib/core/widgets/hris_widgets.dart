@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
-/// Latar belakang halaman — abu hangat tanpa efek futuristik.
+/// Latar belakang identik nuansa web (`body.hris-body`).
 class HrisPageBackground extends StatelessWidget {
   const HrisPageBackground({super.key, required this.child});
 
@@ -13,13 +13,59 @@ class HrisPageBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
+        color: AppColors.bg,
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.bgWarm, AppColors.bg],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0E1219),
+            AppColors.bg,
+            Color(0xFF0A0C10),
+          ],
         ),
       ),
-      child: child,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Amber glow kiri atas (web ::before)
+          Positioned(
+            top: -80,
+            left: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.accent.withValues(alpha: 0.11),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Cyan glow kanan atas
+          Positioned(
+            top: -40,
+            right: -80,
+            child: Container(
+              width: 240,
+              height: 240,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.cyan.withValues(alpha: 0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
     );
   }
 }
@@ -46,30 +92,26 @@ class HrisCard extends StatelessWidget {
     final card = Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: Color(0x59000000),
+            blurRadius: 48,
+            offset: Offset(0, 24),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            if (showAccentBar)
-              Positioned(
-                left: 0,
-                top: 0,
-                bottom: 0,
-                child: Container(width: 4, color: accent),
-              ),
-            Padding(padding: padding, child: child),
-          ],
-        ),
+      child: Stack(
+        children: [
+          if (showAccentBar)
+            Positioned(
+              left: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(width: 3, color: accent),
+            ),
+          Padding(padding: padding, child: child),
+        ],
       ),
     );
 
@@ -78,7 +120,6 @@ class HrisCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: card,
       ),
     );
@@ -109,9 +150,10 @@ class SectionHeader extends StatelessWidget {
               Text(
                 title,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  letterSpacing: 1.2,
+                  color: AppColors.textMuted,
                 ),
               ),
               if (subtitle != null) ...[
@@ -119,7 +161,7 @@ class SectionHeader extends StatelessWidget {
                 Text(
                   subtitle!,
                   style: const TextStyle(
-                    color: AppColors.textMuted,
+                    color: AppColors.textDim,
                     fontSize: 13,
                   ),
                 ),
@@ -169,19 +211,14 @@ class StatusBadge extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'approved':
       case 'in':
-      case 'disetujui':
-      case 'sedang kerja':
         return AppColors.success;
       case 'pending':
-      case 'menunggu':
         return AppColors.warning;
       case 'rejected':
       case 'out':
-      case 'ditolak':
-        return AppColors.error;
+        return AppColors.danger;
       case 'cancelled':
-      case 'dibatalkan':
-        return AppColors.steel500;
+        return AppColors.textDim;
       default:
         return AppColors.info;
     }
@@ -191,31 +228,31 @@ class StatusBadge extends StatelessWidget {
     switch (status.toLowerCase()) {
       case 'approved':
       case 'in':
-        return AppColors.successSoft;
+        return AppColors.successDim;
       case 'pending':
-        return AppColors.warningSoft;
+        return AppColors.warningDim;
       case 'rejected':
       case 'out':
-        return AppColors.errorSoft;
+        return AppColors.dangerDim;
       default:
-        return AppColors.infoSoft;
+        return AppColors.infoDim;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final label = statusLabel(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: _bg,
-        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _color.withValues(alpha: 0.35)),
       ),
       child: Text(
-        label,
+        statusLabel(status),
         style: GoogleFonts.plusJakartaSans(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.5,
           color: _color,
         ),
       ),
@@ -246,11 +283,10 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceMuted,
-                shape: BoxShape.circle,
+                color: AppColors.surface,
                 border: Border.all(color: AppColors.border),
               ),
-              child: Icon(icon, size: 40, color: AppColors.steel500),
+              child: Icon(icon, size: 40, color: AppColors.textDim),
             ),
             const SizedBox(height: 16),
             Text(
@@ -258,7 +294,7 @@ class EmptyState extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: AppColors.textMuted,
               ),
               textAlign: TextAlign.center,
             ),
@@ -266,7 +302,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle!,
-                style: const TextStyle(color: AppColors.textMuted, fontSize: 14),
+                style: const TextStyle(color: AppColors.textDim, fontSize: 14),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -307,7 +343,7 @@ class PrimaryButton extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: secondary ? AppColors.steel700 : Colors.white,
+              color: secondary ? AppColors.text : const Color(0xFF0A0C10),
             ),
           )
         else if (icon != null) ...[
@@ -344,14 +380,11 @@ class QuickActionTile extends StatelessWidget {
     final c = color ?? AppColors.accent;
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.border),
           ),
           child: Column(
@@ -360,18 +393,18 @@ class QuickActionTile extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: c.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: c.withValues(alpha: 0.12),
+                  border: Border.all(color: c.withValues(alpha: 0.25)),
                 ),
-                child: Icon(icon, color: c, size: 24),
+                child: Icon(icon, color: c, size: 22),
               ),
               const SizedBox(height: 8),
               Text(
                 label,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
+                  color: AppColors.text,
                 ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
@@ -385,6 +418,5 @@ class QuickActionTile extends StatelessWidget {
   }
 }
 
-// Alias untuk migrasi bertahap
 typedef IndustrialCard = HrisCard;
 typedef NeonButton = PrimaryButton;

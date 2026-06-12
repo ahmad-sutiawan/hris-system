@@ -12,9 +12,9 @@ class HrisApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'HRIS Employee',
+      title: 'PT BPS HRIS',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       routerConfig: router,
     );
   }

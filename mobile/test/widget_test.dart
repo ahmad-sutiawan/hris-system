@@ -8,8 +8,11 @@ void main() {
     await tester.pumpWidget(
       const ProviderScope(child: HrisApp()),
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
 
-    expect(find.text('Portal Karyawan'), findsOneWidget);
+    expect(find.text('Transformasi Digital HR'), findsOneWidget);
+    expect(find.text('Masuk'), findsWidgets);
+    expect(find.text('Dukung Pertumbuhan Perusahaan.'), findsOneWidget);
   });
 }
