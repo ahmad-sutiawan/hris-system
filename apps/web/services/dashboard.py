@@ -26,6 +26,67 @@ def _plant_filter(user: User, qs):
     return qs
 
 
+def _latest_punch_photos(employee_ids: list[int]) -> dict[int, str]:
+    if not employee_ids:
+        return {}
+
+    photos: dict[int, str] = {}
+    records = (
+        AttendanceRecord.objects.filter(employee_id__in=employee_ids)
+        .exclude(check_in_photo="")
+        .order_by("employee_id", "-work_date", "-check_in")
+    )
+    for record in records:
+        if record.employee_id in photos:
+            continue
+        if record.check_in_photo:
+            photos[record.employee_id] = record.check_in_photo.url
+    return photos
+
+
+def build_on_leave_today_items(*, user: User, tenant, today) -> list[dict]:
+    """Karyawan aktif yang sedang cuti (semua jenis, approved) pada tanggal `today`."""
+    active_ids = list(_active_employees(user, tenant).values_list("id", flat=True))
+    if not active_ids:
+        return []
+
+    leave_requests = (
+        LeaveRequest.objects.filter(
+            tenant=tenant,
+            status=LeaveRequest.Status.APPROVED,
+            start_date__lte=today,
+            end_date__gte=today,
+            employee_id__in=active_ids,
+        )
+        .select_related("employee", "employee__department", "leave_type")
+        .order_by("employee__full_name", "start_date")
+    )
+
+    employee_ids = []
+    seen: set[int] = set()
+    for request in leave_requests:
+        if request.employee_id in seen:
+            continue
+        seen.add(request.employee_id)
+        employee_ids.append(request.employee_id)
+
+    photos = _latest_punch_photos(employee_ids)
+    items: list[dict] = []
+    seen.clear()
+    for request in leave_requests:
+        if request.employee_id in seen:
+            continue
+        seen.add(request.employee_id)
+        items.append(
+            {
+                "employee": request.employee,
+                "leave_request": request,
+                "photo_url": photos.get(request.employee_id, ""),
+            }
+        )
+    return items
+
+
 def build_dashboard_context(*, user: User, tenant, today, profile):
     """Aggregate dashboard widgets from existing HRIS data."""
     context = {
@@ -45,6 +106,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile):
         "latest_payroll": None,
         "latest_payslip": None,
         "profile_summary": None,
+        "on_leave_today_items": [],
     }
 
     if not tenant:
@@ -57,15 +119,13 @@ def build_dashboard_context(*, user: User, tenant, today, profile):
     active_emp = _active_employees(user, tenant)
     active_ids = list(active_emp.values_list("id", flat=True))
 
-    on_leave_ids = set(
-        LeaveRequest.objects.filter(
-            tenant=tenant,
-            status=LeaveRequest.Status.APPROVED,
-            start_date__lte=today,
-            end_date__gte=today,
-            employee_id__in=active_ids,
-        ).values_list("employee_id", flat=True)
+    on_leave_today_items = build_on_leave_today_items(
+        user=user,
+        tenant=tenant,
+        today=today,
     )
+    on_leave_ids = {item["employee"].id for item in on_leave_today_items}
+    context["on_leave_today_items"] = on_leave_today_items
 
     present_qs = _plant_filter(
         user,

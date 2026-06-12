@@ -130,6 +130,52 @@
   <div class="hris-card">
     <div class="hris-card-body">
       <div class="hris-dashboard-card-head">
+        <h2>Sedang Cuti Hari Ini</h2>
+        <p>{{ stats_extra.on_leave_today|num:0 }} karyawan · semua jenis cuti yang disetujui</p>
+      </div>
+      {% if on_leave_today_items %}
+      <div class="hris-leave-today-grid">
+        {% for item in on_leave_today_items %}
+        <article class="hris-leave-today-card">
+          {% if item.photo_url %}
+          <img src="{{ item.photo_url }}" alt="{{ item.employee.full_name }}" class="hris-leave-today-avatar is-photo" loading="lazy">
+          {% else %}
+          <div class="hris-leave-today-avatar" aria-hidden="true">{{ item.employee.full_name|initials }}</div>
+          {% endif %}
+          <div class="hris-leave-today-info">
+            <strong class="hris-leave-today-name">{{ item.employee.full_name }}</strong>
+            <span class="hris-mono hris-text-dim">{{ item.employee.employee_id }}</span>
+            <span class="hris-leave-today-type">
+              <span class="hris-mono">{{ item.leave_request.leave_type.code }}</span>
+              — {{ item.leave_request.leave_type.name }}
+              {% if item.leave_request.is_half_day %}<span class="hris-announcement-chip is-pinned">½ hari</span>{% endif %}
+            </span>
+            <span class="hris-leave-today-period">
+              {{ item.leave_request.start_date|local_date:"d M" }}
+              {% if item.leave_request.end_date != item.leave_request.start_date %}
+              – {{ item.leave_request.end_date|local_date:"d M Y" }}
+              {% else %}
+              {{ item.leave_request.start_date|local_date:"Y" }}
+              {% endif %}
+            </span>
+            {% if item.employee.department %}
+            <span class="hris-text-dim">{{ item.employee.department.name }}</span>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="hris-dashboard-empty">Tidak ada karyawan yang sedang cuti hari ini.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="hris-dashboard-section">
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
         <h2>Absensi 7 Hari Terakhir</h2>
         <p>Jumlah timesheet tercatat per hari</p>
       </div>

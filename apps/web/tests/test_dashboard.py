@@ -1,8 +1,12 @@
+from decimal import Decimal
+
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
+from apps.leave.models import LeaveRequest, LeaveType
 from apps.organization.models import Department, JobPosition
 
 
@@ -59,3 +63,52 @@ class DashboardContentTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Operator Produksi")
         self.assertContains(response, "Profil Saya")
+
+    def test_dashboard_shows_on_leave_today_avatars(self):
+        dept = Department.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            code="HR",
+            name="Human Resources",
+        )
+        job = JobPosition.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            department=dept,
+            code="OPR",
+            title="Operator Produksi",
+        )
+        leave_type = LeaveType.objects.create(
+            tenant=self.tenant,
+            code="CT",
+            name="Cuti Tahunan",
+            default_quota_days=12,
+        )
+        employee = Employee.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            department=dept,
+            job_position=job,
+            employee_id="E200",
+            full_name="Siti Cuti",
+            base_salary=Decimal("5000000"),
+            status=Employee.Status.PERMANENT,
+        )
+        today = timezone.localdate()
+        LeaveRequest.objects.create(
+            tenant=self.tenant,
+            employee=employee,
+            leave_type=leave_type,
+            start_date=today,
+            end_date=today,
+            days=Decimal("1"),
+            status=LeaveRequest.Status.APPROVED,
+        )
+
+        self.client.login(username="dashadmin", password="TestPassword123!")
+        response = self.client.get(reverse("web:dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Sedang Cuti Hari Ini")
+        self.assertContains(response, "Siti Cuti")
+        self.assertContains(response, "hris-leave-today-avatar")
+        self.assertContains(response, "Cuti Tahunan")
