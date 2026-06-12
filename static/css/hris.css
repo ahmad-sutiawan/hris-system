@@ -23,6 +23,9 @@
   --hris-info-dim: rgba(96, 165, 250, 0.12);
   --hris-sidebar-w: 12.25rem;
   --hris-topbar-h: 4rem;
+  --hris-control-h: 2.5rem;
+  --hris-control-h-sm: 2rem;
+  --hris-topbar-control-h: 2.75rem;
   --hris-radius: 0;
   --hris-radius-sm: 0;
   --hris-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
@@ -142,14 +145,13 @@ body.hris-body::before {
 }
 
 .hris-brand--logo {
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 0.875rem;
+  padding: 1rem 0.875rem;
 }
 
 .hris-brand-logo--sidebar {
-  max-width: 5.25rem;
+  max-width: 7rem;
   margin: 0 auto;
 }
 
@@ -381,8 +383,10 @@ body.hris-body::before {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--hris-topbar-control-h);
+  height: var(--hris-topbar-control-h);
+  min-height: var(--hris-topbar-control-h);
+  box-sizing: border-box;
   border: 1px solid var(--hris-border);
   border-radius: var(--hris-radius-sm);
   background: var(--hris-surface);
@@ -403,13 +407,21 @@ body.hris-body::before {
   gap: 0.75rem;
 }
 
+.hris-topbar-right > div {
+  display: flex;
+  align-items: center;
+}
+
 .hris-icon-btn {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--hris-topbar-control-h);
+  height: var(--hris-topbar-control-h);
+  min-height: var(--hris-topbar-control-h);
+  box-sizing: border-box;
+  flex-shrink: 0;
   border: 1px solid var(--hris-border);
   border-radius: var(--hris-radius-sm);
   background: var(--hris-surface);
@@ -522,16 +534,20 @@ body.hris-body::before {
 }
 
 .hris-user-chip {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.625rem;
-  padding: 0.375rem 0.625rem 0.375rem 0.375rem;
+  height: var(--hris-topbar-control-h);
+  min-height: var(--hris-topbar-control-h);
+  padding: 0 0.625rem 0 0.375rem;
+  box-sizing: border-box;
   border: 1px solid var(--hris-border);
   border-radius: 0;
   background: var(--hris-surface);
   color: inherit;
   cursor: pointer;
   font-family: inherit;
+  flex-shrink: 0;
 }
 
 .hris-user-avatar {
@@ -631,7 +647,10 @@ body.hris-body::before {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.625rem 1.125rem;
+  height: var(--hris-control-h);
+  min-height: var(--hris-control-h);
+  padding: 0 1.125rem;
+  box-sizing: border-box;
   border: 1px solid transparent;
   border-radius: var(--hris-radius-sm);
   font-family: inherit;
@@ -642,6 +661,7 @@ body.hris-body::before {
   cursor: pointer;
   transition: all 0.18s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .hris-btn svg {
@@ -701,7 +721,9 @@ body.hris-body::before {
 }
 
 .hris-btn-sm {
-  padding: 0.4375rem 0.875rem;
+  height: var(--hris-control-h-sm);
+  min-height: var(--hris-control-h-sm);
+  padding: 0 0.875rem;
   font-size: 0.75rem;
 }
 
@@ -840,7 +862,9 @@ body.hris-body::before {
 }
 
 .hris-table .hris-btn-sm {
-  padding: 0.125rem 0.5rem;
+  height: auto;
+  min-height: 0;
+  padding: 0.25rem 0.5rem;
   font-size: 0.6875rem;
 }
 
@@ -966,19 +990,38 @@ body.hris-body::before {
 
 .hris-input,
 .hris-select,
-.hris-textarea,
 input.hris-input,
-select.hris-select,
-textarea.hris-textarea {
+select.hris-select {
   width: 100%;
-  padding: 0.6875rem 0.875rem;
+  height: var(--hris-control-h);
+  min-height: var(--hris-control-h);
+  padding: 0 0.875rem;
+  box-sizing: border-box;
   border: 1px solid var(--hris-border-strong);
   border-radius: var(--hris-radius-sm);
   background: var(--hris-bg-elevated);
   color: var(--hris-text);
   font-family: inherit;
   font-size: 0.875rem;
+  line-height: 1.25;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hris-textarea,
+textarea.hris-textarea {
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 0.6875rem 0.875rem;
+  box-sizing: border-box;
+  border: 1px solid var(--hris-border-strong);
+  border-radius: var(--hris-radius-sm);
+  background: var(--hris-bg-elevated);
+  color: var(--hris-text);
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  resize: vertical;
 }
 
 .hris-input:focus,
@@ -993,6 +1036,13 @@ textarea.hris-textarea {
 .hris-textarea::placeholder {
   color: var(--hris-text-dim);
   opacity: 1;
+}
+
+.hris-input[type="file"],
+input.hris-input[type="file"] {
+  height: auto;
+  min-height: var(--hris-control-h);
+  padding: 0.375rem 0.875rem;
 }
 
 .hris-field-error {
@@ -1520,7 +1570,9 @@ body.hris-modal-open {
 
 .hris-field input[type="file"]::file-selector-button {
   margin-right: 0.75rem;
-  padding: 0.5rem 0.875rem;
+  height: calc(var(--hris-control-h) - 0.5rem);
+  padding: 0 0.875rem;
+  box-sizing: border-box;
   border: 1px solid var(--hris-border-strong);
   border-radius: var(--hris-radius-sm);
   background: var(--hris-surface-hover);
@@ -1528,6 +1580,7 @@ body.hris-modal-open {
   font-family: inherit;
   font-size: 0.75rem;
   font-weight: 600;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -1539,7 +1592,8 @@ body.hris-modal-open {
 .hris-date-input,
 .hris-input[type="date"] {
   color-scheme: dark;
-  min-height: 2.75rem;
+  height: var(--hris-control-h);
+  min-height: var(--hris-control-h);
 }
 
 .hris-date-input::-webkit-calendar-picker-indicator,
@@ -1869,9 +1923,17 @@ body.hris-modal-open {
   align-items: center;
 }
 
-.hris-search-bar .hris-input {
+.hris-search-bar .hris-input,
+.hris-search-bar .hris-select,
+.hris-search-bar .hris-btn {
+  flex-shrink: 0;
+}
+
+.hris-search-bar .hris-input,
+.hris-search-bar .hris-select {
   flex: 1;
   min-width: 14rem;
+  width: auto;
 }
 
 .hris-nav-section--admin {
