@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final leaveRequestsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/leave-requests/');
@@ -31,7 +31,7 @@ class LeaveScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('PENGAJUAN CUTI'),
+        title: const Text('Pengajuan Cuti'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -44,7 +44,7 @@ class LeaveScreen extends ConsumerWidget {
         foregroundColor: Colors.black,
         onPressed: () => context.push('/leave/new'),
         icon: const Icon(Icons.add),
-        label: const Text('AJUKAN'),
+        label: const Text('Ajukan'),
       ),
       body: RefreshIndicator(
         color: AppColors.accent,
@@ -74,7 +74,7 @@ class LeaveScreen extends ConsumerWidget {
                           label: Text(
                             '${bal['leave_type_code']}: ${bal['remaining']} hari',
                           ),
-                          backgroundColor: AppColors.bgPanel,
+                          backgroundColor: AppColors.surfaceMuted,
                           side: const BorderSide(color: AppColors.border),
                         );
                       }).toList(),
@@ -106,7 +106,7 @@ class LeaveScreen extends ConsumerWidget {
                     final status = req['status'] as String? ?? '';
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
-                      child: IndustrialCard(
+                      child: HrisCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

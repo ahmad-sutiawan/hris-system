@@ -7,7 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getDashboard();
@@ -22,6 +22,7 @@ class HomeScreen extends ConsumerWidget {
     final dashboard = ref.watch(dashboardProvider);
     final employee = auth.employee;
     final name = employee?['full_name'] ?? auth.user?['username'] ?? 'Karyawan';
+    final employeeId = employee?['employee_id'] ?? '';
 
     return RefreshIndicator(
       color: AppColors.accent,
@@ -31,32 +32,40 @@ class HomeScreen extends ConsumerWidget {
         slivers: [
           SliverAppBar(
             floating: true,
+            pinned: true,
+            backgroundColor: AppColors.surface,
             title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'DASHBOARD',
-                  style: GoogleFonts.orbitron(fontSize: 16, letterSpacing: 2),
+                  'Halo, ${name.split(' ').first}',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                Text(
-                  name,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                ),
+                if (employeeId.isNotEmpty)
+                  Text(
+                    employeeId,
+                    style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                  ),
               ],
             ),
             actions: [
               IconButton(
+                tooltip: 'Notifikasi',
                 icon: const Icon(Icons.notifications_outlined),
                 onPressed: () => context.push('/notifications'),
               ),
               IconButton(
+                tooltip: 'Pengumuman',
                 icon: const Icon(Icons.campaign_outlined),
                 onPressed: () => context.push('/announcements'),
               ),
             ],
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             sliver: dashboard.when(
               loading: () => const SliverFillRemaining(
                 child: Center(child: CircularProgressIndicator()),
@@ -70,21 +79,17 @@ class HomeScreen extends ConsumerWidget {
               ),
               data: (data) => SliverList(
                 delegate: SliverChildListDelegate([
-                  _PunchHero(data: data),
+                  _PunchSection(data: data),
                   const SizedBox(height: 16),
                   _QuickActions(),
                   const SizedBox(height: 16),
                   if ((data['leave_balances'] as List?)?.isNotEmpty ?? false)
-                    _LeaveBalanceStrip(
-                      balances: data['leave_balances'] as List,
-                    ),
+                    _LeaveBalances(balances: data['leave_balances'] as List),
                   const SizedBox(height: 16),
-                  _InfoTiles(data: data),
+                  _TodaySummary(data: data),
                   const SizedBox(height: 16),
                   if ((data['recent_notifications'] as List?)?.isNotEmpty ?? false)
-                    _RecentNotifications(
-                      items: data['recent_notifications'] as List,
-                    ),
+                    _RecentNotifications(items: data['recent_notifications'] as List),
                 ]),
               ),
             ),
@@ -95,8 +100,8 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _PunchHero extends StatelessWidget {
-  const _PunchHero({required this.data});
+class _PunchSection extends StatelessWidget {
+  const _PunchSection({required this.data});
 
   final Map<String, dynamic> data;
 
@@ -107,72 +112,71 @@ class _PunchHero extends StatelessWidget {
     final record = data['today_record'] as Map<String, dynamic>?;
     final fmt = DateFormat('HH:mm');
 
-    String statusLabel;
-    Color accent;
+    String statusText;
+    Color statusColor;
+    IconData statusIcon;
     switch (status) {
       case 'in':
-        statusLabel = 'SEDANG BEKERJA';
-        accent = AppColors.success;
+        statusText = 'Anda sedang bekerja';
+        statusColor = AppColors.success;
+        statusIcon = Icons.check_circle_outline;
       case 'out':
-        statusLabel = 'SUDAH PULANG';
-        accent = AppColors.cyan;
+        statusText = 'Anda sudah pulang hari ini';
+        statusColor = AppColors.info;
+        statusIcon = Icons.logout;
       default:
-        statusLabel = 'BELUM ABSEN';
-        accent = AppColors.warning;
+        statusText = 'Belum absen hari ini';
+        statusColor = AppColors.warning;
+        statusIcon = Icons.schedule;
     }
 
-    return IndustrialCard(
-      accentColor: accent,
-      padding: const EdgeInsets.all(20),
+    return HrisCard(
+      showAccentBar: true,
+      accentColor: statusColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Icon(statusIcon, color: statusColor, size: 28),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      statusLabel,
-                      style: GoogleFonts.orbitron(
-                        color: accent,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.5,
-                        fontSize: 14,
+                      statusText,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 8),
                     if (record?['check_in'] != null)
                       Text(
-                        'Masuk: ${fmt.format(DateTime.parse(record!['check_in'] as String).toLocal())}',
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                    if (record?['check_out'] != null)
-                      Text(
-                        'Pulang: ${fmt.format(DateTime.parse(record!['check_out'] as String).toLocal())}',
-                        style: const TextStyle(color: AppColors.textSecondary),
+                        'Masuk ${fmt.format(DateTime.parse(record!['check_in'] as String).toLocal())}'
+                        '${record['check_out'] != null ? ' · Pulang ${fmt.format(DateTime.parse(record['check_out'] as String).toLocal())}' : ''}',
+                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                       ),
                   ],
                 ),
               ),
-              StatusBadge(status: status == 'in' ? 'in' : status),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
-                child: NeonButton(
-                  label: 'Clock In',
+                child: PrimaryButton(
+                  label: 'Absen Masuk',
                   icon: Icons.login,
                   onPressed: () => context.push('/punch?action=in'),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: NeonButton(
-                  label: 'Clock Out',
+                child: PrimaryButton(
+                  label: 'Absen Pulang',
                   icon: Icons.logout,
                   secondary: true,
                   onPressed: () => context.push('/punch?action=out'),
@@ -189,17 +193,10 @@ class _PunchHero extends StatelessWidget {
 class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final actions = [
-      ('Cuti', Icons.beach_access, '/leave/new', AppColors.cyan),
-      ('Lembur', Icons.more_time, '/overtime/new', AppColors.accent),
-      ('Slip Gaji', Icons.receipt_long, '/payslips', AppColors.success),
-      ('Profil', Icons.badge_outlined, '/profile', AppColors.info),
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Aksi Cepat'),
+        const SectionHeader(title: 'Menu cepat'),
         const SizedBox(height: 12),
         GridView.count(
           crossAxisCount: 4,
@@ -207,34 +204,59 @@ class _QuickActions extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
-          childAspectRatio: 0.85,
-          children: actions.map((a) {
-            return IndustrialCard(
-              padding: const EdgeInsets.all(10),
-              accentColor: a.$4,
-              onTap: () => context.push(a.$3),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(a.$2, color: a.$4, size: 24),
-                  const SizedBox(height: 8),
-                  Text(
-                    a.$1,
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
+          childAspectRatio: 0.82,
+          children: [
+            QuickActionTile(
+              icon: Icons.beach_access,
+              label: 'Ajukan Cuti',
+              color: AppColors.info,
+              onTap: () => context.push('/leave/new'),
+            ),
+            QuickActionTile(
+              icon: Icons.more_time,
+              label: 'Ajukan Lembur',
+              color: AppColors.accent,
+              onTap: () => context.push('/overtime/new'),
+            ),
+            QuickActionTile(
+              icon: Icons.receipt_long,
+              label: 'Slip Gaji',
+              color: AppColors.success,
+              onTap: () => context.push('/payslips'),
+            ),
+            QuickActionTile(
+              icon: Icons.badge_outlined,
+              label: 'Profil Saya',
+              color: AppColors.steel700,
+              onTap: () => context.push('/profile'),
+            ),
+            QuickActionTile(
+              icon: Icons.calendar_month,
+              label: 'Rekap Absensi',
+              color: AppColors.steel500,
+              onTap: () => context.go('/attendance'),
+            ),
+            QuickActionTile(
+              icon: Icons.notifications,
+              label: 'Notifikasi',
+              color: AppColors.warning,
+              onTap: () => context.push('/notifications'),
+            ),
+            QuickActionTile(
+              icon: Icons.campaign,
+              label: 'Pengumuman',
+              color: AppColors.info,
+              onTap: () => context.push('/announcements'),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _LeaveBalanceStrip extends StatelessWidget {
-  const _LeaveBalanceStrip({required this.balances});
+class _LeaveBalances extends StatelessWidget {
+  const _LeaveBalances({required this.balances});
 
   final List balances;
 
@@ -243,34 +265,40 @@ class _LeaveBalanceStrip extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Saldo Cuti'),
-        const SizedBox(height: 12),
+        const SectionHeader(title: 'Saldo cuti'),
+        const SizedBox(height: 10),
         SizedBox(
-          height: 90,
+          height: 88,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: balances.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (context, i) {
               final b = balances[i] as Map<String, dynamic>;
-              return IndustrialCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                accentColor: AppColors.cyan,
+              return Container(
+                width: 140,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      '${b['leave_type_code'] ?? b['code'] ?? '—'}',
-                      style: GoogleFonts.orbitron(
+                      '${b['leave_type_code'] ?? '—'}',
+                      style: GoogleFonts.plusJakartaSans(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.cyan,
+                        fontSize: 15,
+                        color: AppColors.accent,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Sisa ${b['remaining']} hari',
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -283,8 +311,8 @@ class _LeaveBalanceStrip extends StatelessWidget {
   }
 }
 
-class _InfoTiles extends StatelessWidget {
-  const _InfoTiles({required this.data});
+class _TodaySummary extends StatelessWidget {
+  const _TodaySummary({required this.data});
 
   final Map<String, dynamic> data;
 
@@ -296,93 +324,106 @@ class _InfoTiles extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Ringkasan Hari Ini'),
-        const SizedBox(height: 12),
+        const SectionHeader(title: 'Informasi hari ini'),
+        const SizedBox(height: 10),
         if (shift != null)
-          IndustrialCard(
-            accentColor: AppColors.info,
+          HrisCard(
+            onTap: () => context.push('/profile'),
             child: ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.schedule, color: AppColors.info),
-              title: Text('Shift ${shift['shift_code'] ?? '—'}'),
-              subtitle: Text(
-                '${shift['shift_name'] ?? ''}\n${shift['scheduled_check_in'] ?? ''} — ${shift['scheduled_check_out'] ?? ''}',
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.infoSoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.schedule, color: AppColors.info),
               ),
+              title: Text('Shift ${shift['shift_code'] ?? '—'}'),
+              subtitle: Text('${shift['shift_name'] ?? ''}'),
             ),
           ),
         if (payslip != null) ...[
           const SizedBox(height: 10),
-          IndustrialCard(
-            accentColor: AppColors.success,
+          HrisCard(
             onTap: () => context.push('/payslips'),
             child: ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.payments_outlined, color: AppColors.success),
-              title: const Text('Slip Gaji Terakhir'),
+              leading: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.successSoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.payments_outlined, color: AppColors.success),
+              ),
+              title: const Text('Slip gaji terakhir'),
               subtitle: Text(
-                'Periode ${payslip['period_start']} — ${payslip['period_end']}\nNet: Rp ${payslip['net_amount']}',
+                '${payslip['period_start']} — ${payslip['period_end']}\nNet: Rp ${payslip['net_amount']}',
               ),
             ),
           ),
         ],
         const SizedBox(height: 10),
-        IndustrialCard(
-          child: Row(
-            children: [
-              _StatChip(
-                label: 'Notifikasi',
+        Row(
+          children: [
+            Expanded(
+              child: _InfoChip(
+                icon: Icons.notifications,
+                label: 'Notifikasi baru',
                 value: '${data['unread_notifications'] ?? 0}',
-                color: AppColors.warning,
               ),
-              const SizedBox(width: 12),
-              _StatChip(
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _InfoChip(
+                icon: Icons.campaign,
                 label: 'Pengumuman',
                 value: '${data['active_announcements'] ?? 0}',
-                color: AppColors.cyan,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _StatChip extends StatelessWidget {
-  const _StatChip({
+class _InfoChip extends StatelessWidget {
+  const _InfoChip({
+    required this.icon,
     required this.label,
     required this.value,
-    required this.color,
   });
 
+  final IconData icon;
   final String label;
   final String value;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-            Text(
-              value,
-              style: GoogleFonts.orbitron(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: color,
-              ),
+    return HrisCard(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.accent, size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                Text(
+                  value,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -399,7 +440,7 @@ class _RecentNotifications extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SectionHeader(
-          title: 'Notifikasi Terbaru',
+          title: 'Notifikasi terbaru',
           trailing: TextButton(
             onPressed: () => context.push('/notifications'),
             child: const Text('Lihat semua'),
@@ -410,11 +451,16 @@ class _RecentNotifications extends StatelessWidget {
           final item = n as Map<String, dynamic>;
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: IndustrialCard(
+            child: HrisCard(
               onTap: () => context.push('/notifications'),
               child: ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(item['title'] ?? ''),
+                title: Text(
+                  item['title'] ?? '',
+                  style: TextStyle(
+                    fontWeight: item['is_read'] == true ? FontWeight.w500 : FontWeight.w700,
+                  ),
+                ),
                 subtitle: Text(
                   item['message'] ?? '',
                   maxLines: 2,
@@ -423,8 +469,8 @@ class _RecentNotifications extends StatelessWidget {
                 trailing: item['is_read'] == true
                     ? null
                     : Container(
-                        width: 8,
-                        height: 8,
+                        width: 10,
+                        height: 10,
                         decoration: const BoxDecoration(
                           color: AppColors.accent,
                           shape: BoxShape.circle,

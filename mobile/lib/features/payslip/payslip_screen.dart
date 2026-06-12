@@ -4,7 +4,7 @@ import 'package:open_file/open_file.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final payslipsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/payslips/');
@@ -19,7 +19,7 @@ class PayslipScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('SLIP GAJI')),
+      appBar: AppBar(title: const Text('Slip Gaji')),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(payslipsProvider),
@@ -47,7 +47,7 @@ class PayslipScreen extends ConsumerWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, i) {
                 final slip = items[i] as Map<String, dynamic>;
-                return IndustrialCard(
+                return HrisCard(
                   accentColor: AppColors.success,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -68,8 +68,8 @@ class PayslipScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      NeonButton(
-                        label: 'Download PDF',
+                      PrimaryButton(
+                        label: 'Unduh PDF',
                         secondary: true,
                         icon: Icons.download,
                         onPressed: () => _download(context, ref, slip),
@@ -98,6 +98,11 @@ class PayslipScreen extends ConsumerWidget {
             'slip_${code}_$id.pdf',
           );
       await OpenFile.open(file.path);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Slip gaji berhasil diunduh.')),
+        );
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

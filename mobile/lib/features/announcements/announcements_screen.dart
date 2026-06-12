@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final announcementsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/announcements/');
@@ -21,7 +21,7 @@ class AnnouncementsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('PENGUMUMAN')),
+      appBar: AppBar(title: const Text('Pengumuman')),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(announcementsProvider),
@@ -45,11 +45,11 @@ class AnnouncementsScreen extends ConsumerWidget {
               itemBuilder: (context, i) {
                 final a = items[i] as Map<String, dynamic>;
                 final priority = a['priority'] as String? ?? 'normal';
-                Color accent = AppColors.cyan;
+                Color accent = AppColors.info;
                 if (priority == 'critical') accent = AppColors.error;
                 if (priority == 'high') accent = AppColors.warning;
 
-                return IndustrialCard(
+                return HrisCard(
                   accentColor: accent,
                   onTap: () => context.push('/announcements/${a['id']}'),
                   child: Column(

@@ -2,7 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../config/app_config.dart';
 import 'api_exception.dart';
@@ -12,7 +14,7 @@ class ApiClient {
       : _storage = storage ?? const FlutterSecureStorage(),
         _dio = Dio(
           BaseOptions(
-            baseUrl: AppConfig.baseUrl,
+            baseUrl: AppConfig.defaultBaseUrl,
             connectTimeout: const Duration(seconds: 20),
             receiveTimeout: const Duration(seconds: 30),
             headers: {'Content-Type': 'application/json'},
@@ -48,11 +50,31 @@ class ApiClient {
 
   static const _accessKey = 'access_token';
   static const _refreshKey = 'refresh_token';
+  static const _baseUrlKey = 'api_base_url';
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
 
   Dio get dio => _dio;
+  String get baseUrl => _dio.options.baseUrl;
+
+  Future<void> init() async {
+    final stored = await _storage.read(key: _baseUrlKey);
+    if (stored != null && stored.isNotEmpty) {
+      _dio.options.baseUrl = stored;
+    }
+  }
+
+  Future<void> setBaseUrl(String url) async {
+    final normalized = AppConfig.normalizeApiBaseUrl(url);
+    await _storage.write(key: _baseUrlKey, value: normalized);
+    _dio.options.baseUrl = normalized;
+  }
+
+  Future<String> loadBaseUrl() async {
+    await init();
+    return _dio.options.baseUrl;
+  }
 
   Future<void> setTokens({required String access, required String refresh}) async {
     await _storage.write(key: _accessKey, value: access);
@@ -73,7 +95,7 @@ class ApiClient {
     final refresh = await _storage.read(key: _refreshKey);
     if (refresh == null) return false;
     try {
-      final res = await Dio(BaseOptions(baseUrl: AppConfig.baseUrl)).post(
+      final res = await Dio(BaseOptions(baseUrl: _dio.options.baseUrl)).post(
         '/auth/token/refresh/',
         data: {'refresh': refresh},
       );
@@ -103,17 +125,11 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> getMe() async {
-    return _getMap('/auth/me/');
-  }
+  Future<Map<String, dynamic>> getMe() async => _getMap('/auth/me/');
 
-  Future<Map<String, dynamic>> getDashboard() async {
-    return _getMap('/mobile/dashboard/');
-  }
+  Future<Map<String, dynamic>> getDashboard() async => _getMap('/mobile/dashboard/');
 
-  Future<Map<String, dynamic>> getProfile() async {
-    return _getMap('/mobile/profile/');
-  }
+  Future<Map<String, dynamic>> getProfile() async => _getMap('/mobile/profile/');
 
   Future<List<dynamic>> getPaginated(String path, {Map<String, dynamic>? query}) async {
     final data = await _getDynamic(path, query: query);
@@ -158,7 +174,7 @@ class ApiClient {
 
   Future<File> downloadPdf(int payslipId, String filename) async {
     try {
-      final dir = await Directory.systemTemp.createTemp('hris_payslip');
+      final dir = await getApplicationDocumentsDirectory();
       final file = File('${dir.path}/$filename');
       await _dio.download('/payslips/$payslipId/pdf/', file.path);
       return file;
@@ -194,6 +210,13 @@ class ApiClient {
         return ApiException('${first.first}', statusCode: status);
       }
     }
+    if (e.type == DioExceptionType.connectionError ||
+        e.type == DioExceptionType.connectionTimeout) {
+      return ApiException(
+        'Tidak bisa terhubung ke server. Periksa alamat server dan WiFi.',
+        statusCode: status,
+      );
+    }
     return ApiException(
       e.message ?? 'Koneksi gagal. Periksa server HRIS.',
       statusCode: status,
@@ -204,3 +227,5 @@ class ApiClient {
     return 'data:image/jpeg;base64,${base64Encode(bytes)}';
   }
 }
+
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

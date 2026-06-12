@@ -14,7 +14,7 @@ class HrisApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'HRIS Employee',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark,
+      theme: AppTheme.light,
       routerConfig: router,
     );
   }

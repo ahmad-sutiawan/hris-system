@@ -2,8 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/api_client.dart';
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
-
 class AuthState {
   const AuthState({
     this.isLoading = false,
@@ -44,6 +42,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final ApiClient _api;
 
   Future<void> _bootstrap() async {
+    await _api.init();
     final hasToken = await _api.hasToken();
     if (!hasToken) {
       state = const AuthState(isLoading: false, isAuthenticated: false);
@@ -52,9 +51,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     await _loadMe();
   }
 
-  Future<void> login(String username, String password) async {
+  Future<void> login(String username, String password, {String? serverUrl}) async {
     state = state.copyWith(isLoading: true, error: null);
     try {
+      if (serverUrl != null && serverUrl.trim().isNotEmpty) {
+        await _api.setBaseUrl(serverUrl);
+      }
       await _api.login(username, password);
       await _loadMe();
     } catch (e) {

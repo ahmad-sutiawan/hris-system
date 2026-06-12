@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 import 'leave_screen.dart';
 
 final leaveTypesProvider = FutureProvider<List<dynamic>>((ref) async {
@@ -94,14 +94,14 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('AJUKAN CUTI')),
+      appBar: AppBar(title: const Text('Ajukan Cuti')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           types.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Text('$e'),
-            data: (items) => IndustrialCard(
+            data: (items) => HrisCard(
               child: DropdownButtonFormField<int>(
                 decoration: const InputDecoration(labelText: 'Jenis Cuti'),
                 value: _leaveTypeId,
@@ -117,7 +117,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          IndustrialCard(
+          HrisCard(
             child: Column(
               children: [
                 ListTile(
@@ -151,7 +151,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          IndustrialCard(
+          HrisCard(
             child: TextField(
               controller: _reasonCtrl,
               maxLines: 4,
@@ -162,7 +162,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          NeonButton(
+          PrimaryButton(
             label: 'Kirim Pengajuan',
             loading: _loading,
             onPressed: _submit,

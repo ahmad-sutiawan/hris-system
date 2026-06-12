@@ -1,49 +1,78 @@
 # HRIS Employee Mobile (Flutter)
 
-Aplikasi mobile **employee-only** untuk HRIS-Lite — UI industrial futuristik, terhubung ke REST API Django.
+Aplikasi mobile **employee-only** untuk HRIS-Lite — terhubung ke REST API Django.
 
-## Fitur (parity dengan web employee)
+## Fitur employee (parity web)
 
-| Fitur | Screen |
-|---|---|
-| Dashboard + Clock In/Out (selfie) | Home, Punch |
-| Rekap Absensi / Timesheet | Absensi |
-| Pengajuan Cuti + saldo + batalkan | Cuti |
-| Pengajuan Lembur + preview kompensasi + batalkan | Lembur |
-| Slip Gaji + download PDF | Slip Gaji |
-| Detail Karyawan + statistik bulan + shift | Profil |
-| Notifikasi + tandai dibaca | Notifikasi |
-| Pengumuman + dismiss banner | Pengumuman |
-| Logout | Menu |
+| Fitur Web | Mobile | Status |
+|---|---|---|
+| Dashboard + absen masuk/pulang (selfie) | Beranda + Absen | ✓ |
+| Notifikasi + tandai dibaca | Notifikasi | ✓ |
+| Pengumuman + dismiss | Pengumuman | ✓ |
+| Detail Karyawan + statistik + jadwal shift | Profil | ✓ |
+| Rekap Absensi / timesheet | Tab Absensi | ✓ |
+| Pengajuan Cuti + saldo + batalkan | Tab Cuti | ✓ |
+| Pengajuan Lembur + preview + batalkan | Tab Lembur | ✓ |
+| Slip Gaji + unduh PDF | Slip Gaji | ✓ |
+| Logout | Akun | ✓ |
 
-## Prasyarat
+## Build APK (install di Android)
 
-- Flutter SDK 3.2+
-- Backend HRIS berjalan (`python manage.py runserver`)
-- Akun demo: `budi` / `Employee123!`
+### Prasyarat
 
-## Setup
+- Flutter SDK + Android SDK (`flutter doctor` harus OK untuk Android)
+- Backend HRIS jalan dan bisa diakses dari HP (satu jaringan WiFi)
+
+### Langkah build
 
 ```bash
 cd mobile
-
-# Jika folder platform belum ada (android/ios):
-flutter create . --project-name hris_mobile
-
 flutter pub get
+
+# APK release (siap install)
+flutter build apk --release
 ```
 
-### Konfigurasi API URL
+File APK hasil build:
 
-Edit `lib/core/config/app_config.dart`:
+```
+mobile/build/app/outputs/flutter-apk/app-release.apk
+```
 
-| Platform | URL |
-|---|---|
-| Android Emulator | `http://10.0.2.2:8000/api/v1` (default) |
-| iOS Simulator | `http://127.0.0.1:8000/api/v1` |
-| Device fisik | `http://<IP-LAN-PC>:8000/api/v1` |
+Copy ke HP Android → buka file → izinkan "Install from unknown sources" jika diminta.
 
-## Menjalankan
+### APK split per arsitektur (ukuran lebih kecil)
+
+```bash
+flutter build apk --split-per-abi --release
+```
+
+Output: `app-armeabi-v7a-release.apk`, `app-arm64-v8a-release.apk`, dll.  
+HP modern biasanya **arm64-v8a**.
+
+### Konfigurasi server di HP fisik
+
+Saat pertama login, tap **Pengaturan server** dan isi IP komputer server:
+
+```
+http://192.168.x.x:8000
+```
+
+Pastikan:
+1. Backend: `python manage.py runserver 0.0.0.0:8000`
+2. HP dan PC **satu WiFi**
+3. Firewall PC izinkan port 8000
+
+Emulator Android otomatis pakai `http://10.0.2.2:8000`.
+
+### Build dengan IP server baku (opsional)
+
+```bash
+flutter build apk --release \
+  --dart-define=API_BASE_URL=http://192.168.1.50:8000/api/v1
+```
+
+## Menjalankan (development)
 
 ```bash
 # Terminal 1 — backend
@@ -53,23 +82,27 @@ python manage.py runserver 0.0.0.0:8000
 
 # Terminal 2 — mobile
 cd mobile
-flutter run
+flutter run -d chrome          # browser
+flutter run                    # pilih emulator/device
 ```
+
+Login demo: `budi` / `Employee123!`
 
 ## Desain UI
 
-- Tema gelap industrial dengan grid pattern
-- Aksen amber/orange + cyan neon
-- Tipografi: Orbitron (heading) + IBM Plex Sans (body)
-- Komponen: `IndustrialCard`, `NeonButton`, `StatusBadge`
+- Tema terang industrial — ramah untuk karyawan pabrik
+- Font Plus Jakarta Sans, tombol besar (min 48px)
+- Nav: Beranda · Absensi · Cuti · Lembur · Akun
 
-## Struktur
+## Izin Android
 
-```
-lib/
-  core/          # theme, API client, auth
-  features/      # auth, home, attendance, leave, overtime, payslip, profile, notifications, announcements, menu
-  router/        # go_router + bottom nav shell
-```
+- `INTERNET` — API HRIS
+- `CAMERA` — selfie absensi
 
-Lihat juga [`docs/API_FLUTTER.md`](../docs/API_FLUTTER.md) untuk dokumentasi endpoint lengkap.
+## Production
+
+- Ganti HTTP → **HTTPS** di server production
+- Tanda tangani APK release dengan keystore perusahaan (bukan debug key)
+- Set `applicationId`: `id.bps.hris.employee`
+
+Lihat [`docs/API_FLUTTER.md`](../docs/API_FLUTTER.md) untuk dokumentasi API.

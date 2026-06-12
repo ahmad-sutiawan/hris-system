@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final timesheetsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/timesheets/');
@@ -23,7 +23,7 @@ class AttendanceScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('REKAP ABSENSI'),
+        title: const Text('Rekap Absensi'),
         actions: [
           IconButton(
             icon: const Icon(Icons.fingerprint),
@@ -64,7 +64,7 @@ class AttendanceScreen extends ConsumerWidget {
               itemBuilder: (context, i) {
                 final ts = items[i] as Map<String, dynamic>;
                 final workDate = DateTime.parse(ts['work_date'] as String);
-                return IndustrialCard(
+                return HrisCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -144,7 +144,7 @@ class _TimeChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: AppColors.bgPanel,
+          color: AppColors.surfaceMuted,
           borderRadius: BorderRadius.circular(4),
           border: Border.all(color: AppColors.border),
         ),

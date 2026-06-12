@@ -1,39 +1,38 @@
 import 'package:flutter/material.dart';
 
+/// Palet selaras web HRIS — industrial elegan, ramah untuk lingkungan pabrik.
 abstract final class AppColors {
-  static const bgDeep = Color(0xFF070A0F);
-  static const bgBase = Color(0xFF0B1017);
-  static const bgElevated = Color(0xFF121A24);
-  static const bgPanel = Color(0xFF182230);
+  static const bg = Color(0xFFF1F3F6);
+  static const bgWarm = Color(0xFFFAFAF8);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceMuted = Color(0xFFF8F9FB);
 
-  static const border = Color(0xFF2A3644);
-  static const borderBright = Color(0xFF3D5066);
+  static const steel900 = Color(0xFF1E293B);
+  static const steel700 = Color(0xFF334155);
+  static const steel500 = Color(0xFF64748B);
+  static const steel300 = Color(0xFFCBD5E1);
+  static const steel200 = Color(0xFFE2E8F0);
 
-  static const accent = Color(0xFFFF8A00);
-  static const accentGlow = Color(0xFFFFB347);
-  static const cyan = Color(0xFF00E5FF);
-  static const cyanDim = Color(0xFF0097A7);
+  static const accent = Color(0xFFD97706);
+  static const accentLight = Color(0xFFF59E0B);
+  static const accentSoft = Color(0xFFFFF7ED);
+  static const accentBorder = Color(0xFFFDE68A);
 
-  static const textPrimary = Color(0xFFE8EEF4);
-  static const textSecondary = Color(0xFF8B99A8);
-  static const textMuted = Color(0xFF5C6B7A);
+  static const textPrimary = Color(0xFF1E293B);
+  static const textSecondary = Color(0xFF475569);
+  static const textMuted = Color(0xFF94A3B8);
 
-  static const success = Color(0xFF00C853);
-  static const warning = Color(0xFFFFB300);
-  static const error = Color(0xFFFF5252);
-  static const info = Color(0xFF448AFF);
+  static const success = Color(0xFF059669);
+  static const successSoft = Color(0xFFECFDF5);
+  static const warning = Color(0xFFD97706);
+  static const warningSoft = Color(0xFFFFFBEB);
+  static const error = Color(0xFFDC2626);
+  static const errorSoft = Color(0xFFFEF2F2);
+  static const info = Color(0xFF2563EB);
+  static const infoSoft = Color(0xFFEFF6FF);
 
-  static const gradientHero = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [Color(0xFF141E2B), Color(0xFF0B1017), Color(0xFF101820)],
-  );
+  static const border = Color(0xFFE2E8F0);
+  static const borderStrong = Color(0xFFCBD5E1);
 
-  static const gradientAccent = LinearGradient(
-    colors: [Color(0xFFFF8A00), Color(0xFFFF6B00)],
-  );
-
-  static const gradientCyan = LinearGradient(
-    colors: [Color(0xFF00E5FF), Color(0xFF0097A7)],
-  );
+  static const navBar = Color(0xFFFFFFFF);
 }

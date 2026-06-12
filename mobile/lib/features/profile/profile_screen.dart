@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final profileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getProfile();
@@ -19,7 +19,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('DETAIL KARYAWAN')),
+      appBar: AppBar(title: const Text('Detail Karyawan')),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(profileProvider),
@@ -40,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
             return ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                IndustrialCard(
+                HrisCard(
                   accentColor: AppColors.accent,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,7 +71,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 const SectionHeader(title: 'Statistik Bulan Ini'),
                 const SizedBox(height: 10),
-                IndustrialCard(
+                HrisCard(
                   child: Wrap(
                     spacing: 12,
                     runSpacing: 12,
@@ -91,7 +91,7 @@ class ProfileScreen extends ConsumerWidget {
                     final bal = b as Map<String, dynamic>;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: IndustrialCard(
+                      child: HrisCard(
                         child: Text(
                           '${bal['leave_type_code']}: sisa ${bal['remaining']} hari '
                           '(pending ${bal['pending']})',
@@ -108,7 +108,7 @@ class ProfileScreen extends ConsumerWidget {
                     final shift = s as Map<String, dynamic>;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: IndustrialCard(
+                      child: HrisCard(
                         child: ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(fmt.format(DateTime.parse(shift['work_date'] as String))),
@@ -168,7 +168,7 @@ class _StatTile extends StatelessWidget {
       width: 140,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.bgPanel,
+        color: AppColors.surfaceMuted,
         border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(4),
       ),

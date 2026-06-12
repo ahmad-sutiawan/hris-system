@@ -68,7 +68,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/menu',
+                path: '/overtime',
+                builder: (context, state) => const OvertimeScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/account',
                 builder: (context, state) => const MenuScreen(),
               ),
             ],
@@ -77,7 +85,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/punch', builder: (_, __) => const PunchScreen()),
       GoRoute(path: '/leave/new', builder: (_, __) => const LeaveFormScreen()),
-      GoRoute(path: '/overtime', builder: (_, __) => const OvertimeScreen()),
       GoRoute(path: '/overtime/new', builder: (_, __) => const OvertimeFormScreen()),
       GoRoute(path: '/payslips', builder: (_, __) => const PayslipScreen()),
       GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),

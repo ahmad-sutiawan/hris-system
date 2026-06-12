@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 
 final notificationsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/notifications/');
@@ -21,7 +21,7 @@ class NotificationsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('NOTIFIKASI'),
+        title: const Text('Notifikasi'),
         actions: [
           TextButton(
             onPressed: () => _markAllRead(context, ref),
@@ -52,7 +52,7 @@ class NotificationsScreen extends ConsumerWidget {
               itemBuilder: (context, i) {
                 final n = items[i] as Map<String, dynamic>;
                 final unread = n['is_read'] != true;
-                return IndustrialCard(
+                return HrisCard(
                   accentColor: unread ? AppColors.accent : AppColors.border,
                   onTap: () => _markRead(ref, n['id'] as int),
                   child: Column(

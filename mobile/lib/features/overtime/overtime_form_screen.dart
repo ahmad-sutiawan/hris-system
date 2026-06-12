@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 import 'overtime_screen.dart';
 
 final overtimeTypesProvider = FutureProvider<List<dynamic>>((ref) async {
@@ -114,14 +114,14 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('AJUKAN LEMBUR')),
+      appBar: AppBar(title: const Text('Ajukan Lembur')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           types.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Text('$e'),
-            data: (items) => IndustrialCard(
+            data: (items) => HrisCard(
               child: DropdownButtonFormField<int>(
                 decoration: const InputDecoration(labelText: 'Jenis Lembur'),
                 value: _typeId,
@@ -140,7 +140,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          IndustrialCard(
+          HrisCard(
             child: ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Tanggal Lembur'),
@@ -161,7 +161,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          IndustrialCard(
+          HrisCard(
             child: Column(
               children: [
                 TextField(
@@ -185,7 +185,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          IndustrialCard(
+          HrisCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -207,8 +207,8 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
           ),
           if (_preview != null) ...[
             const SizedBox(height: 12),
-            IndustrialCard(
-              accentColor: AppColors.cyan,
+            HrisCard(
+              accentColor: AppColors.info,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -226,7 +226,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          IndustrialCard(
+          HrisCard(
             child: TextField(
               controller: _reasonCtrl,
               maxLines: 3,
@@ -234,7 +234,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          NeonButton(
+          PrimaryButton(
             label: 'Kirim Pengajuan',
             loading: _loading,
             onPressed: _submit,

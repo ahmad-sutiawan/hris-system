@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 import 'announcements_screen.dart';
 
 class AnnouncementDetailScreen extends ConsumerWidget {
@@ -18,7 +19,7 @@ class AnnouncementDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('DETAIL PENGUMUMAN')),
+      appBar: AppBar(title: const Text('Detail Pengumuman')),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(
@@ -29,7 +30,7 @@ class AnnouncementDetailScreen extends ConsumerWidget {
         data: (a) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            IndustrialCard(
+            HrisCard(
               accentColor: AppColors.accent,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,18 +49,23 @@ class AnnouncementDetailScreen extends ConsumerWidget {
                   ),
                   if ((a['external_link'] as String?)?.isNotEmpty ?? false) ...[
                     const SizedBox(height: 16),
-                    NeonButton(
-                      label: a['action_label'] as String? ?? 'Buka Tautan',
+                    PrimaryButton(
+                      label: a['action_label'] as String? ?? 'Buka tautan',
                       secondary: true,
                       icon: Icons.open_in_new,
-                      onPressed: () {},
+                      onPressed: () async {
+                        final uri = Uri.tryParse(a['external_link'] as String);
+                        if (uri != null && await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      },
                     ),
                   ],
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            NeonButton(
+            PrimaryButton(
               label: 'Tutup Banner',
               onPressed: () async {
                 await ref.read(apiClientProvider).postEmpty('/announcements/$id/dismiss/');

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_background.dart';
+import '../core/theme/app_colors.dart';
+import '../core/widgets/hris_widgets.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.navigationShell});
@@ -11,11 +11,11 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IndustrialBackground(
+    return HrisPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: navigationShell,
-        bottomNavigationBar: _IndustrialNavBar(
+        bottomNavigationBar: _BottomNav(
           currentIndex: navigationShell.currentIndex,
           onTap: navigationShell.goBranch,
         ),
@@ -24,8 +24,8 @@ class AppShell extends StatelessWidget {
   }
 }
 
-class _IndustrialNavBar extends StatelessWidget {
-  const _IndustrialNavBar({
+class _BottomNav extends StatelessWidget {
+  const _BottomNav({
     required this.currentIndex,
     required this.onTap,
   });
@@ -34,23 +34,31 @@ class _IndustrialNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   static const _items = [
-    (Icons.dashboard_customize_outlined, Icons.dashboard_customize, 'Home'),
-    (Icons.fingerprint_outlined, Icons.fingerprint, 'Absensi'),
-    (Icons.event_note_outlined, Icons.event_note, 'Cuti'),
-    (Icons.more_horiz, Icons.more_horiz, 'Menu'),
+    (Icons.home_outlined, Icons.home, 'Beranda'),
+    (Icons.calendar_month_outlined, Icons.calendar_month, 'Absensi'),
+    (Icons.beach_access_outlined, Icons.beach_access, 'Cuti'),
+    (Icons.more_time_outlined, Icons.more_time, 'Lembur'),
+    (Icons.person_outline, Icons.person, 'Akun'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bgDeep,
-        border: Border(top: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: AppColors.navBar,
+        border: Border(top: BorderSide(color: AppColors.border.withValues(alpha: 0.8))),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 12,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Row(
             children: List.generate(_items.length, (index) {
               final item = _items[index];
@@ -58,23 +66,22 @@ class _IndustrialNavBar extends StatelessWidget {
               return Expanded(
                 child: InkWell(
                   onTap: () => onTap(index),
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.circular(10),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           selected ? item.$2 : item.$1,
                           color: selected ? AppColors.accent : AppColors.textMuted,
-                          size: 22,
+                          size: 24,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          item.$3.toUpperCase(),
+                          item.$3,
                           style: TextStyle(
-                            fontSize: 9,
-                            letterSpacing: 0.8,
+                            fontSize: 11,
                             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                             color: selected ? AppColors.accent : AppColors.textMuted,
                           ),

@@ -3,12 +3,12 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/widgets/industrial_background.dart';
-import '../../core/widgets/industrial_widgets.dart';
+import '../../core/widgets/hris_widgets.dart';
 import '../home/home_screen.dart';
 
 class PunchScreen extends ConsumerStatefulWidget {
@@ -46,16 +46,15 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   }
 
   Future<void> _submit() async {
-    if (_photo == null) {
+    if (_photoBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selfie wajib untuk absensi.')),
+        const SnackBar(content: Text('Foto selfie wajib untuk absensi.')),
       );
       return;
     }
     setState(() => _loading = true);
     try {
-      final bytes = await _photo!.readAsBytes();
-      final encoded = ApiClient.imageToBase64DataUrl(bytes);
+      final encoded = ApiClient.imageToBase64DataUrl(_photoBytes!);
       final api = ref.read(apiClientProvider);
       if (_isClockOut) {
         await api.clockOut(encoded);
@@ -66,16 +65,14 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isClockOut ? 'Clock out berhasil.' : 'Clock in berhasil.'),
+            content: Text(_isClockOut ? 'Absen pulang berhasil.' : 'Absen masuk berhasil.'),
           ),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -84,9 +81,9 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = _isClockOut ? 'CLOCK OUT' : 'CLOCK IN';
+    final title = _isClockOut ? 'Absen Pulang' : 'Absen Masuk';
 
-    return IndustrialBackground(
+    return HrisPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(title: Text(title)),
@@ -95,16 +92,30 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              IndustrialCard(
-                accentColor: _isClockOut ? AppColors.cyan : AppColors.accent,
+              HrisCard(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(
+                      'Ambil foto selfie',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Pastikan wajah terlihat jelas untuk verifikasi absensi.',
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    ),
+                    const SizedBox(height: 16),
                     AspectRatio(
-                      aspectRatio: 3 / 4,
+                      aspectRatio: 4 / 5,
                       child: Container(
+                        width: double.infinity,
                         decoration: BoxDecoration(
-                          color: AppColors.bgPanel,
-                          borderRadius: BorderRadius.circular(4),
+                          color: AppColors.surfaceMuted,
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.border),
                           image: _photoBytes != null
                               ? DecorationImage(
@@ -114,31 +125,32 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                               : null,
                         ),
                         child: _photoBytes == null
-                            ? const Center(
-                                child: Icon(
-                                  Icons.camera_front_outlined,
-                                  size: 64,
-                                  color: AppColors.textMuted,
-                                ),
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.camera_alt_outlined, size: 56, color: AppColors.steel300),
+                                  const SizedBox(height: 8),
+                                  const Text('Belum ada foto', style: TextStyle(color: AppColors.textMuted)),
+                                ],
                               )
                             : null,
                       ),
                     ),
                     const SizedBox(height: 16),
                     if (_photoBytes == null)
-                      NeonButton(
-                        label: 'Ambil Selfie',
+                      PrimaryButton(
+                        label: 'Buka Kamera',
                         icon: Icons.camera_alt,
                         onPressed: _capture,
                       )
                     else ...[
-                      NeonButton(
-                        label: 'Ulangi Foto',
+                      PrimaryButton(
+                        label: 'Ambil Ulang',
                         secondary: true,
                         onPressed: _capture,
                       ),
-                      const SizedBox(height: 12),
-                      NeonButton(
+                      const SizedBox(height: 10),
+                      PrimaryButton(
                         label: _isClockOut ? 'Konfirmasi Pulang' : 'Konfirmasi Masuk',
                         loading: _loading,
                         onPressed: _submit,
@@ -146,12 +158,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                     ],
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Foto selfie wajib untuk verifikasi absensi sesuai kebijakan perusahaan.',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                textAlign: TextAlign.center,
               ),
             ],
           ),
