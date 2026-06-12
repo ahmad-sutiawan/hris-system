@@ -6,7 +6,7 @@ from django.test import TestCase
 from apps.core.models import Plant, Tenant
 from apps.employees.models import Employee
 from apps.employees.services.import_csv import import_employees_csv, template_csv
-from apps.organization.models import Department, JobPosition
+from apps.organization.models import Department, EmployeeGrade, JobPosition
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 
@@ -30,10 +30,35 @@ class ImportCsvTests(TestCase):
         self.assertIn("employee_id", content)
 
     def test_import_creates_employee(self):
+        EmployeeGrade.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            code="G2",
+            name="Operator",
+            daily_wage=Decimal("200000"),
+        )
         content = template_csv()
         result = import_employees_csv(self.tenant, content)
         self.assertEqual(result["created"], 1)
-        self.assertEqual(Employee.objects.filter(tenant=self.tenant).count(), 1)
+        employee = Employee.objects.get(tenant=self.tenant)
+        self.assertEqual(employee.salary_scheme, Employee.SalaryScheme.DAILY)
+        self.assertEqual(employee.employee_grade.code, "G2")
+        self.assertEqual(employee.allowance_meal, Decimal("25000"))
+        self.assertEqual(employee.bpjs_kesehatan_number, "0001234567890")
+
+    def test_import_rejects_grade_from_other_plant(self):
+        other_plant = Plant.objects.create(tenant=self.tenant, code="PLT02", name="Plant 2")
+        EmployeeGrade.objects.create(
+            tenant=self.tenant,
+            plant=other_plant,
+            code="G9",
+            name="Other",
+            daily_wage=Decimal("300000"),
+        )
+        content = template_csv().replace("G2", "G9")
+        result = import_employees_csv(self.tenant, content)
+        self.assertEqual(result["created"], 0)
+        self.assertTrue(result["errors"])
 
 
 class PayslipPdfTests(TestCase):

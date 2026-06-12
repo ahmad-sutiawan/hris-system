@@ -11,9 +11,12 @@ from apps.employees.services.import_csv import import_employees_csv, template_cs
 class EmployeeViewSet(TenantScopedViewSet):
     queryset = Employee.objects.select_related(
         "plant",
+        "legal_entity",
         "department",
         "job_position",
+        "employee_grade",
         "manager",
+        "user",
     )
     serializer_class = EmployeeSerializer
     search_fields = ["employee_id", "full_name", "nik", "email"]

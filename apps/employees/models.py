@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.core.models.base import TenantScopedModel
@@ -123,6 +124,20 @@ class Employee(TenantScopedModel):
 
     def __str__(self):
         return f"{self.full_name} ({self.employee_id})"
+
+    def clean(self):
+        super().clean()
+        if self.employee_grade_id and self.plant_id:
+            if self.employee_grade.plant_id != self.plant_id:
+                raise ValidationError(
+                    {"employee_grade": "Grade karyawan harus dari plant yang sama."}
+                )
+
+    @property
+    def grade_label(self) -> str:
+        if self.employee_grade_id:
+            return f"{self.employee_grade.code} — {self.employee_grade.name}"
+        return ""
 
 
 class EmployeeDocument(TenantScopedModel):

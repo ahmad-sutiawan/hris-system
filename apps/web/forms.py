@@ -159,6 +159,12 @@ class EmployeeForm(forms.ModelForm):
             self.fields["job_position"].queryset = job_qs
             self.fields["employee_grade"].queryset = grade_qs
             self.fields["employee_grade"].required = False
+            self.fields["employee_grade"].help_text = (
+                "Golongan menentukan gaji harian dasar perhitungan gaji pokok dan lembur."
+            )
+            self.fields["salary_scheme"].help_text = (
+                "Daily: gaji pokok = gaji harian grade × hari hadir. Monthly: gaji pokok tetap bulanan."
+            )
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )

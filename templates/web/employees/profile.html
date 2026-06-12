@@ -78,7 +78,8 @@
       <dl class="hris-dl">
         <div><dt>Plant</dt><dd>{{ employee.plant.code }} — {{ employee.plant.name }}</dd></div>
         <div><dt>Departemen</dt><dd>{{ employee.department.name|default:"—" }}</dd></div>
-        <div><dt>Jabatan</dt><dd>{{ employee.job_position.name|default:"—" }}</dd></div>
+        <div><dt>Jabatan</dt><dd>{{ employee.job_position.title|default:"—" }}</dd></div>
+        <div><dt>Grade</dt><dd>{{ employee.grade_label|default:"—" }}</dd></div>
         <div><dt>Atasan Langsung</dt><dd>{{ employee.manager.full_name|default:"—" }}</dd></div>
         <div><dt>Entitas Legal</dt><dd>{{ employee.legal_entity.name|default:"—" }}</dd></div>
         <div><dt>Akun Login</dt><dd>{{ employee.user.username|default:"—" }}</dd></div>
@@ -150,12 +151,14 @@
     <div class="hris-card-body">
       <h2 class="hris-profile-section-title">Komponen Gaji</h2>
       <dl class="hris-dl">
+        <div><dt>Skema Gaji</dt><dd>{{ employee.get_salary_scheme_display }}</dd></div>
         {% if employee.employee_grade %}
         <div><dt>Grade</dt><dd>{{ employee.employee_grade.code }} — {{ employee.employee_grade.name }}</dd></div>
         <div><dt>Gaji Harian (Grade)</dt><dd class="hris-num">{{ employee.employee_grade.daily_wage|rupiah }}</dd></div>
         {% endif %}
-        <div><dt>Skema Gaji</dt><dd>{{ employee.get_salary_scheme_display }}</dd></div>
-        <div><dt>Gaji Pokok</dt><dd class="hris-num">{{ employee.base_salary|rupiah }}</dd></div>
+        <div><dt>Gaji Harian Efektif</dt><dd class="hris-num">{{ effective_daily_wage|rupiah }}</dd></div>
+        <div><dt>Upah per Jam</dt><dd class="hris-num">{{ effective_hourly_wage|rupiah }}</dd></div>
+        <div><dt>Gaji Pokok / Referensi</dt><dd class="hris-num">{{ employee.base_salary|rupiah }}</dd></div>
         <div><dt>Tunj. Transport</dt><dd class="hris-num">{{ employee.allowance_transport|rupiah }}</dd></div>
         <div><dt>Tunj. Makan</dt><dd class="hris-num">{{ employee.allowance_meal|rupiah }}</dd></div>
         <div><dt>Tunj. Jabatan</dt><dd class="hris-num">{{ employee.allowance_position|rupiah }}</dd></div>

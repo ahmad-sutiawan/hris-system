@@ -7,6 +7,7 @@ from apps.attendance.models import DailyTimesheet
 from apps.employees.models import Employee
 from apps.employees.services.onboarding import employee_leave_balances_summary, resolve_default_shift
 from apps.payroll.models import PayrollRun, Payslip
+from apps.payroll.services.calculator import daily_rate, hourly_rate
 from apps.shifts.models import ShiftAssignment
 
 
@@ -111,4 +112,6 @@ def build_employee_profile_context(employee: Employee) -> dict:
         "leave_balances": leave_balances,
         "latest_payslip": latest_payslip,
         "total_compensation": total_compensation,
+        "effective_daily_wage": daily_rate(employee),
+        "effective_hourly_wage": hourly_rate(employee),
     }

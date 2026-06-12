@@ -198,6 +198,7 @@ def employee_list(request):
         "legal_entity",
         "department",
         "job_position",
+        "employee_grade",
         "manager",
         "user",
     )
@@ -220,6 +221,7 @@ def employee_list(request):
         filters |= Q(department__code__icontains=text) | Q(job_position__title__icontains=text)
         filters |= Q(job_position__code__icontains=text) | Q(manager__full_name__icontains=text)
         filters |= Q(manager__employee_id__icontains=text) | Q(user__username__icontains=text)
+        filters |= Q(employee_grade__code__icontains=text) | Q(employee_grade__name__icontains=text)
         qs = qs.filter(filters)
 
     employees = list(qs.order_by("full_name")[:500])

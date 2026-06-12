@@ -233,10 +233,17 @@ class AdminEmployeeForm(forms.ModelForm):
             self.fields["legal_entity"].queryset = LegalEntity.objects.filter(tenant=tenant)
             self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
             self.fields["job_position"].queryset = JobPosition.objects.filter(tenant=tenant)
-            self.fields["employee_grade"].queryset = EmployeeGrade.objects.filter(
-                tenant=tenant, is_active=True
+            grade_qs = EmployeeGrade.objects.filter(tenant=tenant, is_active=True)
+            plant_id = self.data.get("plant") or (
+                self.instance.plant_id if self.instance.pk else None
             )
+            if plant_id:
+                grade_qs = grade_qs.filter(plant_id=plant_id)
+            self.fields["employee_grade"].queryset = grade_qs
             self.fields["employee_grade"].required = False
+            self.fields["employee_grade"].help_text = (
+                "Golongan karyawan menentukan gaji harian untuk perhitungan gaji & lembur."
+            )
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )

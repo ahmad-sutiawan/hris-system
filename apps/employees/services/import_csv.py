@@ -8,9 +8,9 @@ from django.db import transaction
 from apps.core.models import Plant
 from apps.employees.models import Employee
 from apps.employees.services.onboarding import provision_new_employee
-from apps.organization.models import Department, JobPosition
+from apps.organization.models import Department, EmployeeGrade, JobPosition
 
-IMPORT_HEADERS = [
+REQUIRED_HEADERS = [
     "employee_id",
     "full_name",
     "nik",
@@ -29,6 +29,17 @@ IMPORT_HEADERS = [
     "bank_account_name",
     "npwp",
 ]
+
+OPTIONAL_HEADERS = [
+    "salary_scheme",
+    "grade_code",
+    "allowance_meal",
+    "allowance_position",
+    "bpjs_kesehatan_number",
+    "bpjs_ketenagakerjaan_number",
+]
+
+IMPORT_HEADERS = REQUIRED_HEADERS + OPTIONAL_HEADERS
 
 
 class ImportErrorRow(Exception):
@@ -54,13 +65,19 @@ def template_csv():
             "OPR",
             "2026-01-15",
             "permanent",
-            "4500000",
-            "500000",
+            "200000",
+            "50000",
             "TK/0",
             "BCA",
             "1234567890",
             "Siti Aminah",
             "",
+            "daily",
+            "G2",
+            "25000",
+            "0",
+            "0001234567890",
+            "12345678901",
         ]
     )
     return buffer.getvalue()
@@ -79,13 +96,19 @@ def _parse_date(value):
     return datetime.strptime(str(value).strip(), "%Y-%m-%d").date()
 
 
+def _row_value(row, key, default=""):
+    if key not in row:
+        return default
+    return row[key]
+
+
 @transaction.atomic
 def import_employees_csv(tenant, file_content, *, dry_run=False):
     reader = csv.DictReader(StringIO(file_content))
     if not reader.fieldnames:
         raise ValueError("File CSV kosong atau header tidak valid.")
 
-    missing = set(IMPORT_HEADERS) - set(reader.fieldnames)
+    missing = set(REQUIRED_HEADERS) - set(reader.fieldnames)
     if missing:
         raise ValueError(f"Kolom wajib hilang: {', '.join(sorted(missing))}")
 
@@ -97,6 +120,10 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
     jobs = {
         (j.plant.code, j.code): j
         for j in JobPosition.objects.filter(tenant=tenant).select_related("plant")
+    }
+    grades = {
+        (g.plant.code, g.code): g
+        for g in EmployeeGrade.objects.filter(tenant=tenant, is_active=True).select_related("plant")
     }
 
     created = 0
@@ -117,6 +144,23 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
             if not employee_id:
                 raise ImportErrorRow(row_num, "employee_id wajib diisi.")
 
+            grade_code = _row_value(row, "grade_code").strip()
+            employee_grade = None
+            if grade_code:
+                employee_grade = grades.get((plant_code, grade_code))
+                if not employee_grade:
+                    raise ImportErrorRow(
+                        row_num,
+                        f"Grade '{grade_code}' tidak ditemukan di plant '{plant_code}'.",
+                    )
+
+            salary_scheme = _row_value(row, "salary_scheme", Employee.SalaryScheme.MONTHLY).strip()
+            if salary_scheme and salary_scheme not in Employee.SalaryScheme.values:
+                raise ImportErrorRow(
+                    row_num,
+                    f"salary_scheme '{salary_scheme}' tidak valid (monthly/daily).",
+                )
+
             defaults = {
                 "full_name": row["full_name"].strip(),
                 "nik": row["nik"].strip(),
@@ -125,15 +169,23 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
                 "plant": plant,
                 "department": dept,
                 "job_position": job,
+                "employee_grade": employee_grade,
                 "join_date": _parse_date(row["join_date"]),
                 "status": row["status"].strip() or Employee.Status.PERMANENT,
+                "salary_scheme": salary_scheme or Employee.SalaryScheme.MONTHLY,
                 "base_salary": _parse_decimal(row["base_salary"]),
                 "allowance_transport": _parse_decimal(row["allowance_transport"]),
+                "allowance_meal": _parse_decimal(_row_value(row, "allowance_meal")),
+                "allowance_position": _parse_decimal(_row_value(row, "allowance_position")),
                 "tax_status": row["tax_status"].strip(),
                 "bank_name": row["bank_name"].strip(),
                 "bank_account_number": row["bank_account_number"].strip(),
                 "bank_account_name": row["bank_account_name"].strip(),
                 "npwp": row["npwp"].strip(),
+                "bpjs_kesehatan_number": _row_value(row, "bpjs_kesehatan_number").strip(),
+                "bpjs_ketenagakerjaan_number": _row_value(
+                    row, "bpjs_ketenagakerjaan_number"
+                ).strip(),
             }
 
             if dry_run:

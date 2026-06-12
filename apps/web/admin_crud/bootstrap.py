@@ -210,11 +210,13 @@ def bootstrap_registry():
             columns=[
                 Column("ID", "employee_id"),
                 Column("Nama", "full_name"),
+                Column("Grade", "employee_grade"),
+                Column("Skema Gaji", "salary_scheme"),
                 Column("Plant", "plant"),
                 Column("Status", "status"),
             ],
-            search_fields=["employee_id", "full_name", "nik", "email"],
-            select_related=["plant", "department"],
+            search_fields=["employee_id", "full_name", "nik", "email", "employee_grade__code"],
+            select_related=["plant", "department", "employee_grade"],
             order_by=["full_name"],
             hide_from_admin_nav=True,
         )
