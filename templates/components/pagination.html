@@ -1,0 +1,24 @@
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="hris-pagination" aria-label="Navigasi halaman">
+  <div class="hris-pagination-info">
+    Menampilkan {{ page_start }}–{{ page_end }} dari {{ result_count }} baris
+  </div>
+  <div class="hris-pagination-links">
+    {% if page_obj.has_previous %}
+    <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" class="hris-btn hris-btn-ghost hris-btn-sm">← Sebelumnya</a>
+    {% else %}
+    <span class="hris-btn hris-btn-ghost hris-btn-sm is-disabled" aria-disabled="true">← Sebelumnya</span>
+    {% endif %}
+
+    <span class="hris-pagination-current">Halaman {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+    <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}" class="hris-btn hris-btn-ghost hris-btn-sm">Berikutnya →</a>
+    {% else %}
+    <span class="hris-btn hris-btn-ghost hris-btn-sm is-disabled" aria-disabled="true">Berikutnya →</span>
+    {% endif %}
+  </div>
+</nav>
+{% elif result_count %}
+<p class="hris-pagination-single">Menampilkan {{ result_count }} baris</p>
+{% endif %}

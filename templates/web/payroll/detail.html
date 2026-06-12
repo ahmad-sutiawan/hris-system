@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Payroll {{ payroll_run.plant.code }}</h1>
-    <p>{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {% status_badge payroll_run.status payroll_run.get_status_display %} · {{ result_count }} slip ditampilkan</p>
+    <p>{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {% status_badge payroll_run.status payroll_run.get_status_display %} · {{ result_count }} slip</p>
   </div>
   <div class="hris-actions">
     {% if payroll_run.status == 'draft' %}
@@ -35,7 +35,7 @@
 </div>
 
 {% url 'web:payroll_detail' payroll_run.pk as payroll_detail_url %}
-{% include "components/list_search.html" with search_placeholder="Cari karyawan, employee ID…" search_reset_url=payroll_detail_url %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari karyawan, employee ID…" show_date_range=False show_export=True search_reset_url=payroll_detail_url %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -53,7 +53,7 @@
       <tbody>
         {% for slip in payslips %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td class="hris-strong">{{ slip.employee.full_name }}</td>
           <td class="hris-num">{{ slip.gross_amount }}</td>
           <td class="hris-num">{{ slip.deduction_amount }}</td>
@@ -71,4 +71,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

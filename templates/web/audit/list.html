@@ -7,19 +7,24 @@
 <div class="hris-page-header">
   <div>
     <h1>Audit Log</h1>
-    <p>Jejak perubahan data sensitif — {{ result_count }} baris ({{ default_days }} hari terakhir, maks. 500)</p>
+    <p>Jejak perubahan data sensitif — total {{ result_count }} baris{% if not date_from and not date_to %} ({{ default_days }} hari terakhir){% endif %}</p>
   </div>
 </div>
 
-<form method="get" class="hris-search-bar">
-  <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Cari user, aksi, model, objek…" class="hris-input">
-  <input type="text" name="model" value="{{ model_filter }}" placeholder="Filter model…" class="hris-input" style="max-width:12rem">
-  <input type="date" name="date_from" value="{{ date_from }}" class="hris-input" style="max-width:11rem" title="Dari tanggal">
-  <input type="date" name="date_to" value="{{ date_to }}" class="hris-input" style="max-width:11rem" title="Sampai tanggal">
-  <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
-  {% if search_query or model_filter or date_from or date_to %}
-  <a href="{% url 'web:audit_log_list' %}" class="hris-btn hris-btn-ghost">Reset</a>
-  {% endif %}
+<form method="get" class="hris-list-toolbar">
+  <div class="hris-list-toolbar-fields">
+    <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Cari user, aksi, model, objek…" class="hris-input">
+    <input type="text" name="model" value="{{ model_filter }}" placeholder="Filter model…" class="hris-input" style="max-width:12rem">
+    <input type="date" name="date_from" value="{{ date_from }}" class="hris-input hris-input--date" title="Dari tanggal" aria-label="Dari tanggal">
+    <input type="date" name="date_to" value="{{ date_to }}" class="hris-input hris-input--date" title="Sampai tanggal" aria-label="Sampai tanggal">
+  </div>
+  <div class="hris-list-toolbar-actions">
+    <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
+    <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}export=csv" class="hris-btn hris-btn-secondary">Export CSV</a>
+    {% if has_list_filters or model_filter %}
+    <a href="{% url 'web:audit_log_list' %}" class="hris-btn hris-btn-ghost">Reset</a>
+    {% endif %}
+  </div>
 </form>
 <p class="hris-text-dim" style="margin-top:0.5rem;font-size:0.875rem">
   Log bersifat append-only dengan hash integritas. Arsipkan log lama berkala:
@@ -43,7 +48,7 @@
       <tbody>
         {% for log in audit_logs %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td style="white-space:nowrap">{{ log.created_at|date:"d M Y H:i" }}</td>
           <td class="hris-strong">{{ log.user.username|default:"-" }}</td>
           <td>{% status_badge log.action log.get_action_display %}</td>
@@ -58,4 +63,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

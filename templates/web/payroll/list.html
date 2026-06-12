@@ -7,12 +7,12 @@
 <div class="hris-page-header">
   <div>
     <h1>Payroll Run</h1>
-    <p>Proses gaji periodik per plant — {{ result_count }} baris ditampilkan</p>
+    <p>Proses gaji periodik per plant — {{ result_count }} baris</p>
   </div>
   <a href="{% url 'web:payroll_create' %}" class="hris-btn hris-btn-primary">+ Buat Payroll</a>
 </div>
 
-{% include "components/list_search.html" with search_placeholder="Cari plant, periode, status, catatan…" search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari plant, periode, status, catatan…" show_date_range=True show_export=True search_reset_url=request.path %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -29,7 +29,7 @@
       <tbody>
         {% for run in payroll_runs %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td class="hris-strong">{{ run.plant.code }}</td>
           <td>{{ run.period_start }} — {{ run.period_end }}</td>
           <td>{% status_badge run.status run.get_status_display %}</td>
@@ -54,4 +54,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

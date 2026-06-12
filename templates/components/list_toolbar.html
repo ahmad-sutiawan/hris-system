@@ -1,0 +1,21 @@
+<form method="get" class="hris-list-toolbar">
+  <div class="hris-list-toolbar-fields">
+    <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="{{ search_placeholder }}" class="hris-input">
+    {% if show_date_range %}
+    <input type="date" name="date_from" value="{{ date_from|default:'' }}" class="hris-input hris-input--date" title="Dari tanggal" aria-label="Dari tanggal">
+    <input type="date" name="date_to" value="{{ date_to|default:'' }}" class="hris-input hris-input--date" title="Sampai tanggal" aria-label="Sampai tanggal">
+    {% endif %}
+    {% if extra_filter_field %}
+    {{ extra_filter_field }}
+    {% endif %}
+  </div>
+  <div class="hris-list-toolbar-actions">
+    <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
+    {% if show_export %}
+    <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}export=csv" class="hris-btn hris-btn-secondary">Export CSV</a>
+    {% endif %}
+    {% if has_list_filters or date_from or date_to or extra_filter_active %}
+    <a href="{{ search_reset_url|default:request.path }}" class="hris-btn hris-btn-ghost">Reset</a>
+    {% endif %}
+  </div>
+</form>

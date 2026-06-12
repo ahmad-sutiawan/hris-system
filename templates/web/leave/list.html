@@ -7,12 +7,12 @@
 <div class="hris-page-header">
   <div>
     <h1>Pengajuan Cuti</h1>
-    <p>Kelola dan approve permohonan cuti — {{ result_count }} baris ditampilkan</p>
+    <p>Kelola dan approve permohonan cuti — {{ result_count }} baris</p>
   </div>
   <a href="{% url 'web:leave_create' %}" class="hris-btn hris-btn-primary">+ Ajukan Cuti</a>
 </div>
 
-{% include "components/list_search.html" with search_placeholder="Cari karyawan, jenis cuti, status, alasan…" search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari karyawan, jenis cuti, status, alasan…" show_date_range=True show_export=True search_reset_url=request.path %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -31,7 +31,7 @@
       <tbody>
         {% for req in leave_requests %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td class="hris-strong">{{ req.employee.full_name }}</td>
           <td><span class="hris-mono">{{ req.leave_type.code }}</span></td>
           <td>{{ req.start_date }} — {{ req.end_date }}</td>
@@ -65,4 +65,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

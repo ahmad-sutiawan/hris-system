@@ -6,11 +6,11 @@
 <div class="hris-page-header">
   <div>
     <h1>Slip Gaji</h1>
-    <p>Arsip payslip karyawan — {{ result_count }} baris ditampilkan</p>
+    <p>Arsip payslip karyawan — {{ result_count }} baris</p>
   </div>
 </div>
 
-{% include "components/list_search.html" with search_placeholder="Cari karyawan, periode, hash verifikasi…" search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari karyawan, periode, hash verifikasi…" show_date_range=True show_export=True search_reset_url=request.path %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -28,7 +28,7 @@
       <tbody>
         {% for slip in payslips %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td>{{ slip.payroll_run.period_start }} — {{ slip.payroll_run.period_end }}</td>
           <td class="hris-strong">{{ slip.employee.full_name }}</td>
           <td class="hris-num hris-strong">Rp {{ slip.net_amount }}</td>
@@ -42,4 +42,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

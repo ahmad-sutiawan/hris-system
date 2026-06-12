@@ -7,12 +7,12 @@
 <div class="hris-page-header">
   <div>
     <h1>Shift Assignment</h1>
-    <p>Penjadwalan shift harian per karyawan — {{ result_count }} baris ditampilkan</p>
+    <p>Penjadwalan shift harian per karyawan — {{ result_count }} baris</p>
   </div>
   <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-primary">+ Assign Shift</a>
 </div>
 
-{% include "components/list_search.html" with search_placeholder="Cari karyawan, kode shift…" search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari karyawan, kode shift…" show_date_range=True show_export=True search_reset_url=request.path %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -31,7 +31,7 @@
       <tbody>
         {% for row in assignments %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td>{{ row.work_date }}</td>
           <td class="hris-strong">{{ row.employee.full_name }}</td>
           <td><span class="hris-mono">{{ row.shift.code }}</span></td>
@@ -53,4 +53,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

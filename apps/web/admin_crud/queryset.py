@@ -1,5 +1,6 @@
 from django.db.models import Q
 
+from apps.core.listing import ListFilters, apply_datetime_range
 from apps.core.models import Plant, Tenant
 
 
@@ -11,7 +12,7 @@ def _model_has_field(model, field_name):
         return False
 
 
-def get_queryset(request, resource):
+def get_queryset(request, resource, filters: ListFilters | None = None):
     model = resource.model
     qs = model.objects.all()
 
@@ -39,12 +40,19 @@ def get_queryset(request, resource):
     if resource.tenant_scoped and tenant and _model_has_field(model, "tenant"):
         qs = qs.filter(tenant=tenant)
 
-    query = request.GET.get("q", "").strip()
-    if query and resource.search_fields:
+    filters = filters or ListFilters(q=request.GET.get("q", "").strip())
+    if filters.q and resource.search_fields:
         condition = Q()
         for field_name in resource.search_fields:
-            condition |= Q(**{f"{field_name}__icontains": query})
+            condition |= Q(**{f"{field_name}__icontains": filters.q})
         qs = qs.filter(condition)
+    if _model_has_field(model, "created_at"):
+        qs = apply_datetime_range(
+            qs,
+            date_from=filters.date_from,
+            date_to=filters.date_to,
+            field_name="created_at",
+        )
 
     return qs.order_by(*resource.order_by)
 

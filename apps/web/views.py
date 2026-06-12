@@ -9,7 +9,6 @@ from django.views.decorators.http import require_POST
 from apps.attendance.models import DailyTimesheet
 from apps.attendance.models import AttendanceRecord
 from apps.attendance.models import OvertimeRequest
-from apps.attendance.services.export import export_timesheets_csv
 from apps.attendance.services.overtime_workflow import (
     OvertimeError,
     approve_overtime_request,
@@ -50,6 +49,32 @@ from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
 from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_csv
 from apps.shifts.models import ShiftAssignment
+from apps.web.services.dashboard import build_dashboard_context
+from apps.web.services.list_exports import (
+    export_attendance_csv,
+    export_audit_csv,
+    export_employees_csv,
+    export_leave_csv,
+    export_notifications_csv,
+    export_overtime_csv,
+    export_payroll_runs_csv,
+    export_payslips_csv,
+    export_shifts_csv,
+)
+from apps.web.services.list_querysets import (
+    attach_attendance_records,
+    audit_log_queryset,
+    attendance_list_queryset,
+    employee_list_queryset,
+    leave_list_queryset,
+    notification_list_queryset,
+    overtime_list_queryset,
+    payroll_detail_payslip_queryset,
+    payroll_list_queryset,
+    payslip_list_queryset,
+    shift_assignment_queryset,
+)
+from apps.web.services.listing import resolve_list
 from apps.web.forms import (
     EmployeeForm,
     LeaveRequestForm,
@@ -124,6 +149,13 @@ def dashboard(request):
         ).first()
         punch_ui = get_punch_ui_state(today_record)
 
+    dashboard_ctx = build_dashboard_context(
+        user=user,
+        tenant=tenant,
+        today=today,
+        profile=profile,
+    )
+
     return render(
         request,
         "web/dashboard.html",
@@ -133,6 +165,7 @@ def dashboard(request):
             "profile": profile,
             "today_record": today_record,
             "today": today,
+            **dashboard_ctx,
         },
     )
 
@@ -200,40 +233,22 @@ def employee_profile(request):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_list(request):
-    from apps.core.querysets import employee_list_qs
+    from apps.core.listing import parse_list_filters
 
-    qs = employee_list_qs(Employee.objects.filter(tenant=request.user.tenant))
-    if request.user.plant_id and not request.user.is_admin:
-        qs = qs.filter(plant=request.user.plant)
-
-    query = request.GET.get("q", "").strip()
-    if query:
-        text = query
-        filters = Q(
-            employee_id__icontains=text,
-        ) | Q(full_name__icontains=text) | Q(nik__icontains=text) | Q(email__icontains=text)
-        filters |= Q(phone__icontains=text) | Q(npwp__icontains=text) | Q(tax_status__icontains=text)
-        filters |= Q(bank_name__icontains=text) | Q(bank_account_number__icontains=text)
-        filters |= Q(bank_account_name__icontains=text) | Q(status__icontains=text)
-        filters |= Q(salary_scheme__icontains=text) | Q(bpjs_kesehatan_number__icontains=text)
-        filters |= Q(bpjs_ketenagakerjaan_number__icontains=text)
-        filters |= Q(plant__code__icontains=text) | Q(plant__name__icontains=text)
-        filters |= Q(legal_entity__name__icontains=text) | Q(department__name__icontains=text)
-        filters |= Q(department__code__icontains=text) | Q(job_position__title__icontains=text)
-        filters |= Q(job_position__code__icontains=text) | Q(manager__full_name__icontains=text)
-        filters |= Q(manager__employee_id__icontains=text) | Q(user__username__icontains=text)
-        filters |= Q(employee_grade__code__icontains=text) | Q(employee_grade__name__icontains=text)
-        qs = qs.filter(filters)
-
-    employees = list(qs.order_by("full_name")[:500])
+    filters = parse_list_filters(request)
+    qs = employee_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="employees_export.csv",
+        export_fn=export_employees_csv,
+    )
+    if response:
+        return response
     return render(
         request,
         "web/employees/list.html",
-        {
-            "employees": employees,
-            "search_query": query,
-            "result_count": len(employees),
-        },
+        {**ctx, "employees": list(ctx["page_obj"].object_list)},
     )
 
 
@@ -348,30 +363,22 @@ def employee_deactivate(request, pk):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def shift_assignment_list(request):
-    qs = ShiftAssignment.objects.filter(tenant=request.user.tenant).select_related(
-        "employee", "shift"
-    ).order_by("-work_date")
-    if request.user.plant_id and not request.user.is_admin:
-        qs = qs.filter(employee__plant=request.user.plant)
+    from apps.core.listing import parse_list_filters
 
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(employee__full_name__icontains=query)
-            | Q(employee__employee_id__icontains=query)
-            | Q(shift__code__icontains=query)
-            | Q(shift__name__icontains=query)
-        )
-
-    assignments = list(qs[:500])
+    filters = parse_list_filters(request)
+    qs = shift_assignment_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="shift_assignments_export.csv",
+        export_fn=export_shifts_csv,
+    )
+    if response:
+        return response
     return render(
         request,
         "web/shifts/list.html",
-        {
-            "assignments": assignments,
-            "search_query": query,
-            "result_count": len(assignments),
-        },
+        {**ctx, "assignments": list(ctx["page_obj"].object_list)},
     )
 
 
@@ -479,45 +486,37 @@ def shift_delete(request, pk):
 
 @login_required
 def attendance_list(request):
-    qs = DailyTimesheet.objects.filter(tenant=request.user.tenant).select_related(
-        "employee", "plant", "attendance_code"
-    )
+    from apps.core.listing import parse_list_filters
 
     profile = _employee_profile(request.user)
-    if profile and not request.user.is_hr:
-        qs = qs.filter(employee=profile)
-
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(employee__employee_id__icontains=query)
-            | Q(employee__full_name__icontains=query)
-            | Q(shift_code__icontains=query)
-            | Q(attendance_code__code__icontains=query)
-        )
-
-    timesheets = list(qs.order_by("-work_date")[:500])
-    record_map = {}
-    if timesheets:
-        records = AttendanceRecord.objects.filter(
-            tenant=request.user.tenant,
-            employee_id__in={row.employee_id for row in timesheets},
-            work_date__in={row.work_date for row in timesheets},
-        )
-        record_map = {(r.employee_id, r.work_date): r for r in records}
-
-    for row in timesheets:
-        row.punch_record = record_map.get((row.employee_id, row.work_date))
-
+    filters = parse_list_filters(request)
+    qs = attendance_list_queryset(request.user, filters)
+    export_qs = qs.select_related(
+        "employee",
+        "employee__department",
+        "employee__job_position",
+        "plant",
+        "shift",
+        "attendance_code",
+    )
+    response, ctx = resolve_list(
+        request,
+        export_qs,
+        export_filename="timesheet_export.csv",
+        export_fn=export_attendance_csv,
+    )
+    if response:
+        return response
+    timesheets = list(ctx["page_obj"].object_list)
+    record_map = attach_attendance_records(timesheets, request.user.tenant)
     return render(
         request,
         "web/attendance/list.html",
         {
+            **ctx,
             "timesheets": timesheets,
             "record_map": record_map,
             "profile": profile,
-            "search_query": query,
-            "result_count": len(timesheets),
         },
     )
 
@@ -525,36 +524,29 @@ def attendance_list(request):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def attendance_export(request):
-    qs = DailyTimesheet.objects.filter(tenant=request.user.tenant).select_related(
-        "employee",
-        "employee__department",
-        "employee__job_position",
-        "plant",
-        "shift",
-        "attendance_code",
-    ).order_by("-work_date", "employee__employee_id")
-    content = export_timesheets_csv(qs)
-    response = HttpResponse(content, content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="timesheet_export.csv"'
-    return response
+    """Backward-compatible export URL — preserves active list filters."""
+    from django.urls import reverse
+    from apps.core.listing import build_filter_query
+
+    query = build_filter_query(request)
+    suffix = f"{query}&export=csv" if query else "export=csv"
+    return redirect(f"{reverse('web:attendance_list')}?{suffix}")
 
 
 @login_required
 def leave_list(request):
-    qs = LeaveRequest.objects.filter(tenant=request.user.tenant).select_related(
-        "employee", "leave_type"
-    ).order_by("-created_at")
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(employee__full_name__icontains=query)
-            | Q(employee__employee_id__icontains=query)
-            | Q(leave_type__code__icontains=query)
-            | Q(leave_type__name__icontains=query)
-            | Q(status__icontains=query)
-            | Q(reason__icontains=query)
-        )
-    leave_requests = list(qs[:500])
+    from apps.core.listing import parse_list_filters
+
+    filters = parse_list_filters(request)
+    qs = leave_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="leave_requests_export.csv",
+        export_fn=export_leave_csv,
+    )
+    if response:
+        return response
     can_approve = request.user.role in {
         User.Role.ADMIN,
         User.Role.HR,
@@ -565,11 +557,10 @@ def leave_list(request):
         request,
         "web/leave/list.html",
         {
-            "leave_requests": leave_requests,
+            **ctx,
+            "leave_requests": list(ctx["page_obj"].object_list),
             "can_approve": can_approve,
             "profile": profile,
-            "search_query": query,
-            "result_count": len(leave_requests),
         },
     )
 
@@ -684,18 +675,18 @@ def leave_reject(request, pk):
 
 @login_required
 def overtime_list(request):
-    qs = OvertimeRequest.objects.filter(tenant=request.user.tenant).select_related(
-        "employee", "approver", "overtime_type"
-    ).order_by("-created_at")
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(employee__full_name__icontains=query)
-            | Q(employee__employee_id__icontains=query)
-            | Q(status__icontains=query)
-            | Q(reason__icontains=query)
-        )
-    overtime_requests = list(qs[:500])
+    from apps.core.listing import parse_list_filters
+
+    filters = parse_list_filters(request)
+    qs = overtime_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="overtime_requests_export.csv",
+        export_fn=export_overtime_csv,
+    )
+    if response:
+        return response
     can_approve = request.user.role in {
         User.Role.ADMIN,
         User.Role.HR,
@@ -706,11 +697,10 @@ def overtime_list(request):
         request,
         "web/overtime/list.html",
         {
-            "overtime_requests": overtime_requests,
+            **ctx,
+            "overtime_requests": list(ctx["page_obj"].object_list),
             "can_approve": can_approve,
             "profile": profile,
-            "search_query": query,
-            "result_count": len(overtime_requests),
         },
     )
 
@@ -829,26 +819,22 @@ def overtime_reject(request, pk):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_list(request):
-    qs = PayrollRun.objects.filter(tenant=request.user.tenant).select_related("plant").order_by(
-        "-period_end"
+    from apps.core.listing import parse_list_filters
+
+    filters = parse_list_filters(request)
+    qs = payroll_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="payroll_runs_export.csv",
+        export_fn=export_payroll_runs_csv,
     )
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(plant__code__icontains=query)
-            | Q(plant__name__icontains=query)
-            | Q(status__icontains=query)
-            | Q(notes__icontains=query)
-        )
-    payroll_runs = list(qs[:500])
+    if response:
+        return response
     return render(
         request,
         "web/payroll/list.html",
-        {
-            "payroll_runs": payroll_runs,
-            "search_query": query,
-            "result_count": len(payroll_runs),
-        },
+        {**ctx, "payroll_runs": list(ctx["page_obj"].object_list)},
     )
 
 
@@ -933,23 +919,26 @@ def payroll_cancel(request, pk):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_detail(request, pk):
+    from apps.core.listing import parse_list_filters
+
     run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
-    qs = Payslip.objects.filter(payroll_run=run).select_related("employee")
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(employee__full_name__icontains=query)
-            | Q(employee__employee_id__icontains=query)
-        )
-    payslips = list(qs)
+    filters = parse_list_filters(request)
+    qs = payroll_detail_payslip_queryset(run, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename=f"payslips_{run.plant.code}_{run.period_end}.csv",
+        export_fn=export_payslips_csv,
+    )
+    if response:
+        return response
     return render(
         request,
         "web/payroll/detail.html",
         {
+            **ctx,
             "payroll_run": run,
-            "payslips": payslips,
-            "search_query": query,
-            "result_count": len(payslips),
+            "payslips": list(ctx["page_obj"].object_list),
         },
     )
 
@@ -982,36 +971,22 @@ def payroll_finalize(request, pk):
 
 @login_required
 def payslip_list(request):
-    profile = _employee_profile(request.user)
-    if request.user.is_hr or request.user.is_admin:
-        qs = Payslip.objects.filter(tenant=request.user.tenant).select_related(
-            "employee", "payroll_run"
-        ).order_by("-payroll_run__period_end")
-    elif profile:
-        qs = Payslip.objects.filter(employee=profile).select_related("payroll_run").order_by(
-            "-payroll_run__period_end"
-        )
-    else:
-        qs = Payslip.objects.none()
+    from apps.core.listing import parse_list_filters
 
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(employee__full_name__icontains=query)
-            | Q(employee__employee_id__icontains=query)
-            | Q(verification_hash__icontains=query)
-            | Q(payroll_run__plant__code__icontains=query)
-        )
-
-    payslips = list(qs[:500])
+    filters = parse_list_filters(request)
+    qs = payslip_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="payslips_export.csv",
+        export_fn=export_payslips_csv,
+    )
+    if response:
+        return response
     return render(
         request,
         "web/payroll/payslips.html",
-        {
-            "payslips": payslips,
-            "search_query": query,
-            "result_count": len(payslips),
-        },
+        {**ctx, "payslips": list(ctx["page_obj"].object_list)},
     )
 
 
@@ -1135,23 +1110,22 @@ def attendance_import(request):
 
 @login_required
 def notification_list(request):
-    qs = Notification.objects.filter(user=request.user).order_by("-created_at")
-    query = request.GET.get("q", "").strip()
-    if query:
-        qs = qs.filter(
-            Q(title__icontains=query)
-            | Q(message__icontains=query)
-            | Q(category__icontains=query)
-        )
-    notifications = list(qs[:500])
+    from apps.core.listing import parse_list_filters
+
+    filters = parse_list_filters(request)
+    qs = notification_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="notifications_export.csv",
+        export_fn=export_notifications_csv,
+    )
+    if response:
+        return response
     return render(
         request,
         "web/notifications/list.html",
-        {
-            "notifications": notifications,
-            "search_query": query,
-            "result_count": len(notifications),
-        },
+        {**ctx, "notifications": list(ctx["page_obj"].object_list)},
     )
 
 
@@ -1175,50 +1149,40 @@ def notification_mark_all_read(request):
 def audit_log_list(request):
     from django.conf import settings
 
-    from apps.core.querysets import audit_log_list_qs
+    from apps.core.listing import parse_list_filters
 
     default_days = getattr(settings, "HRIS_AUDIT_LIST_DEFAULT_DAYS", 90)
-    qs = audit_log_list_qs(
-        AuditLog.objects.filter(tenant=request.user.tenant),
-        include_changes=True,
-    ).order_by("-created_at")
-
-    date_from = request.GET.get("date_from", "").strip()
-    date_to = request.GET.get("date_to", "").strip()
-    if date_from:
-        qs = qs.filter(created_at__date__gte=date_from)
-    else:
-        qs = qs.filter(
-            created_at__gte=timezone.now() - timezone.timedelta(days=default_days)
-        )
-    if date_to:
-        qs = qs.filter(created_at__date__lte=date_to)
+    filters = parse_list_filters(request)
+    qs = audit_log_queryset(request.user, filters, default_days=default_days)
 
     model_name = request.GET.get("model", "").strip()
     if model_name:
         qs = qs.filter(model_name__icontains=model_name)
-
-    query = request.GET.get("q", "").strip()
-    if query:
+    if filters.q:
         qs = qs.filter(
-            Q(model_name__icontains=query)
-            | Q(object_repr__icontains=query)
-            | Q(changes__icontains=query)
-            | Q(action__icontains=query)
-            | Q(user__username__icontains=query)
+            Q(model_name__icontains=filters.q)
+            | Q(object_repr__icontains=filters.q)
+            | Q(changes__icontains=filters.q)
+            | Q(action__icontains=filters.q)
+            | Q(user__username__icontains=filters.q)
         )
 
-    audit_logs = list(qs[:500])
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="audit_log_export.csv",
+        export_fn=export_audit_csv,
+    )
+    if response:
+        return response
     return render(
         request,
         "web/audit/list.html",
         {
-            "audit_logs": audit_logs,
+            **ctx,
+            "audit_logs": list(ctx["page_obj"].object_list),
             "model_filter": model_name,
-            "search_query": query,
-            "date_from": date_from,
-            "date_to": date_to,
             "default_days": default_days,
-            "result_count": len(audit_logs),
+            "extra_filter_active": bool(model_name),
         },
     )

@@ -12,6 +12,9 @@ from apps.web.admin_crud.registry import (
     resources_by_app,
     resources_master_data,
 )
+from apps.core.listing import parse_list_filters
+from apps.web.services.list_exports import export_admin_resource_csv
+from apps.web.services.listing import resolve_list
 from apps.web.views import _form_context
 
 ensure_bootstrapped()
@@ -66,10 +69,20 @@ def _crud_context(scope, slug):
 
 def _resource_list(request, slug, *, scope="manage"):
     resource = _get_resource_or_404(slug, scope=scope)
-    qs = get_queryset(request, resource)
-    objects = list(qs[: resource.list_limit])
+    filters = parse_list_filters(request)
+    qs = get_queryset(request, resource, filters)
+    export_name = f"{resource.slug}_export.csv"
+    response, list_ctx = resolve_list(
+        request,
+        qs,
+        export_filename=export_name,
+        export_fn=lambda queryset: export_admin_resource_csv(resource, queryset),
+    )
+    if response:
+        return response
+
     rows = []
-    for obj in objects:
+    for obj in list_ctx["page_obj"].object_list:
         rows.append(
             {
                 "obj": obj,
@@ -77,12 +90,11 @@ def _resource_list(request, slug, *, scope="manage"):
             }
         )
     ctx = _crud_context(scope, slug)
+    ctx.update(list_ctx)
     ctx.update(
         {
             "resource": resource,
             "rows": rows,
-            "search_query": request.GET.get("q", ""),
-            "result_count": len(rows),
         }
     )
     template = "web/master/list.html" if scope == "master" else "web/manage/list.html"

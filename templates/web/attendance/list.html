@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Daily Timesheet</h1>
-    <p>Rekap absensi harian — {{ result_count }} baris ditampilkan</p>
+    <p>Rekap absensi harian — {{ result_count }} baris</p>
   </div>
   <div class="hris-actions">
     {% if user.role == 'admin' or user.role == 'hr' %}
@@ -20,7 +20,7 @@
   </div>
 </div>
 
-{% include "components/list_search.html" with search_placeholder="Cari employee ID, nama, shift, kode absensi…" search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari employee ID, nama, shift, kode absensi…" show_date_range=True show_export=user.is_hr search_reset_url=request.path %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -45,7 +45,7 @@
       <tbody>
         {% for row in timesheets %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           {% if user.role == 'admin' or user.role == 'hr' %}
           <td><span class="hris-mono">{{ row.employee.employee_id }}</span></td>
           <td class="hris-strong">{{ row.employee.full_name }}</td>
@@ -90,4 +90,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

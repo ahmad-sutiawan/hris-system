@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Notifikasi</h1>
-    <p>Pembaruan cuti, payroll, dan aktivitas sistem — {{ result_count }} baris ditampilkan</p>
+    <p>Pembaruan cuti, payroll, dan aktivitas sistem — {{ result_count }} baris</p>
   </div>
   {% if unread_notifications %}
   <form method="post" action="{% url 'web:notification_mark_all_read' %}">{% csrf_token %}
@@ -16,7 +16,7 @@
   {% endif %}
 </div>
 
-{% include "components/list_search.html" with search_placeholder="Cari judul, pesan, kategori…" search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari judul, pesan, kategori…" show_date_range=True show_export=True search_reset_url=request.path %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -35,7 +35,7 @@
       <tbody>
         {% for n in notifications %}
         <tr{% if not n.is_read %} style="background:rgba(245,158,11,0.04)"{% endif %}>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td class="hris-strong">{{ n.title }}</td>
           <td>{{ n.message|truncatechars:80 }}</td>
           <td>{{ n.get_category_display }}</td>
@@ -68,4 +68,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

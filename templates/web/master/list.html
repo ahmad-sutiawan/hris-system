@@ -6,7 +6,7 @@
 <div class="hris-page-header">
   <div>
     <h1>{{ resource.title_plural }}</h1>
-    <p>Master data {{ resource.title|lower }} — {{ result_count }} baris ditampilkan</p>
+    <p>Master data {{ resource.title|lower }} — {{ result_count }} baris</p>
   </div>
   <div class="hris-actions">
     <a href="{% url crud_url_names.hub %}" class="hris-btn hris-btn-secondary">← Master Data</a>
@@ -17,7 +17,7 @@
 </div>
 
 {% url crud_url_names.list resource.slug as master_list_url %}
-{% include "components/list_search.html" with search_placeholder="Cari semua kolom…" search_reset_url=master_list_url %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari semua kolom…" show_date_range=True show_export=True search_reset_url=master_list_url %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -34,7 +34,7 @@
       <tbody>
         {% for row in rows %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           {% for cell in row.cells %}
           <td>{{ cell }}</td>
           {% endfor %}
@@ -62,4 +62,5 @@
     </table>
   </div>
 </div>
+{% include "components/pagination.html" %}
 {% endblock %}

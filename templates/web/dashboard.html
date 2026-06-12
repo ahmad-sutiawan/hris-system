@@ -109,6 +109,199 @@
     <div class="hris-stat-value">{{ stats.draft_payroll }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
+  <div class="hris-stat-card hris-stat-card--green">
+    <div class="hris-stat-label">Hadir Hari Ini</div>
+    <div class="hris-stat-value">{{ stats_extra.present_today }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  </div>
+  <div class="hris-stat-card hris-stat-card--cyan">
+    <div class="hris-stat-label">Sedang Cuti</div>
+    <div class="hris-stat-value">{{ stats_extra.on_leave_today }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+  </div>
+  <div class="hris-stat-card hris-stat-card--rose">
+    <div class="hris-stat-label">Belum Hadir</div>
+    <div class="hris-stat-value">{{ stats_extra.absent_today }}</div>
+    <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+  </div>
+</div>
+
+<section class="hris-dashboard-section">
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
+        <h2>Absensi 7 Hari Terakhir</h2>
+        <p>Jumlah timesheet tercatat per hari</p>
+      </div>
+      <div class="hris-week-chart" role="img" aria-label="Grafik absensi 7 hari terakhir">
+        {% for day in attendance_week %}
+        <div class="hris-week-chart-col">
+          <div class="hris-week-chart-bar-wrap">
+            <div class="hris-week-chart-bar{% if day.date == today %} is-today{% endif %}"
+                 style="height:{% widthratio day.count attendance_week_max 100 %}%"></div>
+          </div>
+          <span class="hris-week-chart-value">{{ day.count }}</span>
+          <span class="hris-week-chart-label">{{ day.date|local_date:"D" }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="hris-dashboard-grid">
+  {% if profile and profile_summary %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
+        <h2>Profil Saya</h2>
+        <p>{{ profile.full_name }} · {{ profile_summary.employee_id }}</p>
+      </div>
+      <dl class="hris-dl-grid">
+        <div><dt>Plant</dt><dd>{{ profile_summary.plant }}</dd></div>
+        <div><dt>Departemen</dt><dd>{{ profile_summary.department }}</dd></div>
+        <div><dt>Jabatan</dt><dd>{{ profile_summary.position }}</dd></div>
+        <div><dt>Grade</dt><dd>{{ profile_summary.grade }}</dd></div>
+        <div><dt>Status</dt><dd>{{ profile_summary.status }}</dd></div>
+        <div><dt>Shift Hari Ini</dt>
+          <dd>
+            {% if today_shift %}
+            {{ today_shift.shift.code }} · {{ today_shift.scheduled_check_in|time:"H:i" }}–{{ today_shift.scheduled_check_out|time:"H:i" }}
+            {% else %}
+            Belum di-assign
+            {% endif %}
+          </dd>
+        </div>
+      </dl>
+      {% if leave_balances %}
+      <h3 class="hris-dashboard-subtitle">Saldo Cuti {{ today.year }}</h3>
+      <div class="hris-mini-table-wrap">
+        <table class="hris-mini-table">
+          <thead>
+            <tr>
+              <th>Jenis</th>
+              <th>Sisa</th>
+              <th>Pending</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for balance in leave_balances %}
+            <tr>
+              <td>{{ balance.leave_type.name }}</td>
+              <td>{{ balance.remaining }}</td>
+              <td>{{ balance.pending }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
+        <h2>Notifikasi Terbaru</h2>
+        <a href="{% url 'web:notification_list' %}" class="hris-dashboard-link">Lihat semua</a>
+      </div>
+      {% if recent_notifications %}
+      <ul class="hris-feed">
+        {% for item in recent_notifications %}
+        <li class="hris-feed-item{% if not item.is_read %} is-unread{% endif %}">
+          {% if item.link %}
+          <a href="{{ item.link }}" class="hris-feed-link">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.message|truncatechars:90 }}</span>
+            <time>{{ item.created_at|local_datetime:"d M Y, H:i" }}</time>
+          </a>
+          {% else %}
+          <div class="hris-feed-link">
+            <strong>{{ item.title }}</strong>
+            <span>{{ item.message|truncatechars:90 }}</span>
+            <time>{{ item.created_at|local_datetime:"d M Y, H:i" }}</time>
+          </div>
+          {% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="hris-dashboard-empty">Belum ada notifikasi.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if show_ops %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
+        <h2>Perlu Persetujuan</h2>
+        <a href="{% url 'web:leave_list' %}" class="hris-dashboard-link">Kelola cuti</a>
+      </div>
+      {% if pending_leave_items or pending_overtime_items %}
+      <ul class="hris-feed">
+        {% for item in pending_leave_items %}
+        <li class="hris-feed-item">
+          <a href="{% url 'web:leave_list' %}" class="hris-feed-link">
+            <strong>Cuti · {{ item.employee.full_name }}</strong>
+            <span>{{ item.leave_type.name }} · {{ item.start_date|local_date:"d M" }}–{{ item.end_date|local_date:"d M Y" }}</span>
+            <time>{{ item.created_at|local_datetime:"d M Y, H:i" }}</time>
+          </a>
+        </li>
+        {% endfor %}
+        {% for item in pending_overtime_items %}
+        <li class="hris-feed-item">
+          <a href="{% url 'web:overtime_list' %}" class="hris-feed-link">
+            <strong>Lembur · {{ item.employee.full_name }}</strong>
+            <span>{% if item.overtime_type %}{{ item.overtime_type.name }}{% else %}Lembur{% endif %} · {{ item.work_date|local_date:"d M Y" }}</span>
+            <time>{{ item.created_at|local_datetime:"d M Y, H:i" }}</time>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="hris-dashboard-empty">Tidak ada pengajuan yang menunggu persetujuan.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
+        <h2>Payroll Terbaru</h2>
+        {% if latest_payroll %}
+        <a href="{% url 'web:payroll_detail' latest_payroll.pk %}" class="hris-dashboard-link">Detail</a>
+        {% endif %}
+      </div>
+      {% if latest_payroll %}
+      <dl class="hris-dl-grid hris-dl-grid--single">
+        <div><dt>Plant</dt><dd>{{ latest_payroll.plant.name }}</dd></div>
+        <div><dt>Periode</dt><dd>{{ latest_payroll.period_start|local_date:"d M Y" }} – {{ latest_payroll.period_end|local_date:"d M Y" }}</dd></div>
+        <div><dt>Status</dt><dd><span class="hris-badge hris-badge--{{ latest_payroll.status }}">{{ latest_payroll.get_status_display }}</span></dd></div>
+      </dl>
+      {% else %}
+      <p class="hris-dashboard-empty">Belum ada payroll run.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if profile and latest_payslip %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <div class="hris-dashboard-card-head">
+        <h2>Slip Gaji Terakhir</h2>
+        <a href="{% url 'web:payslip_list' %}" class="hris-dashboard-link">Riwayat slip</a>
+      </div>
+      <dl class="hris-dl-grid hris-dl-grid--single">
+        <div><dt>Periode</dt><dd>{{ latest_payslip.payroll_run.period_start|local_date:"d M" }} – {{ latest_payslip.payroll_run.period_end|local_date:"d M Y" }}</dd></div>
+        <div><dt>Take Home Pay</dt><dd class="hris-dashboard-highlight">Rp {{ latest_payslip.net_amount|floatformat:0 }}</dd></div>
+        <div><dt>Status Payroll</dt><dd><span class="hris-badge hris-badge--{{ latest_payslip.payroll_run.status }}">{{ latest_payslip.payroll_run.get_status_display }}</span></dd></div>
+      </dl>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 <div class="hris-quick-grid" style="margin-top:1.75rem">
@@ -132,10 +325,13 @@
   </div>
   <div class="hris-card">
     <div class="hris-card-body">
-      <h2 style="margin:0;font-size:1.125rem;font-weight:700">Alur MVP</h2>
-      <div class="hris-flow">
-        Karyawan → Shift default → Clock In/Out + Selfie → Ajukan Lembur → Cuti → Payroll → Slip Gaji
-      </div>
+      <h2 style="margin:0;font-size:1.125rem;font-weight:700">Ringkasan Hari Ini</h2>
+      <dl class="hris-dl-grid hris-dl-grid--single" style="margin-top:1rem">
+        <div><dt>Karyawan aktif</dt><dd>{{ stats.employee_count }}</dd></div>
+        <div><dt>Hadir / cuti / belum hadir</dt><dd>{{ stats_extra.present_today }} / {{ stats_extra.on_leave_today }} / {{ stats_extra.absent_today }}</dd></div>
+        <div><dt>Timesheet tercatat</dt><dd>{{ stats.today_timesheets }}</dd></div>
+        <div><dt>Cuti & lembur pending</dt><dd>{{ stats.pending_leave }} / {{ stats.pending_overtime }}</dd></div>
+      </dl>
     </div>
   </div>
 </div>
