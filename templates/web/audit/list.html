@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Audit Log</h1>
-    <p>Jejak perubahan data sensitif — total {{ result_count }} baris{% if not date_from and not date_to %} ({{ default_days }} hari terakhir){% endif %}</p>
+    <p>Jejak perubahan data sensitif — total {{ result_count|num:0 }} baris{% if not date_from and not date_to %} ({{ default_days|num:0 }} hari terakhir){% endif %}</p>
   </div>
 </div>
 

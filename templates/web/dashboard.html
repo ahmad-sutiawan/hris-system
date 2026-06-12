@@ -86,42 +86,42 @@
 <div class="hris-stat-grid">
   <div class="hris-stat-card hris-stat-card--amber">
     <div class="hris-stat-label">Karyawan Aktif</div>
-    <div class="hris-stat-value">{{ stats.employee_count }}</div>
+    <div class="hris-stat-value">{{ stats.employee_count|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--rose">
     <div class="hris-stat-label">Cuti Pending</div>
-    <div class="hris-stat-value">{{ stats.pending_leave }}</div>
+    <div class="hris-stat-value">{{ stats.pending_leave|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--amber">
     <div class="hris-stat-label">Lembur Pending</div>
-    <div class="hris-stat-value">{{ stats.pending_overtime }}</div>
+    <div class="hris-stat-value">{{ stats.pending_overtime|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--cyan">
     <div class="hris-stat-label">Timesheet Hari Ini</div>
-    <div class="hris-stat-value">{{ stats.today_timesheets }}</div>
+    <div class="hris-stat-value">{{ stats.today_timesheets|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--green">
     <div class="hris-stat-label">Payroll Draft</div>
-    <div class="hris-stat-value">{{ stats.draft_payroll }}</div>
+    <div class="hris-stat-value">{{ stats.draft_payroll|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--green">
     <div class="hris-stat-label">Hadir Hari Ini</div>
-    <div class="hris-stat-value">{{ stats_extra.present_today }}</div>
+    <div class="hris-stat-value">{{ stats_extra.present_today|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--cyan">
     <div class="hris-stat-label">Sedang Cuti</div>
-    <div class="hris-stat-value">{{ stats_extra.on_leave_today }}</div>
+    <div class="hris-stat-value">{{ stats_extra.on_leave_today|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
   </div>
   <div class="hris-stat-card hris-stat-card--rose">
     <div class="hris-stat-label">Belum Hadir</div>
-    <div class="hris-stat-value">{{ stats_extra.absent_today }}</div>
+    <div class="hris-stat-value">{{ stats_extra.absent_today|num:0 }}</div>
     <svg class="hris-stat-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
   </div>
 </div>
@@ -140,7 +140,7 @@
             <div class="hris-week-chart-bar{% if day.date == today %} is-today{% endif %}"
                  style="height:{% widthratio day.count attendance_week_max 100 %}%"></div>
           </div>
-          <span class="hris-week-chart-value">{{ day.count }}</span>
+          <span class="hris-week-chart-value">{{ day.count|num:0 }}</span>
           <span class="hris-week-chart-label">{{ day.date|local_date:"D" }}</span>
         </div>
         {% endfor %}
@@ -188,8 +188,8 @@
             {% for balance in leave_balances %}
             <tr>
               <td>{{ balance.leave_type.name }}</td>
-              <td>{{ balance.remaining }}</td>
-              <td>{{ balance.pending }}</td>
+              <td>{{ balance.remaining|num:1 }}</td>
+              <td>{{ balance.pending|num:1 }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -296,7 +296,7 @@
       </div>
       <dl class="hris-dl-grid hris-dl-grid--single">
         <div><dt>Periode</dt><dd>{{ latest_payslip.payroll_run.period_start|local_date:"d M" }} – {{ latest_payslip.payroll_run.period_end|local_date:"d M Y" }}</dd></div>
-        <div><dt>Take Home Pay</dt><dd class="hris-dashboard-highlight">Rp {{ latest_payslip.net_amount|floatformat:0 }}</dd></div>
+        <div><dt>Take Home Pay</dt><dd class="hris-dashboard-highlight">{{ latest_payslip.net_amount|rupiah }}</dd></div>
         <div><dt>Status Payroll</dt><dd><span class="hris-badge hris-badge--{{ latest_payslip.payroll_run.status }}">{{ latest_payslip.payroll_run.get_status_display }}</span></dd></div>
       </dl>
     </div>
@@ -327,10 +327,10 @@
     <div class="hris-card-body">
       <h2 style="margin:0;font-size:1.125rem;font-weight:700">Ringkasan Hari Ini</h2>
       <dl class="hris-dl-grid hris-dl-grid--single" style="margin-top:1rem">
-        <div><dt>Karyawan aktif</dt><dd>{{ stats.employee_count }}</dd></div>
-        <div><dt>Hadir / cuti / belum hadir</dt><dd>{{ stats_extra.present_today }} / {{ stats_extra.on_leave_today }} / {{ stats_extra.absent_today }}</dd></div>
-        <div><dt>Timesheet tercatat</dt><dd>{{ stats.today_timesheets }}</dd></div>
-        <div><dt>Cuti & lembur pending</dt><dd>{{ stats.pending_leave }} / {{ stats.pending_overtime }}</dd></div>
+        <div><dt>Karyawan aktif</dt><dd>{{ stats.employee_count|num:0 }}</dd></div>
+        <div><dt>Hadir / cuti / belum hadir</dt><dd>{{ stats_extra.present_today|num:0 }} / {{ stats_extra.on_leave_today|num:0 }} / {{ stats_extra.absent_today|num:0 }}</dd></div>
+        <div><dt>Timesheet tercatat</dt><dd>{{ stats.today_timesheets|num:0 }}</dd></div>
+        <div><dt>Cuti & lembur pending</dt><dd>{{ stats.pending_leave|num:0 }} / {{ stats.pending_overtime|num:0 }}</dd></div>
       </dl>
     </div>
   </div>

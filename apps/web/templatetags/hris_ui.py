@@ -1,7 +1,7 @@
 from django import template
-from decimal import Decimal
 from django.utils.safestring import mark_safe
 
+from apps.web.formatting import format_number, format_rupiah
 from apps.web.nav_icons import resolve_nav_icon
 
 register = template.Library()
@@ -82,13 +82,16 @@ def initials(value):
 
 @register.filter
 def rupiah(value):
-    if value is None or value == "":
-        return "—"
+    return format_rupiah(value)
+
+
+@register.filter
+def num(value, decimals="2"):
     try:
-        amount = int(Decimal(str(value)))
-    except Exception:
-        return str(value)
-    return f"Rp {amount:,}".replace(",", ".")
+        max_decimals = int(decimals)
+    except (TypeError, ValueError):
+        max_decimals = 2
+    return format_number(value, max_decimals=max(0, max_decimals))
 
 
 @register.filter

@@ -1,7 +1,8 @@
+{% load hris_ui %}
 {% if page_obj.paginator.num_pages > 1 %}
 <nav class="hris-pagination" aria-label="Navigasi halaman">
   <div class="hris-pagination-info">
-    Menampilkan {{ page_start }}–{{ page_end }} dari {{ result_count }} baris
+    Menampilkan {{ page_start|num:0 }}–{{ page_end|num:0 }} dari {{ result_count|num:0 }} baris
   </div>
   <div class="hris-pagination-links">
     {% if page_obj.has_previous %}
@@ -10,7 +11,7 @@
     <span class="hris-btn hris-btn-ghost hris-btn-sm is-disabled" aria-disabled="true">← Sebelumnya</span>
     {% endif %}
 
-    <span class="hris-pagination-current">Halaman {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+    <span class="hris-pagination-current">Halaman {{ page_obj.number|num:0 }} / {{ page_obj.paginator.num_pages|num:0 }}</span>
 
     {% if page_obj.has_next %}
     <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}" class="hris-btn hris-btn-ghost hris-btn-sm">Berikutnya →</a>
@@ -20,5 +21,5 @@
   </div>
 </nav>
 {% elif result_count %}
-<p class="hris-pagination-single">Menampilkan {{ result_count }} baris</p>
+<p class="hris-pagination-single">Menampilkan {{ result_count|num:0 }} baris</p>
 {% endif %}

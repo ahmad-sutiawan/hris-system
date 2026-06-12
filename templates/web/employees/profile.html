@@ -42,17 +42,17 @@
   </div>
   <div class="hris-stat-card hris-stat-card--green">
     <div class="hris-stat-label">Jam Dibayar</div>
-    <div class="hris-stat-value">{{ month_stats.paid_hours|floatformat:1 }}</div>
+    <div class="hris-stat-value">{{ month_stats.paid_hours|num:2 }}</div>
     <div class="hris-stat-sub">jam kerja bulan ini</div>
   </div>
   <div class="hris-stat-card hris-stat-card--amber">
     <div class="hris-stat-label">Lembur</div>
-    <div class="hris-stat-value">{{ month_stats.ot_before_minutes|add:month_stats.ot_after_minutes }}</div>
+    <div class="hris-stat-value">{{ month_stats.ot_before_minutes|add:month_stats.ot_after_minutes|num:0 }}</div>
     <div class="hris-stat-sub">menit (before + after)</div>
   </div>
   <div class="hris-stat-card hris-stat-card--rose">
     <div class="hris-stat-label">Terlambat</div>
-    <div class="hris-stat-value">{{ month_stats.late_minutes }}</div>
+    <div class="hris-stat-value">{{ month_stats.late_minutes|num:0 }}</div>
     <div class="hris-stat-sub">menit bulan ini</div>
   </div>
 </div>
@@ -137,9 +137,9 @@
         <div><dt>Clock In</dt><dd>{% if today_timesheet.check_in %}{{ today_timesheet.check_in|local_datetime:"H:i" }}{% else %}—{% endif %}</dd></div>
         <div><dt>Clock Out</dt><dd>{% if today_timesheet.check_out %}{{ today_timesheet.check_out|local_datetime:"H:i" }}{% else %}—{% endif %}</dd></div>
         <div><dt>Kode</dt><dd><span class="hris-mono">{{ today_timesheet.attendance_code.code|default:"—" }}</span></dd></div>
-        <div><dt>Terlambat</dt><dd>{{ today_timesheet.late_in_minutes }} menit</dd></div>
-        <div><dt>Jam Dibayar</dt><dd>{{ today_timesheet.paid_working_hours }} jam</dd></div>
-        <div><dt>Lembur</dt><dd>Before {{ today_timesheet.ot_before_minutes }} m · After {{ today_timesheet.ot_after_minutes }} m</dd></div>
+        <div><dt>Terlambat</dt><dd>{{ today_timesheet.late_in_minutes|num:0 }} menit</dd></div>
+        <div><dt>Jam Dibayar</dt><dd>{{ today_timesheet.paid_working_hours|num:2 }} jam</dd></div>
+        <div><dt>Lembur</dt><dd>Before {{ today_timesheet.ot_before_minutes|num:0 }} m · After {{ today_timesheet.ot_after_minutes|num:0 }} m</dd></div>
       </dl>
       {% else %}
       <p class="hris-text-dim">Belum ada timesheet untuk hari ini.</p>
@@ -207,10 +207,10 @@
             {% for balance in leave_balances %}
             <tr>
               <td>{{ balance.leave_type.name }} <span class="hris-mono hris-text-dim">({{ balance.leave_type.code }})</span></td>
-              <td class="hris-num">{{ balance.opening_balance|add:balance.accrued }}</td>
-              <td class="hris-num">{{ balance.used }}</td>
-              <td class="hris-num">{{ balance.pending }}</td>
-              <td class="hris-num hris-strong">{{ balance.remaining }}</td>
+              <td class="hris-num">{{ balance.opening_balance|add:balance.accrued|num:1 }}</td>
+              <td class="hris-num">{{ balance.used|num:1 }}</td>
+              <td class="hris-num">{{ balance.pending|num:1 }}</td>
+              <td class="hris-num hris-strong">{{ balance.remaining|num:1 }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -248,8 +248,8 @@
               <td>{% if row.check_in %}{{ row.check_in|local_datetime:"H:i" }}{% else %}—{% endif %}</td>
               <td>{% if row.check_out %}{{ row.check_out|local_datetime:"H:i" }}{% else %}—{% endif %}</td>
               <td class="hris-mono">{{ row.attendance_code.code|default:"—" }}</td>
-              <td class="hris-num">{{ row.paid_working_hours }}</td>
-              <td>{{ row.ot_before_minutes }} / {{ row.ot_after_minutes }} m</td>
+              <td class="hris-num">{{ row.paid_working_hours|num:2 }}</td>
+              <td>{{ row.ot_before_minutes|num:0 }} / {{ row.ot_after_minutes|num:0 }} m</td>
             </tr>
             {% empty %}
             <tr><td colspan="7"><div class="hris-empty">Belum ada riwayat absensi.</div></td></tr>

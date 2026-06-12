@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hris_ui %}
 {% block title %}{{ resource.title_plural }} — Master Data{% endblock %}
 {% block page_title %}{{ resource.title_plural }}{% endblock %}
 
@@ -6,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>{{ resource.title_plural }}</h1>
-    <p>Master data {{ resource.title|lower }} — {{ result_count }} baris</p>
+    <p>Master data {{ resource.title|lower }} — {{ result_count|num:0 }} baris</p>
   </div>
   <div class="hris-actions">
     <a href="{% url crud_url_names.hub %}" class="hris-btn hris-btn-secondary">← Master Data</a>

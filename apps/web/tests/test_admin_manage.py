@@ -98,6 +98,14 @@ class AdminManageTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Department.objects.filter(pk=dept.pk).exists())
 
+    def test_tenant_manage_module_removed(self):
+        self.client.login(username="admin-manage", password="TestPassword123!")
+        hub = self.client.get(reverse("web:manage_hub"))
+        self.assertEqual(hub.status_code, 200)
+        self.assertNotContains(hub, reverse("web:manage_list", args=["tenants"]))
+        response = self.client.get(reverse("web:manage_list", args=["tenants"]))
+        self.assertEqual(response.status_code, 404)
+
     def test_manage_list_search(self):
         Department.objects.create(
             tenant=self.tenant,

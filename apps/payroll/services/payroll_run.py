@@ -11,6 +11,7 @@ from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
 from apps.employees.models import Employee
 from apps.payroll.models import PayrollRun, Payslip
+from apps.web.formatting import format_rupiah
 from apps.payroll.services.aggregation import bulk_overtime_pay, bulk_timesheet_stats
 from apps.payroll.services.calculator import (
     calc_alpha_deduction,
@@ -152,7 +153,7 @@ def finalize_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
                 title="Slip gaji tersedia",
                 message=(
                     f"Slip gaji periode {payroll_run.period_start} — {payroll_run.period_end} "
-                    f"siap diunduh. THP: Rp {payslip.net_amount:,.0f}"
+                    f"siap diunduh. THP: {format_rupiah(payslip.net_amount)}"
                 ),
                 link=f"{settings.HRIS_SITE_URL}/payslips/{payslip.pk}/download/",
             )

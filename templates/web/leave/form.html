@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hris_ui %}
 {% block title %}Ajukan Cuti — BPS HRIS{% endblock %}
 {% block page_title %}Ajukan Cuti{% endblock %}
 
@@ -48,9 +49,9 @@
               {% for bal in leave_balances %}
               <tr>
                 <td><span class="hris-mono">{{ bal.leave_type.code }}</span> — {{ bal.leave_type.name }}</td>
-                <td>{{ bal.remaining }}</td>
-                <td>{{ bal.pending }}</td>
-                <td>{{ bal.used }}</td>
+                <td>{{ bal.remaining|num:1 }}</td>
+                <td>{{ bal.pending|num:1 }}</td>
+                <td>{{ bal.used|num:1 }}</td>
               </tr>
               {% endfor %}
             </tbody>

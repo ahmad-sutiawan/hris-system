@@ -7,10 +7,7 @@ from reportlab.lib.units import mm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from apps.payroll.models import Payslip
-
-
-def _fmt(amount):
-    return f"Rp {amount:,.0f}".replace(",", ".")
+from apps.web.formatting import format_rupiah
 
 
 def generate_payslip_pdf(payslip: Payslip) -> bytes:
@@ -50,8 +47,8 @@ def generate_payslip_pdf(payslip: Payslip) -> bytes:
     earnings_rows = [["Komponen Pendapatan", "Jumlah"]]
     for key, value in payslip.earnings_breakdown.items():
         label = key.replace("_", " ").title()
-        earnings_rows.append([label, _fmt(float(value))])
-    earnings_rows.append(["Total Bruto", _fmt(payslip.gross_amount)])
+        earnings_rows.append([label, format_rupiah(value)])
+    earnings_rows.append(["Total Bruto", format_rupiah(payslip.gross_amount)])
 
     earnings_table = Table(earnings_rows, colWidths=[100 * mm, 65 * mm])
     earnings_table.setStyle(
@@ -75,8 +72,8 @@ def generate_payslip_pdf(payslip: Payslip) -> bytes:
     deduction_rows = [["Komponen Potongan", "Jumlah"]]
     for key, value in payslip.deductions_breakdown.items():
         label = key.replace("_", " ").title()
-        deduction_rows.append([label, _fmt(float(value))])
-    deduction_rows.append(["Total Potongan", _fmt(payslip.deduction_amount)])
+        deduction_rows.append([label, format_rupiah(value)])
+    deduction_rows.append(["Total Potongan", format_rupiah(payslip.deduction_amount)])
 
     deduction_table = Table(deduction_rows, colWidths=[100 * mm, 65 * mm])
     deduction_table.setStyle(
@@ -98,7 +95,7 @@ def generate_payslip_pdf(payslip: Payslip) -> bytes:
     elements.append(Spacer(1, 8 * mm))
 
     thp_table = Table(
-        [["TAKE HOME PAY (THP)", _fmt(payslip.net_amount)]],
+        [["TAKE HOME PAY (THP)", format_rupiah(payslip.net_amount)]],
         colWidths=[100 * mm, 65 * mm],
     )
     thp_table.setStyle(

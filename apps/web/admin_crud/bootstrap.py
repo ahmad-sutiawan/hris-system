@@ -1,5 +1,5 @@
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
-from apps.core.models import AuditLog, FeatureFlag, Notification, Plant, Tenant, User
+from apps.core.models import AuditLog, FeatureFlag, Notification, Plant, User
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
 from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
@@ -30,29 +30,14 @@ from apps.web.admin_crud.forms import (
     SalaryComponentForm,
     ShiftForm,
     ShiftRotationTemplateForm,
-    TenantForm,
     THRRunForm,
 )
 from apps.web.admin_crud.registry import AdminResource, Column, register
 
 
 def bootstrap_registry():
-    register(
-        AdminResource(
-            slug="tenants",
-            model=Tenant,
-            form_class=TenantForm,
-            section="Core",
-            title="Tenant",
-            title_plural="Tenant",
-            columns=[Column("Nama", "name"), Column("Slug", "slug"), Column("Aktif", "is_active")],
-            search_fields=["name", "slug"],
-            allow_create=False,
-            allow_delete=False,
-            tenant_scoped=False,
-            order_by=["name"],
-        )
-    )
+    # Tenant is kept as the DB root for all scoped data but is not exposed in
+    # Admin Console — single-tenant deployments configure it via provisioning only.
     register(
         AdminResource(
             slug="plants",

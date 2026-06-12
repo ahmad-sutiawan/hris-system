@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Master Karyawan</h1>
-    <p>Data lengkap workforce plant — total {{ result_count }} baris</p>
+    <p>Data lengkap workforce plant — total {{ result_count|num:0 }} baris</p>
   </div>
   <div class="hris-actions">
     <a href="{% url 'web:employee_import' %}" class="hris-btn hris-btn-secondary">Import CSV</a>
@@ -87,13 +87,13 @@
             {% else %}-{% endif %}
           </td>
           <td class="hris-num">
-            {% if employee.employee_grade %}{{ employee.employee_grade.daily_wage|floatformat:0 }}{% else %}-{% endif %}
+            {% if employee.employee_grade %}{{ employee.employee_grade.daily_wage|rupiah }}{% else %}-{% endif %}
           </td>
           <td>{{ employee.get_salary_scheme_display }}</td>
-          <td class="hris-num">{{ employee.base_salary|floatformat:0 }}</td>
-          <td class="hris-num">{{ employee.allowance_transport|floatformat:0 }}</td>
-          <td class="hris-num">{{ employee.allowance_meal|floatformat:0 }}</td>
-          <td class="hris-num">{{ employee.allowance_position|floatformat:0 }}</td>
+          <td class="hris-num">{{ employee.base_salary|rupiah }}</td>
+          <td class="hris-num">{{ employee.allowance_transport|rupiah }}</td>
+          <td class="hris-num">{{ employee.allowance_meal|rupiah }}</td>
+          <td class="hris-num">{{ employee.allowance_position|rupiah }}</td>
           <td>{{ employee.bank_name|default:"-" }}</td>
           <td><span class="hris-mono">{{ employee.bank_account_number|default:"-" }}</span></td>
           <td>{{ employee.bank_account_name|default:"-" }}</td>

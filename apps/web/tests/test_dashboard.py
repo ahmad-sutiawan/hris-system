@@ -2,6 +2,8 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from apps.core.models import Plant, Tenant, User
+from apps.employees.models import Employee
+from apps.organization.models import Department, JobPosition
 
 
 @override_settings(ALLOWED_HOSTS=["testserver"])
@@ -27,3 +29,33 @@ class DashboardContentTests(TestCase):
         self.assertContains(response, "Perlu Persetujuan")
         self.assertContains(response, "Ringkasan Hari Ini")
         self.assertContains(response, "Hadir Hari Ini")
+
+    def test_dashboard_profile_summary_uses_job_position_title(self):
+        dept = Department.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            code="HR",
+            name="Human Resources",
+        )
+        job = JobPosition.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            department=dept,
+            code="OPR",
+            title="Operator Produksi",
+        )
+        employee = Employee.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            department=dept,
+            job_position=job,
+            user=self.user,
+            employee_id="E100",
+            full_name="Ayub Test",
+        )
+        self.user.employee_profile = employee
+        self.client.login(username="dashadmin", password="TestPassword123!")
+        response = self.client.get(reverse("web:dashboard"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Operator Produksi")
+        self.assertContains(response, "Profil Saya")

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load hris_ui %}
 {% block title %}Validasi Payroll — BPS HRIS{% endblock %}
 {% block page_title %}Validasi Payroll{% endblock %}
 
@@ -29,12 +30,12 @@
 <div class="hris-card" style="margin-top:1rem">
   <div class="hris-card-body">
     <h2>Hasil</h2>
-    <p>Cocok: <strong>{{ result.matched }}</strong></p>
+    <p>Cocok: <strong>{{ result.matched|num:0 }}</strong></p>
     {% if result.mismatches %}
     <h3>Selisih THP</h3>
     <ul>
       {% for row in result.mismatches %}
-      <li><span class="hris-mono">{{ row.employee_id }}</span> — expected {{ row.expected }}, actual {{ row.actual }} (diff {{ row.diff }})</li>
+      <li><span class="hris-mono">{{ row.employee_id }}</span> — expected {{ row.expected|rupiah }}, actual {{ row.actual|rupiah }} (diff {{ row.diff|rupiah }})</li>
       {% endfor %}
     </ul>
     {% endif %}

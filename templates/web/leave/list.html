@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Pengajuan Cuti</h1>
-    <p>Kelola dan approve permohonan cuti — {{ result_count }} baris</p>
+    <p>Kelola dan approve permohonan cuti — {{ result_count|num:0 }} baris</p>
   </div>
   <a href="{% url 'web:leave_create' %}" class="hris-btn hris-btn-primary">+ Ajukan Cuti</a>
 </div>
@@ -35,7 +35,7 @@
           <td class="hris-strong">{{ req.employee.full_name }}</td>
           <td><span class="hris-mono">{{ req.leave_type.code }}</span></td>
           <td>{{ req.start_date }} — {{ req.end_date }}</td>
-          <td>{{ req.days }}</td>
+          <td>{{ req.days|num:1 }}</td>
           <td>{% status_badge req.status req.get_status_display %}</td>
           <td>
             {% if can_approve and req.status == 'pending' %}

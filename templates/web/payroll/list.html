@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Payroll Run</h1>
-    <p>Proses gaji periodik per plant — {{ result_count }} baris</p>
+    <p>Proses gaji periodik per plant — {{ result_count|num:0 }} baris</p>
   </div>
   <a href="{% url 'web:payroll_create' %}" class="hris-btn hris-btn-primary">+ Buat Payroll</a>
 </div>

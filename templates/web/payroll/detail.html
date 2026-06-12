@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Payroll {{ payroll_run.plant.code }}</h1>
-    <p>{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {% status_badge payroll_run.status payroll_run.get_status_display %} · {{ result_count }} slip</p>
+    <p>{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {% status_badge payroll_run.status payroll_run.get_status_display %} · {{ result_count|num:0 }} slip</p>
   </div>
   <div class="hris-actions">
     {% if payroll_run.status == 'draft' %}
@@ -55,9 +55,9 @@
         <tr>
           <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td class="hris-strong">{{ slip.employee.full_name }}</td>
-          <td class="hris-num">{{ slip.gross_amount }}</td>
-          <td class="hris-num">{{ slip.deduction_amount }}</td>
-          <td class="hris-num hris-strong">{{ slip.net_amount }}</td>
+          <td class="hris-num">{{ slip.gross_amount|rupiah }}</td>
+          <td class="hris-num">{{ slip.deduction_amount|rupiah }}</td>
+          <td class="hris-num hris-strong">{{ slip.net_amount|rupiah }}</td>
           <td>
             {% if payroll_run.status == 'finalized' %}
             <a href="{% url 'web:payslip_download' slip.pk %}" class="hris-link">Download PDF</a>

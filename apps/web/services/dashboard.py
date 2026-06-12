@@ -143,10 +143,12 @@ def build_dashboard_context(*, user: User, tenant, today, profile):
             .order_by("-payroll_run__period_start")
             .first()
         )
+        job = profile.job_position
+        dept = profile.department
         context["profile_summary"] = {
             "employee_id": profile.employee_id,
-            "department": profile.department.name if profile.department_id else "—",
-            "position": profile.job_position.name if profile.job_position_id else "—",
+            "department": dept.name if dept else "—",
+            "position": job.title if job else "—",
             "grade": profile.grade_label or "—",
             "plant": profile.plant.name if profile.plant_id else "—",
             "status": profile.get_status_display(),

@@ -7,7 +7,7 @@
 <div class="hris-page-header">
   <div>
     <h1>Shift Assignment</h1>
-    <p>Penjadwalan shift harian per karyawan — {{ result_count }} baris</p>
+    <p>Penjadwalan shift harian per karyawan — {{ result_count|num:0 }} baris</p>
   </div>
   <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-primary">+ Assign Shift</a>
 </div>

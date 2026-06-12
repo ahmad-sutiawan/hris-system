@@ -58,18 +58,14 @@ def get_queryset(request, resource, filters: ListFilters | None = None):
 
 
 def get_cell_value(obj, attr_path: str):
+    from apps.web.formatting import format_cell_value
+
     value = obj
     for part in attr_path.split("."):
         value = getattr(value, part, None)
         if value is None:
             return "-"
-    if hasattr(value, "all"):
-        return str(value)
-    if hasattr(value, "strftime"):
-        return value.strftime("%Y-%m-%d %H:%M") if hasattr(value, "hour") else value.strftime("%Y-%m-%d")
-    if isinstance(value, bool):
-        return "Ya" if value else "Tidak"
-    return value
+    return format_cell_value(value, attr_path)
 
 
 def save_instance(form, request, resource):
