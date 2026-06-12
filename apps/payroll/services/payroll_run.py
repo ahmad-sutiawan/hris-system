@@ -17,6 +17,7 @@ from apps.payroll.services.calculator import (
     calc_bpjs_jht,
     calc_bpjs_jp,
     calc_bpjs_kes,
+    calc_daily_allowances,
     calc_period_base,
     calc_pph21,
 )
@@ -61,9 +62,13 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         ot_before_pay = ot_detail["ot_before"]
         ot_after_pay = ot_detail["ot_after"]
 
-        base = calc_period_base(employee, present_days=stats["present_days"])
+        present_days = stats["present_days"]
+        base = calc_period_base(employee, present_days=present_days)
+        allowance_total, allowance_breakdown = calc_daily_allowances(
+            employee, present_days=present_days
+        )
         alpha_deduction = calc_alpha_deduction(employee, stats["alpha_days"])
-        gross = base + ot_total
+        gross = base + allowance_total + ot_total
 
         bpjs_kes = calc_bpjs_kes(employee)
         bpjs_jht = calc_bpjs_jht(employee)
@@ -78,6 +83,10 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             "ot_total": str(ot_total),
             "ot_after": str(ot_after_pay),
         }
+        for key, amount in allowance_breakdown.items():
+            earnings[key] = str(amount)
+        if allowance_total > 0:
+            earnings["allowance_daily_total"] = str(allowance_total)
         if ot_before_pay > 0:
             earnings["ot_before"] = str(ot_before_pay)
         if ot_detail["by_type"]:

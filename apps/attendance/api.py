@@ -5,7 +5,13 @@ from rest_framework.response import Response
 from apps.attendance.models import AttendanceRecord, DailyTimesheet
 from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
+from apps.attendance.services.import_punches import (
+    PunchImportError,
+    import_attendance_csv,
+    template_csv,
+)
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
+from apps.core.permissions import IsAdminOrHR
 from apps.core.viewsets import TenantScopedViewSet
 from apps.attendance.serializers import AttendanceRecordSerializer, DailyTimesheetSerializer
 
@@ -29,6 +35,29 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
     )
     serializer_class = AttendanceRecordSerializer
     filterset_fields = ["employee", "plant", "work_date", "source"]
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
+    def import_template(self, request):
+        from django.http import HttpResponse
+
+        response = HttpResponse(template_csv(), content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="attendance_import_template.csv"'
+        return response
+
+    @action(detail=False, methods=["post"], permission_classes=[IsAdminOrHR])
+    def import_csv(self, request):
+        upload = request.FILES.get("file")
+        if not upload:
+            return Response({"detail": "file required."}, status=400)
+        try:
+            result = import_attendance_csv(
+                request.user.tenant,
+                upload.read().decode("utf-8-sig"),
+                plant=request.user.plant,
+            )
+            return Response(result)
+        except PunchImportError as exc:
+            return Response({"detail": str(exc)}, status=400)
 
     @action(detail=False, methods=["post"])
     def clock_in(self, request):

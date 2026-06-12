@@ -14,7 +14,12 @@
     <a href="{% url 'web:payroll_edit' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Edit</a>
     {% endif %}
     {% if payroll_run.status == 'finalized' %}
-    <a href="{% url 'web:payroll_bank_export' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Export Bank CSV</a>
+    <a href="{% url 'web:payroll_bank_export' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Export Bank</a>
+    <a href="{% url 'web:payroll_bpjs_export' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Export BPJS</a>
+    <a href="{% url 'web:payroll_pph21_export' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Export PPh21</a>
+    {% endif %}
+    {% if payroll_run.status == 'review' %}
+    <a href="{% url 'web:payroll_validate' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Validasi vs CSV</a>
     {% endif %}
     {% if payroll_run.status != 'finalized' %}
     <form method="post" action="{% url 'web:payroll_calculate' payroll_run.pk %}">{% csrf_token %}

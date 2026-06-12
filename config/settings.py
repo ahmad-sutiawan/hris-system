@@ -33,6 +33,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -66,16 +67,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
+_db_engine = config("DB_ENGINE", default="django.db.backends.sqlite3")
 DATABASES = {
     "default": {
-        "ENGINE": config("DB_ENGINE", default="django.db.backends.sqlite3"),
+        "ENGINE": _db_engine,
         "NAME": config("DB_NAME", default=str(BASE_DIR / "db.sqlite3")),
         "USER": config("DB_USER", default=""),
         "PASSWORD": config("DB_PASSWORD", default=""),
         "HOST": config("DB_HOST", default=""),
         "PORT": config("DB_PORT", default=""),
+        "OPTIONS": {},
     }
 }
+
+if "mysql" in _db_engine:
+    DATABASES["default"]["OPTIONS"] = {
+        "charset": "utf8mb4",
+        "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+    }
+    if config("DB_SSL_CA", default=""):
+        DATABASES["default"]["OPTIONS"]["ssl"] = {"ca": config("DB_SSL_CA")}
 
 AUTH_USER_MODEL = "core.User"
 
@@ -94,6 +105,16 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "whitenoise.storage.CompressedManifestStaticFilesStorage"
+            if not DEBUG
+            else "django.contrib.staticfiles.storage.StaticFilesStorage"
+        ),
+    },
+}
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -157,3 +178,29 @@ HRIS_AUDIT_ARCHIVE_DIR = config(
     "HRIS_AUDIT_ARCHIVE_DIR",
     default=str(BASE_DIR / "audit_archive"),
 )
+
+# Field-level encryption (NIK, rekening, gaji) — wajib set key unik di production
+HRIS_FIELD_ENCRYPTION_KEY = config("HRIS_FIELD_ENCRYPTION_KEY", default=SECRET_KEY)
+
+# SMTP (production)
+EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+
+if not DEBUG:
+    if SECRET_KEY.startswith("django-insecure"):
+        raise ValueError("Set SECRET_KEY yang kuat sebelum DEBUG=False.")
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = "DENY"
+    if not EMAIL_HOST and EMAIL_BACKEND.endswith("smtp.EmailBackend"):
+        import warnings
+
+        warnings.warn("EMAIL_HOST belum diset — notifikasi email tidak akan terkirim.")

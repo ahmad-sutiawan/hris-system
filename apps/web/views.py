@@ -39,9 +39,16 @@ from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.employees.services.import_csv import import_employees_csv, template_csv
 from apps.employees.services.onboarding import provision_new_employee
+from apps.attendance.services.import_punches import (
+    PunchImportError,
+    import_attendance_csv,
+    template_csv as attendance_import_template_csv,
+)
 from apps.payroll.services.bank_export import export_bank_csv
+from apps.payroll.services.compliance_export import export_bpjs_csv, export_pph21_csv
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
+from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_csv
 from apps.shifts.models import ShiftAssignment
 from apps.web.forms import (
     EmployeeForm,
@@ -1040,6 +1047,90 @@ def payroll_bank_export(request, pk):
     response = HttpResponse(content, content_type="text/csv")
     response["Content-Disposition"] = f'attachment; filename="bank_export_{run.plant.code}_{run.period_end}.csv"'
     return response
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def payroll_bpjs_export(request, pk):
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
+    content = export_bpjs_csv(run)
+    response = HttpResponse(content, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="bpjs_{run.plant.code}_{run.period_end}.csv"'
+    return response
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def payroll_pph21_export(request, pk):
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
+    content = export_pph21_csv(run)
+    response = HttpResponse(content, content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="pph21_{run.plant.code}_{run.period_end}.csv"'
+    return response
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def payroll_validate(request, pk):
+    run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
+    result = None
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if not upload:
+            messages.error(request, "Pilih file CSV terlebih dahulu.")
+        else:
+            try:
+                result = validate_payroll_against_csv(run, upload.read().decode("utf-8-sig"))
+                if result["ok"]:
+                    messages.success(request, f"Validasi OK — {result['matched']} karyawan cocok.")
+                else:
+                    messages.warning(
+                        request,
+                        f"Ada selisih: {len(result['mismatches'])} mismatch, "
+                        f"{len(result['missing_in_system'])} tidak ada di sistem.",
+                    )
+            except PayrollValidationError as exc:
+                messages.error(request, str(exc))
+    return render(
+        request,
+        "web/payroll/validate.html",
+        {"payroll_run": run, "result": result},
+    )
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def attendance_import_template(request):
+    response = HttpResponse(attendance_import_template_csv(), content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="attendance_import_template.csv"'
+    return response
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def attendance_import(request):
+    if request.method == "POST":
+        upload = request.FILES.get("file")
+        if not upload:
+            messages.error(request, "Pilih file CSV terlebih dahulu.")
+        else:
+            try:
+                result = import_attendance_csv(
+                    request.user.tenant,
+                    upload.read().decode("utf-8-sig"),
+                    plant=request.user.plant if not request.user.is_admin else None,
+                )
+                messages.success(
+                    request,
+                    f"Import absensi: {result['created']} baru, {result['updated']} diupdate.",
+                )
+                if result["errors"]:
+                    for err in result["errors"][:5]:
+                        messages.error(request, err)
+            except PunchImportError as exc:
+                messages.error(request, str(exc))
+        return redirect("web:attendance_list")
+    return render(request, "web/attendance/import.html")
 
 
 @login_required

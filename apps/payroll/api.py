@@ -7,7 +7,9 @@ from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.serializers import PayrollRunSerializer, PayslipSerializer
 from apps.payroll.services.bank_export import export_bank_csv
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
+from apps.payroll.services.compliance_export import export_bpjs_csv, export_pph21_csv
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
+from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_csv
 
 
 class PayrollRunViewSet(TenantScopedViewSet):
@@ -45,6 +47,34 @@ class PayrollRunViewSet(TenantScopedViewSet):
         response = HttpResponse(content, content_type="text/csv")
         response["Content-Disposition"] = f'attachment; filename="bank_export_{run.plant.code}.csv"'
         return response
+
+    @action(detail=True, methods=["get"])
+    def bpjs_export(self, request, pk=None):
+        run = self.get_object()
+        content = export_bpjs_csv(run)
+        response = HttpResponse(content, content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="bpjs_{run.plant.code}_{run.period_end}.csv"'
+        return response
+
+    @action(detail=True, methods=["get"])
+    def pph21_export(self, request, pk=None):
+        run = self.get_object()
+        content = export_pph21_csv(run)
+        response = HttpResponse(content, content_type="text/csv")
+        response["Content-Disposition"] = f'attachment; filename="pph21_{run.plant.code}_{run.period_end}.csv"'
+        return response
+
+    @action(detail=True, methods=["post"])
+    def validate_csv(self, request, pk=None):
+        run = self.get_object()
+        upload = request.FILES.get("file")
+        if not upload:
+            return Response({"detail": "file required."}, status=400)
+        try:
+            result = validate_payroll_against_csv(run, upload.read().decode("utf-8-sig"))
+            return Response(result)
+        except PayrollValidationError as exc:
+            return Response({"detail": str(exc)}, status=400)
 
 
 class PayslipViewSet(TenantScopedViewSet):

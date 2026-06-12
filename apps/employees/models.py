@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.core.fields import EncryptedCharField, EncryptedDecimalField
 from apps.core.models.base import TenantScopedModel
 
 
@@ -70,7 +71,7 @@ class Employee(TenantScopedModel):
     )
     employee_id = models.CharField(max_length=64, db_index=True)
     full_name = models.CharField(max_length=200)
-    nik = models.CharField(max_length=32, blank=True)
+    nik = EncryptedCharField(max_length=512, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
     join_date = models.DateField(null=True, blank=True)
@@ -86,33 +87,33 @@ class Employee(TenantScopedModel):
         choices=SalaryScheme.choices,
         default=SalaryScheme.MONTHLY,
     )
-    base_salary = models.DecimalField(
+    base_salary = EncryptedDecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0"),
     )
-    allowance_transport = models.DecimalField(
+    allowance_transport = EncryptedDecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0"),
     )
-    allowance_meal = models.DecimalField(
+    allowance_meal = EncryptedDecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0"),
     )
-    allowance_position = models.DecimalField(
+    allowance_position = EncryptedDecimalField(
         max_digits=14,
         decimal_places=2,
         default=Decimal("0"),
     )
     bank_name = models.CharField(max_length=100, blank=True)
-    bank_account_number = models.CharField(max_length=64, blank=True)
-    bank_account_name = models.CharField(max_length=200, blank=True)
-    npwp = models.CharField(max_length=32, blank=True)
+    bank_account_number = EncryptedCharField(max_length=512, blank=True)
+    bank_account_name = EncryptedCharField(max_length=512, blank=True)
+    npwp = EncryptedCharField(max_length=512, blank=True)
     tax_status = models.CharField(max_length=16, blank=True)
-    bpjs_kesehatan_number = models.CharField(max_length=32, blank=True)
-    bpjs_ketenagakerjaan_number = models.CharField(max_length=32, blank=True)
+    bpjs_kesehatan_number = EncryptedCharField(max_length=512, blank=True)
+    bpjs_ketenagakerjaan_number = EncryptedCharField(max_length=512, blank=True)
 
     class Meta:
         ordering = ["full_name"]

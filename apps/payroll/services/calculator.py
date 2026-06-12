@@ -82,6 +82,20 @@ def calc_ot_pay(employee, ot_minutes: int, *, multiplier: Decimal | None = None)
     return (hours * hourly_rate(employee) * mult).quantize(Decimal("0.01"))
 
 
+def calc_daily_allowances(employee, *, present_days: int = 0) -> tuple[Decimal, dict]:
+    """Tunjangan makan & transport × hari hadir (khusus skema daily)."""
+    if employee.salary_scheme != employee.SalaryScheme.DAILY or present_days <= 0:
+        return Decimal("0"), {}
+    meal = (employee.allowance_meal * Decimal(present_days)).quantize(Decimal("0.01"))
+    transport = (employee.allowance_transport * Decimal(present_days)).quantize(Decimal("0.01"))
+    breakdown = {}
+    if meal > 0:
+        breakdown["allowance_meal"] = meal
+    if transport > 0:
+        breakdown["allowance_transport"] = transport
+    return meal + transport, breakdown
+
+
 def calc_period_base(employee, *, present_days: int = 0) -> Decimal:
     """Monthly fixed base, or daily rate × hari hadir for daily scheme."""
     if employee.salary_scheme == employee.SalaryScheme.DAILY:

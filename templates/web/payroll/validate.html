@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Validasi Payroll — BPS HRIS{% endblock %}
+{% block page_title %}Validasi Payroll{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>Validasi vs CSV Legacy</h1>
+    <p>{{ payroll_run.plant.code }} · {{ payroll_run.period_start }} — {{ payroll_run.period_end }}</p>
+  </div>
+  <a href="{% url 'web:payroll_detail' payroll_run.pk %}" class="hris-btn hris-btn-ghost">Kembali</a>
+</div>
+
+<div class="hris-card">
+  <div class="hris-card-body">
+    <p class="hris-text-dim">Upload CSV dengan kolom <code>employee_id</code> dan <code>net_amount</code> dari sistem lama.</p>
+    <form method="post" enctype="multipart/form-data" class="hris-form-grid" style="margin-top:1rem">
+      {% csrf_token %}
+      <div class="hris-field">
+        <label for="file">File CSV</label>
+        <input type="file" name="file" id="file" accept=".csv" class="hris-input" required>
+      </div>
+      <button type="submit" class="hris-btn hris-btn-primary">Validasi</button>
+    </form>
+  </div>
+</div>
+
+{% if result %}
+<div class="hris-card" style="margin-top:1rem">
+  <div class="hris-card-body">
+    <h2>Hasil</h2>
+    <p>Cocok: <strong>{{ result.matched }}</strong></p>
+    {% if result.mismatches %}
+    <h3>Selisih THP</h3>
+    <ul>
+      {% for row in result.mismatches %}
+      <li><span class="hris-mono">{{ row.employee_id }}</span> — expected {{ row.expected }}, actual {{ row.actual }} (diff {{ row.diff }})</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if result.missing_in_system %}
+    <p>Di CSV tapi tidak di sistem: {{ result.missing_in_system|join:", " }}</p>
+    {% endif %}
+    {% if result.missing_in_csv %}
+    <p>Di sistem tapi tidak di CSV: {{ result.missing_in_csv|join:", " }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

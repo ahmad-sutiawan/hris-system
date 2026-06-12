@@ -78,8 +78,6 @@ class Payslip(TenantScopedModel):
 
 
 class THRRun(TenantScopedModel):
-    """Tier C scaffold — THR calculation engine."""
-
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"
         FINALIZED = "finalized", "Finalized"
@@ -92,9 +90,33 @@ class THRRun(TenantScopedModel):
     year = models.PositiveIntegerField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     notes = models.TextField(blank=True)
+    finalized_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         unique_together = [["tenant", "plant", "year"]]
 
     def __str__(self):
         return f"THR {self.year} — {self.plant.code}"
+
+
+class THRPayslip(TenantScopedModel):
+    thr_run = models.ForeignKey(
+        THRRun,
+        on_delete=models.CASCADE,
+        related_name="payslips",
+    )
+    employee = models.ForeignKey(
+        "employees.Employee",
+        on_delete=models.CASCADE,
+        related_name="thr_payslips",
+    )
+    months_worked = models.PositiveSmallIntegerField(default=12)
+    base_reference = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+    thr_amount = models.DecimalField(max_digits=14, decimal_places=2, default=Decimal("0"))
+
+    class Meta:
+        unique_together = [["thr_run", "employee"]]
+        ordering = ["employee__full_name"]
+
+    def __str__(self):
+        return f"THR {self.thr_run.year} — {self.employee.employee_id}"
