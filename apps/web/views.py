@@ -193,15 +193,9 @@ def employee_profile(request):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_list(request):
-    qs = Employee.objects.filter(tenant=request.user.tenant).select_related(
-        "plant",
-        "legal_entity",
-        "department",
-        "job_position",
-        "employee_grade",
-        "manager",
-        "user",
-    )
+    from apps.core.querysets import employee_list_qs
+
+    qs = employee_list_qs(Employee.objects.filter(tenant=request.user.tenant))
     if request.user.plant_id and not request.user.is_admin:
         qs = qs.filter(plant=request.user.plant)
 
@@ -1088,9 +1082,27 @@ def notification_mark_all_read(request):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def audit_log_list(request):
-    qs = AuditLog.objects.filter(tenant=request.user.tenant).select_related("user").order_by(
-        "-created_at"
-    )
+    from django.conf import settings
+
+    from apps.core.querysets import audit_log_list_qs
+
+    default_days = getattr(settings, "HRIS_AUDIT_LIST_DEFAULT_DAYS", 90)
+    qs = audit_log_list_qs(
+        AuditLog.objects.filter(tenant=request.user.tenant),
+        include_changes=True,
+    ).order_by("-created_at")
+
+    date_from = request.GET.get("date_from", "").strip()
+    date_to = request.GET.get("date_to", "").strip()
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    else:
+        qs = qs.filter(
+            created_at__gte=timezone.now() - timezone.timedelta(days=default_days)
+        )
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+
     model_name = request.GET.get("model", "").strip()
     if model_name:
         qs = qs.filter(model_name__icontains=model_name)
@@ -1113,6 +1125,9 @@ def audit_log_list(request):
             "audit_logs": audit_logs,
             "model_filter": model_name,
             "search_query": query,
+            "date_from": date_from,
+            "date_to": date_to,
+            "default_days": default_days,
             "result_count": len(audit_logs),
         },
     )

@@ -148,3 +148,12 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="noreply@hris.local")
 HRIS_SITE_URL = config("HRIS_SITE_URL", default="http://127.0.0.1:8000")
 HRIS_DEFAULT_TENANT_SLUG = config("HRIS_DEFAULT_TENANT_SLUG", default="default")
 HRIS_AUTO_PROVISION_EMPLOYEES = config("HRIS_AUTO_PROVISION_EMPLOYEES", default=DEBUG, cast=bool)
+
+# Audit log retention — DB hanya menyimpan log terbaru; sisanya diarsipkan via archive_audit_logs
+HRIS_AUDIT_RETENTION_DAYS = config("HRIS_AUDIT_RETENTION_DAYS", default=365, cast=int)
+HRIS_AUDIT_LIST_DEFAULT_DAYS = config("HRIS_AUDIT_LIST_DEFAULT_DAYS", default=90, cast=int)
+HRIS_AUDIT_ARCHIVE_BATCH_SIZE = config("HRIS_AUDIT_ARCHIVE_BATCH_SIZE", default=5000, cast=int)
+HRIS_AUDIT_ARCHIVE_DIR = config(
+    "HRIS_AUDIT_ARCHIVE_DIR",
+    default=str(BASE_DIR / "audit_archive"),
+)

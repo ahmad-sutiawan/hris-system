@@ -2,6 +2,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.permissions import IsAdminOrHR
+from apps.core.querysets import employee_list_qs
 from apps.core.viewsets import TenantScopedViewSet
 from apps.employees.models import Employee
 from apps.employees.serializers import EmployeeSerializer
@@ -9,15 +10,7 @@ from apps.employees.services.import_csv import import_employees_csv, template_cs
 
 
 class EmployeeViewSet(TenantScopedViewSet):
-    queryset = Employee.objects.select_related(
-        "plant",
-        "legal_entity",
-        "department",
-        "job_position",
-        "employee_grade",
-        "manager",
-        "user",
-    )
+    queryset = employee_list_qs(Employee.objects.all())
     serializer_class = EmployeeSerializer
     search_fields = ["employee_id", "full_name", "nik", "email"]
     filterset_fields = ["plant", "department", "status"]

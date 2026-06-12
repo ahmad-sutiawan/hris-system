@@ -11,8 +11,8 @@ from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
 from apps.employees.models import Employee
 from apps.payroll.models import PayrollRun, Payslip
+from apps.payroll.services.aggregation import bulk_overtime_pay, bulk_timesheet_stats
 from apps.payroll.services.calculator import (
-    aggregate_overtime_pay,
     calc_alpha_deduction,
     calc_bpjs_jht,
     calc_bpjs_jp,
@@ -27,56 +27,41 @@ class PayrollError(Exception):
     pass
 
 
-def _aggregate_timesheets(employee, period_start, period_end):
-    qs = DailyTimesheet.objects.filter(
-        employee=employee,
-        work_date__gte=period_start,
-        work_date__lte=period_end,
-    )
-    ot_after = sum(ts.ot_after_minutes for ts in qs)
-    ot_before = sum(ts.ot_before_minutes for ts in qs)
-    alpha_days = qs.filter(attendance_code__code="A").count()
-    paid_hours = sum(ts.paid_working_hours for ts in qs)
-    present_days = qs.filter(check_in__isnull=False).exclude(
-        attendance_code__code="A"
-    ).count()
-    return {
-        "ot_after_minutes": ot_after,
-        "ot_before_minutes": ot_before,
-        "alpha_days": alpha_days,
-        "paid_hours": paid_hours,
-        "present_days": present_days,
-    }
-
-
 @transaction.atomic
 def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
     if payroll_run.status == PayrollRun.Status.FINALIZED:
         raise PayrollError("Payroll sudah finalized.")
 
-    employees = Employee.objects.filter(
-        tenant=payroll_run.tenant,
-        plant=payroll_run.plant,
-    ).select_related("employee_grade").exclude(
-        status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
+    employees = list(
+        Employee.objects.filter(
+            tenant=payroll_run.tenant,
+            plant=payroll_run.plant,
+        )
+        .select_related("employee_grade")
+        .exclude(status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED])
     )
 
     Payslip.objects.filter(payroll_run=payroll_run).delete()
 
+    employee_ids = [e.pk for e in employees]
+    timesheet_stats = bulk_timesheet_stats(
+        employee_ids,
+        payroll_run.period_start,
+        payroll_run.period_end,
+    )
+    overtime_stats = bulk_overtime_pay(
+        employees,
+        payroll_run.period_start,
+        payroll_run.period_end,
+    )
+
     for employee in employees:
-        stats = _aggregate_timesheets(
-            employee,
-            payroll_run.period_start,
-            payroll_run.period_end,
-        )
-        base = calc_period_base(employee, present_days=stats["present_days"])
-        ot_total, ot_detail = aggregate_overtime_pay(
-            employee,
-            payroll_run.period_start,
-            payroll_run.period_end,
-        )
+        stats = timesheet_stats[employee.pk]
+        ot_total, ot_detail = overtime_stats[employee.pk]
         ot_before_pay = ot_detail["ot_before"]
         ot_after_pay = ot_detail["ot_after"]
+
+        base = calc_period_base(employee, present_days=stats["present_days"])
         alpha_deduction = calc_alpha_deduction(employee, stats["alpha_days"])
         gross = base + ot_total
 
@@ -145,7 +130,7 @@ def finalize_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
     payroll_run.save(update_fields=["status", "finalized_at", "updated_at"])
 
     for payslip in Payslip.objects.filter(payroll_run=payroll_run).select_related(
-        "employee", "payroll_run", "payroll_run__plant"
+        "employee", "employee__user", "payroll_run", "payroll_run__plant"
     ):
         pdf_bytes = generate_payslip_pdf(payslip)
         filename = f"slip_{payslip.employee.employee_id}_{payroll_run.period_end}.pdf"

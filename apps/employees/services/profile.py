@@ -57,7 +57,7 @@ def build_employee_profile_context(employee: Employee) -> dict:
         employee=employee,
         work_date__gte=month_start,
         work_date__lte=month_end,
-    ).select_related("attendance_code")
+    ).select_related("attendance_code", "shift")
 
     month_stats = {
         "present_days": month_timesheets.filter(check_in__isnull=False)

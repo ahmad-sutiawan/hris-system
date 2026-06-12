@@ -7,18 +7,24 @@
 <div class="hris-page-header">
   <div>
     <h1>Audit Log</h1>
-    <p>Jejak perubahan data sensitif — {{ result_count }} baris ditampilkan</p>
+    <p>Jejak perubahan data sensitif — {{ result_count }} baris ({{ default_days }} hari terakhir, maks. 500)</p>
   </div>
 </div>
 
 <form method="get" class="hris-search-bar">
-  <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Cari user, aksi, model, objek, perubahan…" class="hris-input">
-  <input type="text" name="model" value="{{ model_filter }}" placeholder="Filter model (opsional)…" class="hris-input" style="max-width:14rem">
+  <input type="search" name="q" value="{{ search_query|default:'' }}" placeholder="Cari user, aksi, model, objek…" class="hris-input">
+  <input type="text" name="model" value="{{ model_filter }}" placeholder="Filter model…" class="hris-input" style="max-width:12rem">
+  <input type="date" name="date_from" value="{{ date_from }}" class="hris-input" style="max-width:11rem" title="Dari tanggal">
+  <input type="date" name="date_to" value="{{ date_to }}" class="hris-input" style="max-width:11rem" title="Sampai tanggal">
   <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
-  {% if search_query or model_filter %}
+  {% if search_query or model_filter or date_from or date_to %}
   <a href="{% url 'web:audit_log_list' %}" class="hris-btn hris-btn-ghost">Reset</a>
   {% endif %}
 </form>
+<p class="hris-text-dim" style="margin-top:0.5rem;font-size:0.875rem">
+  Log bersifat append-only dengan hash integritas. Arsipkan log lama berkala:
+  <code>python manage.py archive_audit_logs</code>
+</p>
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
