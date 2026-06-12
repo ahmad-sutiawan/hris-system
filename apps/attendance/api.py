@@ -11,6 +11,7 @@ from apps.attendance.services.import_punches import (
     template_csv,
 )
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
+from apps.core.api_scoping import employee_scoped_queryset
 from apps.core.permissions import IsAdminOrHR
 from apps.core.viewsets import TenantScopedViewSet
 from apps.attendance.serializers import AttendanceRecordSerializer, DailyTimesheetSerializer
@@ -35,6 +36,11 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
     )
     serializer_class = AttendanceRecordSerializer
     filterset_fields = ["employee", "plant", "work_date", "source"]
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return employee_scoped_queryset(self.request.user, qs)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
     def import_template(self, request):
@@ -95,6 +101,11 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
     )
     serializer_class = DailyTimesheetSerializer
     filterset_fields = ["employee", "plant", "work_date", "calculation_status"]
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return employee_scoped_queryset(self.request.user, qs)
 
     @action(detail=False, methods=["post"])
     def recalculate(self, request):

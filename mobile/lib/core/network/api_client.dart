@@ -1,0 +1,206 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../config/app_config.dart';
+import 'api_exception.dart';
+
+class ApiClient {
+  ApiClient({FlutterSecureStorage? storage})
+      : _storage = storage ?? const FlutterSecureStorage(),
+        _dio = Dio(
+          BaseOptions(
+            baseUrl: AppConfig.baseUrl,
+            connectTimeout: const Duration(seconds: 20),
+            receiveTimeout: const Duration(seconds: 30),
+            headers: {'Content-Type': 'application/json'},
+          ),
+        ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await _storage.read(key: _accessKey);
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          handler.next(options);
+        },
+        onError: (error, handler) async {
+          if (error.response?.statusCode == 401 &&
+              error.requestOptions.extra['retried'] != true) {
+            final refreshed = await _refreshToken();
+            if (refreshed) {
+              final opts = error.requestOptions;
+              opts.extra['retried'] = true;
+              opts.headers['Authorization'] =
+                  'Bearer ${await _storage.read(key: _accessKey)}';
+              handler.resolve(await _dio.fetch(opts));
+              return;
+            }
+          }
+          handler.next(error);
+        },
+      ),
+    );
+  }
+
+  static const _accessKey = 'access_token';
+  static const _refreshKey = 'refresh_token';
+
+  final Dio _dio;
+  final FlutterSecureStorage _storage;
+
+  Dio get dio => _dio;
+
+  Future<void> setTokens({required String access, required String refresh}) async {
+    await _storage.write(key: _accessKey, value: access);
+    await _storage.write(key: _refreshKey, value: refresh);
+  }
+
+  Future<void> clearTokens() async {
+    await _storage.delete(key: _accessKey);
+    await _storage.delete(key: _refreshKey);
+  }
+
+  Future<bool> hasToken() async {
+    final token = await _storage.read(key: _accessKey);
+    return token != null && token.isNotEmpty;
+  }
+
+  Future<bool> _refreshToken() async {
+    final refresh = await _storage.read(key: _refreshKey);
+    if (refresh == null) return false;
+    try {
+      final res = await Dio(BaseOptions(baseUrl: AppConfig.baseUrl)).post(
+        '/auth/token/refresh/',
+        data: {'refresh': refresh},
+      );
+      final access = res.data['access'] as String;
+      await _storage.write(key: _accessKey, value: access);
+      return true;
+    } catch (_) {
+      await clearTokens();
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> login(String username, String password) async {
+    try {
+      final res = await _dio.post(
+        '/auth/token/',
+        data: {'username': username, 'password': password},
+      );
+      final data = res.data as Map<String, dynamic>;
+      await setTokens(
+        access: data['access'] as String,
+        refresh: data['refresh'] as String,
+      );
+      return data;
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> getMe() async {
+    return _getMap('/auth/me/');
+  }
+
+  Future<Map<String, dynamic>> getDashboard() async {
+    return _getMap('/mobile/dashboard/');
+  }
+
+  Future<Map<String, dynamic>> getProfile() async {
+    return _getMap('/mobile/profile/');
+  }
+
+  Future<List<dynamic>> getPaginated(String path, {Map<String, dynamic>? query}) async {
+    final data = await _getDynamic(path, query: query);
+    if (data is Map && data['results'] is List) {
+      return data['results'] as List;
+    }
+    if (data is List) return data;
+    return [];
+  }
+
+  Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? query}) {
+    return _getMap(path, query: query);
+  }
+
+  Future<Map<String, dynamic>> post(String path, {Map<String, dynamic>? body}) async {
+    try {
+      final res = await _dio.post(path, data: body);
+      if (res.data is Map<String, dynamic>) {
+        return res.data as Map<String, dynamic>;
+      }
+      return {'data': res.data};
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
+
+  Future<void> postEmpty(String path, {Map<String, dynamic>? body}) async {
+    try {
+      await _dio.post(path, data: body);
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> clockIn(String photoBase64) {
+    return post('/attendance/clock_in/', body: {'photo': photoBase64});
+  }
+
+  Future<Map<String, dynamic>> clockOut(String photoBase64) {
+    return post('/attendance/clock_out/', body: {'photo': photoBase64});
+  }
+
+  Future<File> downloadPdf(int payslipId, String filename) async {
+    try {
+      final dir = await Directory.systemTemp.createTemp('hris_payslip');
+      final file = File('${dir.path}/$filename');
+      await _dio.download('/payslips/$payslipId/pdf/', file.path);
+      return file;
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
+
+  Future<dynamic> _getDynamic(String path, {Map<String, dynamic>? query}) async {
+    try {
+      final res = await _dio.get(path, queryParameters: query);
+      return res.data;
+    } on DioException catch (e) {
+      throw _wrap(e);
+    }
+  }
+
+  Future<Map<String, dynamic>> _getMap(String path, {Map<String, dynamic>? query}) async {
+    final data = await _getDynamic(path, query: query);
+    if (data is Map<String, dynamic>) return data;
+    return {'data': data};
+  }
+
+  ApiException _wrap(DioException e) {
+    final status = e.response?.statusCode;
+    final body = e.response?.data;
+    if (body is Map && body['detail'] != null) {
+      return ApiException('${body['detail']}', statusCode: status);
+    }
+    if (body is Map) {
+      final first = body.values.first;
+      if (first is List && first.isNotEmpty) {
+        return ApiException('${first.first}', statusCode: status);
+      }
+    }
+    return ApiException(
+      e.message ?? 'Koneksi gagal. Periksa server HRIS.',
+      statusCode: status,
+    );
+  }
+
+  static String imageToBase64DataUrl(List<int> bytes) {
+    return 'data:image/jpeg;base64,${base64Encode(bytes)}';
+  }
+}

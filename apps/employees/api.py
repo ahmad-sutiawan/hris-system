@@ -1,6 +1,7 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.core.api_scoping import employee_scoped_queryset
 from apps.core.permissions import IsAdminOrHR
 from apps.core.querysets import employee_list_qs
 from apps.core.viewsets import TenantScopedViewSet
@@ -14,6 +15,23 @@ class EmployeeViewSet(TenantScopedViewSet):
     serializer_class = EmployeeSerializer
     search_fields = ["employee_id", "full_name", "nik", "email"]
     filterset_fields = ["plant", "department", "status"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        if user.is_hr or user.is_admin:
+            return qs
+        profile = getattr(user, "employee_profile", None)
+        if profile:
+            return qs.filter(pk=profile.pk)
+        return qs.none()
+
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        profile = getattr(request.user, "employee_profile", None)
+        if not profile:
+            return Response({"detail": "No employee profile linked."}, status=400)
+        return Response(EmployeeSerializer(profile).data)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
     def import_template(self, request):

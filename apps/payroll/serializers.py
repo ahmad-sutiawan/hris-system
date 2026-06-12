@@ -22,6 +22,9 @@ class PayrollRunSerializer(serializers.ModelSerializer):
 class PayslipSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source="employee.full_name", read_only=True)
     employee_code = serializers.CharField(source="employee.employee_id", read_only=True)
+    period_start = serializers.DateField(source="payroll_run.period_start", read_only=True)
+    period_end = serializers.DateField(source="payroll_run.period_end", read_only=True)
+    payroll_status = serializers.CharField(source="payroll_run.status", read_only=True)
 
     class Meta:
         model = Payslip
@@ -31,6 +34,9 @@ class PayslipSerializer(serializers.ModelSerializer):
             "employee",
             "employee_code",
             "employee_name",
+            "period_start",
+            "period_end",
+            "payroll_status",
             "gross_amount",
             "deduction_amount",
             "net_amount",

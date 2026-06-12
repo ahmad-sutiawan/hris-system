@@ -43,6 +43,7 @@ Demo users:
 | `/api/v1/` | REST API (Flutter/mobile) |
 | `/api/v1/auth/token/` | JWT obtain pair |
 | `/api/docs/` | Swagger UI |
+| `mobile/` | Flutter employee app (see [`mobile/README.md`](mobile/README.md)) |
 
 ## Project Structure
 

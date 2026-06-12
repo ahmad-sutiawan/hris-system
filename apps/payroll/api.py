@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from apps.core.api_scoping import employee_scoped_queryset
 from apps.core.viewsets import TenantScopedViewSet
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.serializers import PayrollRunSerializer, PayslipSerializer
@@ -81,6 +82,11 @@ class PayslipViewSet(TenantScopedViewSet):
     queryset = Payslip.objects.select_related("employee", "payroll_run")
     serializer_class = PayslipSerializer
     filterset_fields = ["payroll_run", "employee"]
+    http_method_names = ["get", "head", "options"]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return employee_scoped_queryset(self.request.user, qs)
 
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
