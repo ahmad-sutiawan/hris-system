@@ -5,7 +5,7 @@ from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesh
 from apps.core.models import FeatureFlag, Notification, Plant, Tenant
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
-from apps.organization.models import Department, JobPosition, LegalEntity
+from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
 from apps.payroll.models import PayrollRun, Payslip, SalaryComponent, THRRun
 from apps.shifts.models import Shift, ShiftAssignment, ShiftRotationTemplate
 from apps.web.forms import (
@@ -173,6 +173,21 @@ class JobPositionForm(forms.ModelForm):
             self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
 
 
+class EmployeeGradeForm(forms.ModelForm):
+    class Meta:
+        model = EmployeeGrade
+        fields = ["plant", "code", "name", "daily_wage", "description", "is_active"]
+        labels = {
+            "daily_wage": "Gaji harian",
+            "code": "Kode grade",
+            "name": "Nama grade",
+        }
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+
+
 class AdminEmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
@@ -186,6 +201,7 @@ class AdminEmployeeForm(forms.ModelForm):
             "legal_entity",
             "department",
             "job_position",
+            "employee_grade",
             "manager",
             "user",
             "join_date",
@@ -217,6 +233,10 @@ class AdminEmployeeForm(forms.ModelForm):
             self.fields["legal_entity"].queryset = LegalEntity.objects.filter(tenant=tenant)
             self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
             self.fields["job_position"].queryset = JobPosition.objects.filter(tenant=tenant)
+            self.fields["employee_grade"].queryset = EmployeeGrade.objects.filter(
+                tenant=tenant, is_active=True
+            )
+            self.fields["employee_grade"].required = False
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )

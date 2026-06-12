@@ -52,6 +52,14 @@ class Employee(TenantScopedModel):
         blank=True,
         related_name="employees",
     )
+    employee_grade = models.ForeignKey(
+        "organization.EmployeeGrade",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employees",
+        verbose_name="Grade karyawan",
+    )
     manager = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,

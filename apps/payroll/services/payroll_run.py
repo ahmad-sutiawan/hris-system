@@ -12,11 +12,11 @@ from apps.core.services.notifications import notify_user
 from apps.employees.models import Employee
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.services.calculator import (
+    aggregate_overtime_pay,
     calc_alpha_deduction,
     calc_bpjs_jht,
     calc_bpjs_jp,
     calc_bpjs_kes,
-    calc_ot_pay,
     calc_period_base,
     calc_pph21,
 )
@@ -57,7 +57,9 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
     employees = Employee.objects.filter(
         tenant=payroll_run.tenant,
         plant=payroll_run.plant,
-    ).exclude(status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED])
+    ).select_related("employee_grade").exclude(
+        status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
+    )
 
     Payslip.objects.filter(payroll_run=payroll_run).delete()
 
@@ -68,10 +70,15 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             payroll_run.period_end,
         )
         base = calc_period_base(employee, present_days=stats["present_days"])
-        ot_after_pay = calc_ot_pay(employee, stats["ot_after_minutes"])
-        ot_before_pay = calc_ot_pay(employee, stats["ot_before_minutes"])
+        ot_total, ot_detail = aggregate_overtime_pay(
+            employee,
+            payroll_run.period_start,
+            payroll_run.period_end,
+        )
+        ot_before_pay = ot_detail["ot_before"]
+        ot_after_pay = ot_detail["ot_after"]
         alpha_deduction = calc_alpha_deduction(employee, stats["alpha_days"])
-        gross = base + ot_after_pay + ot_before_pay
+        gross = base + ot_total
 
         bpjs_kes = calc_bpjs_kes(employee)
         bpjs_jht = calc_bpjs_jht(employee)
@@ -83,10 +90,18 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
 
         earnings = {
             "base_salary": str(base),
+            "ot_total": str(ot_total),
             "ot_after": str(ot_after_pay),
         }
         if ot_before_pay > 0:
             earnings["ot_before"] = str(ot_before_pay)
+        if ot_detail["by_type"]:
+            earnings["ot_by_type"] = {
+                code: str(amount) for code, amount in ot_detail["by_type"].items()
+            }
+        if employee.employee_grade_id:
+            earnings["grade_code"] = employee.employee_grade.code
+            earnings["daily_wage"] = str(employee.employee_grade.daily_wage)
         deductions_breakdown = {
             "bpjs_kesehatan": str(bpjs_kes),
             "bpjs_jht": str(bpjs_jht),

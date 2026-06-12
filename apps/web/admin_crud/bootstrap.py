@@ -2,7 +2,7 @@ from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesh
 from apps.core.models import AuditLog, FeatureFlag, Notification, Plant, Tenant, User
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
-from apps.organization.models import Department, JobPosition, LegalEntity
+from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
 from apps.payroll.models import PayrollRun, Payslip, SalaryComponent, THRRun
 from apps.shifts.models import Shift, ShiftAssignment, ShiftRotationTemplate
 from apps.web.admin_crud.forms import (
@@ -17,6 +17,7 @@ from apps.web.admin_crud.forms import (
     DailyTimesheetForm,
     DepartmentForm,
     EmployeeDocumentForm,
+    EmployeeGradeForm,
     FeatureFlagForm,
     JobPositionForm,
     LeaveBalanceForm,
@@ -172,6 +173,29 @@ def bootstrap_registry():
             order_by=["title"],
             master_data=True,
             master_group="Struktur Organisasi",
+            list_limit=500,
+        )
+    )
+    register(
+        AdminResource(
+            slug="employee-grades",
+            model=EmployeeGrade,
+            form_class=EmployeeGradeForm,
+            section="Organization",
+            title="Grade Karyawan",
+            title_plural="Grade Karyawan",
+            columns=[
+                Column("Kode", "code"),
+                Column("Nama", "name"),
+                Column("Gaji Harian", "daily_wage"),
+                Column("Plant", "plant"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["code", "name"],
+            select_related=["plant"],
+            order_by=["code"],
+            master_data=True,
+            master_group="Keuangan",
             list_limit=500,
         )
     )

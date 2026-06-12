@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.attendance.models import OvertimeRequest
+from apps.attendance.models import OvertimeRequest, OvertimeType
 from apps.attendance.services.overtime_workflow import (
     OvertimeError,
     approve_overtime_request,
@@ -51,6 +51,15 @@ class OvertimeApprovalGateTests(TestCase):
             scheduled_check_out=time(15, 0),
         )
         self.work_date = timezone.localdate()
+        self.overtime_type = OvertimeType.objects.create(
+            tenant=self.tenant,
+            code="OT-HK-1",
+            name="Lembur Hari Kerja Jam I",
+            day_category=OvertimeType.DayCategory.WORKDAY,
+            hour_from=1,
+            hour_to=1,
+            multiplier=Decimal("1.5"),
+        )
         ShiftAssignment.objects.create(
             tenant=self.tenant,
             employee=self.employee,
@@ -80,6 +89,7 @@ class OvertimeApprovalGateTests(TestCase):
         req = submit_overtime_request(
             employee=self.employee,
             work_date=self.work_date,
+            overtime_type=self.overtime_type,
             ot_after_minutes=120,
             reason="Closing line",
         )
@@ -94,6 +104,15 @@ class OvertimeApprovalGateTests(TestCase):
             submit_overtime_request(
                 employee=self.employee,
                 work_date=self.work_date,
+                overtime_type=self.overtime_type,
                 ot_before_minutes=0,
                 ot_after_minutes=0,
+            )
+
+    def test_submit_requires_overtime_type(self):
+        with self.assertRaises(OvertimeError):
+            submit_overtime_request(
+                employee=self.employee,
+                work_date=self.work_date,
+                ot_after_minutes=60,
             )

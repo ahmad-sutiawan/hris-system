@@ -682,7 +682,7 @@ def leave_reject(request, pk):
 @login_required
 def overtime_list(request):
     qs = OvertimeRequest.objects.filter(tenant=request.user.tenant).select_related(
-        "employee", "approver"
+        "employee", "approver", "overtime_type"
     ).order_by("-created_at")
     query = request.GET.get("q", "").strip()
     if query:
@@ -747,6 +747,7 @@ def overtime_create(request):
                 submit_overtime_request(
                     employee=employee,
                     work_date=form.cleaned_data["work_date"],
+                    overtime_type=form.cleaned_data["overtime_type"],
                     ot_before_minutes=form.cleaned_data.get("ot_before_minutes") or 0,
                     ot_after_minutes=form.cleaned_data.get("ot_after_minutes") or 0,
                     reason=form.cleaned_data.get("reason", ""),

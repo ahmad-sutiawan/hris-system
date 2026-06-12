@@ -215,6 +215,13 @@ class OvertimeRequest(TenantScopedModel):
         on_delete=models.CASCADE,
         related_name="overtime_requests",
     )
+    overtime_type = models.ForeignKey(
+        OvertimeType,
+        on_delete=models.PROTECT,
+        related_name="overtime_requests",
+        null=True,
+        blank=True,
+    )
     work_date = models.DateField(db_index=True)
     ot_before_minutes = models.PositiveIntegerField(default=0)
     ot_after_minutes = models.PositiveIntegerField(default=0)

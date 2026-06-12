@@ -52,6 +52,12 @@
         </div>
         {% endif %}
 
+        <div class="hris-field hris-field--full">
+          <label for="{{ form.overtime_type.id_for_label }}">{{ form.overtime_type.label }}</label>
+          {{ form.overtime_type }}
+          {% if form.overtime_type.errors %}<p class="hris-field-error">{{ form.overtime_type.errors.0 }}</p>{% endif %}
+        </div>
+
         <div class="hris-field">
           <label for="{{ form.work_date.id_for_label }}">{{ form.work_date.label }}</label>
           <div class="hris-date-input-wrap">{{ form.work_date }}</div>

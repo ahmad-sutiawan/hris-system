@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.attendance.models import AttendanceCode, AttendanceRecord
+from apps.attendance.models import AttendanceCode, AttendanceRecord, OvertimeType
 from apps.attendance.services.overtime_workflow import approve_overtime_request, submit_overtime_request
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
 from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics
@@ -54,6 +54,15 @@ class FlexibleHoursTests(TestCase):
         AttendanceCode.objects.create(tenant=self.tenant, code="A", label="Alpha")
         self.work_date = timezone.localdate()
         self.tz = timezone.get_current_timezone()
+        self.overtime_type = OvertimeType.objects.create(
+            tenant=self.tenant,
+            code="OT-HK-1",
+            name="Lembur Hari Kerja Jam I",
+            day_category=OvertimeType.DayCategory.WORKDAY,
+            hour_from=1,
+            hour_to=1,
+            multiplier=Decimal("1.5"),
+        )
 
     def _punch(self, check_in, check_out):
         AttendanceRecord.objects.update_or_create(
@@ -103,6 +112,7 @@ class FlexibleHoursTests(TestCase):
         req = submit_overtime_request(
             employee=self.employee,
             work_date=self.work_date,
+            overtime_type=self.overtime_type,
             ot_after_minutes=120,
             reason="Closing line",
         )
@@ -133,6 +143,7 @@ class FlexibleHoursTests(TestCase):
         req = submit_overtime_request(
             employee=self.employee,
             work_date=self.work_date,
+            overtime_type=self.overtime_type,
             ot_before_minutes=60,
             reason="Prep line",
         )
@@ -208,8 +219,26 @@ class FlexiblePayrollTests(TestCase):
         self.assertEqual(base, Decimal("600000"))
 
     def test_payroll_includes_ot_before_and_after(self):
-        from apps.attendance.models import DailyTimesheet
+        from apps.attendance.models import DailyTimesheet, OvertimeRequest, OvertimeType
 
+        ot_type = OvertimeType.objects.create(
+            tenant=self.tenant,
+            code="OT-HK-1",
+            name="Lembur Hari Kerja Jam I",
+            day_category=OvertimeType.DayCategory.WORKDAY,
+            hour_from=1,
+            hour_to=1,
+            multiplier=Decimal("1.5"),
+        )
+        OvertimeRequest.objects.create(
+            tenant=self.tenant,
+            employee=self.monthly_employee,
+            work_date=self.work_date,
+            overtime_type=ot_type,
+            ot_before_minutes=60,
+            ot_after_minutes=120,
+            status=OvertimeRequest.Status.APPROVED,
+        )
         DailyTimesheet.objects.create(
             tenant=self.tenant,
             plant=self.plant,
@@ -228,8 +257,8 @@ class FlexiblePayrollTests(TestCase):
         )
         calculate_payroll_run(run)
         slip = Payslip.objects.get(payroll_run=run, employee=self.monthly_employee)
-        ot_before_pay = calc_ot_pay(self.monthly_employee, 60)
-        ot_after_pay = calc_ot_pay(self.monthly_employee, 120)
+        ot_before_pay = calc_ot_pay(self.monthly_employee, 60, multiplier=Decimal("1.5"))
+        ot_after_pay = calc_ot_pay(self.monthly_employee, 120, multiplier=Decimal("1.5"))
         self.assertIn("ot_before", slip.earnings_breakdown)
         self.assertEqual(slip.earnings_breakdown["ot_before"], str(ot_before_pay))
         self.assertEqual(slip.earnings_breakdown["ot_after"], str(ot_after_pay))

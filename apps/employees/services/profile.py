@@ -24,6 +24,7 @@ def build_employee_profile_context(employee: Employee) -> dict:
             "plant",
             "department",
             "job_position",
+            "employee_grade",
             "manager",
             "legal_entity",
             "user",

@@ -21,6 +21,7 @@
         <tr>
           <th class="hris-col-no">No</th>
           <th>Karyawan</th>
+          <th>Jenis Lembur</th>
           <th>Tanggal</th>
           <th>Sebelum (m)</th>
           <th>Sesudah (m)</th>
@@ -33,6 +34,7 @@
         <tr>
           <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
           <td class="hris-strong">{{ req.employee.full_name }}</td>
+          <td>{{ req.overtime_type.name|default:"—" }}</td>
           <td>{{ req.work_date }}</td>
           <td>{{ req.ot_before_minutes }}</td>
           <td>{{ req.ot_after_minutes }}</td>
@@ -59,7 +61,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan lembur yang cocok dengan pencarian.{% else %}Belum ada pengajuan lembur.{% endif %}</div></td></tr>
+        <tr><td colspan="8"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan lembur yang cocok dengan pencarian.{% else %}Belum ada pengajuan lembur.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

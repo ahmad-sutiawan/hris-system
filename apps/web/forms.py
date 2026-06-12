@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 
-from apps.attendance.models import OvertimeRequest
+from apps.attendance.models import OvertimeRequest, OvertimeType
 from apps.core.models import Plant
 from apps.employees.models import Employee
 from apps.leave.models import LeaveRequest, LeaveType
@@ -90,6 +90,7 @@ class EmployeeForm(forms.ModelForm):
             "legal_entity",
             "department",
             "job_position",
+            "employee_grade",
             "manager",
             "user",
             "join_date",
@@ -116,6 +117,7 @@ class EmployeeForm(forms.ModelForm):
             "join_date": "Tanggal bergabung",
             "contract_end_date": "Akhir kontrak",
             "resign_date": "Tanggal resign",
+            "employee_grade": "Grade karyawan",
             "salary_scheme": "Skema gaji",
             "base_salary": "Gaji pokok",
             "allowance_transport": "Tunjangan transport",
@@ -138,7 +140,7 @@ class EmployeeForm(forms.ModelForm):
             "Hubungkan ke akun login agar karyawan bisa clock in, ajukan cuti, dan lihat slip gaji."
         )
         if tenant:
-            from apps.organization.models import Department, JobPosition, LegalEntity
+            from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
 
             _filter_plant_queryset(self, tenant, user)
             self.fields["legal_entity"].queryset = LegalEntity.objects.filter(
@@ -148,11 +150,15 @@ class EmployeeForm(forms.ModelForm):
             plant_id = self._resolve_plant_id(user)
             dept_qs = Department.objects.filter(tenant=tenant, is_active=True)
             job_qs = JobPosition.objects.filter(tenant=tenant, is_active=True)
+            grade_qs = EmployeeGrade.objects.filter(tenant=tenant, is_active=True)
             if plant_id:
                 dept_qs = dept_qs.filter(plant_id=plant_id)
                 job_qs = job_qs.filter(plant_id=plant_id)
+                grade_qs = grade_qs.filter(plant_id=plant_id)
             self.fields["department"].queryset = dept_qs
             self.fields["job_position"].queryset = job_qs
+            self.fields["employee_grade"].queryset = grade_qs
+            self.fields["employee_grade"].required = False
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )
@@ -362,8 +368,9 @@ class OvertimeRequestForm(forms.ModelForm):
 
     class Meta:
         model = OvertimeRequest
-        fields = ["work_date", "ot_before_minutes", "ot_after_minutes", "reason"]
+        fields = ["overtime_type", "work_date", "ot_before_minutes", "ot_after_minutes", "reason"]
         labels = {
+            "overtime_type": "Jenis lembur",
             "work_date": "Tanggal lembur",
             "ot_before_minutes": "Lembur sebelum shift (menit)",
             "ot_after_minutes": "Lembur sesudah shift (menit)",
@@ -407,6 +414,12 @@ class OvertimeRequestForm(forms.ModelForm):
                 self.fields["employee"].empty_label = f"Diri sendiri — {profile.full_name}"
         else:
             del self.fields["employee"]
+
+        if tenant:
+            self.fields["overtime_type"].queryset = OvertimeType.objects.filter(
+                tenant=tenant, is_active=True
+            )
+            self.fields["overtime_type"].empty_label = "— Pilih jenis lembur —"
 
     def clean(self):
         cleaned = super().clean()

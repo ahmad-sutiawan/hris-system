@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
 
-from apps.attendance.models import AttendanceRecord, DailyTimesheet, OvertimeRequest
+from apps.attendance.models import AttendanceRecord, DailyTimesheet, OvertimeRequest, OvertimeType
 from apps.attendance.services.photo import decode_selfie
 from apps.attendance.services.punch import clock_in, clock_out
 from apps.core.models import Plant, Tenant, User
@@ -45,6 +45,15 @@ class NewEmployeeOnboardingE2ETest(TestCase):
             code="CT",
             name="Cuti Tahunan",
             default_quota_days=Decimal("12"),
+        )
+        self.overtime_type = OvertimeType.objects.create(
+            tenant=self.tenant,
+            code="OT-HK-1",
+            name="Lembur Hari Kerja Jam I",
+            day_category=OvertimeType.DayCategory.WORKDAY,
+            hour_from=1,
+            hour_to=1,
+            multiplier=Decimal("1.5"),
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
@@ -147,6 +156,7 @@ class NewEmployeeOnboardingE2ETest(TestCase):
         response = self.client.post(
             reverse("web:overtime_create"),
             {
+                "overtime_type": self.overtime_type.pk,
                 "work_date": self.today.isoformat(),
                 "ot_before_minutes": "0",
                 "ot_after_minutes": "120",

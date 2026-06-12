@@ -59,6 +59,7 @@ def _notify_manager_pending(overtime_request: OvertimeRequest):
             message=(
                 f"{overtime_request.employee.full_name} mengajukan lembur "
                 f"{overtime_request.work_date} "
+                f"({overtime_request.overtime_type.name if overtime_request.overtime_type else '—'}) "
                 f"(sebelum: {overtime_request.ot_before_minutes} m, "
                 f"sesudah: {overtime_request.ot_after_minutes} m)"
             ),
@@ -98,10 +99,13 @@ def submit_overtime_request(
     *,
     employee,
     work_date,
+    overtime_type=None,
     ot_before_minutes=0,
     ot_after_minutes=0,
     reason="",
 ) -> OvertimeRequest:
+    if not overtime_type:
+        raise OvertimeError("Pilih jenis lembur.")
     if ot_before_minutes <= 0 and ot_after_minutes <= 0:
         raise OvertimeError("Isi durasi lembur sebelum atau sesudah shift (minimal satu > 0).")
 
@@ -116,6 +120,7 @@ def submit_overtime_request(
     req = OvertimeRequest.objects.create(
         tenant=employee.tenant,
         employee=employee,
+        overtime_type=overtime_type,
         work_date=work_date,
         ot_before_minutes=ot_before_minutes,
         ot_after_minutes=ot_after_minutes,
