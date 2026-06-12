@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
-from apps.core.models import FeatureFlag, Notification, Plant, Tenant
+from apps.core.models import Announcement, FeatureFlag, Notification, Plant, Tenant
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
 from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
@@ -565,3 +565,99 @@ class NotificationAdminForm(forms.ModelForm):
         _style_fields(self)
         if tenant:
             self.fields["user"].queryset = User.objects.filter(tenant=tenant, is_active=True)
+
+
+class AnnouncementForm(forms.ModelForm):
+    target_roles = forms.MultipleChoiceField(
+        choices=User.Role.choices,
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        label="Target role",
+        help_text="Kosongkan untuk semua role.",
+    )
+    tags_input = forms.CharField(
+        required=False,
+        label="Tags",
+        help_text="Pisahkan dengan koma, mis. payroll, cuti, libur.",
+        widget=forms.TextInput(attrs={"class": HRIS_INPUT_CLASS}),
+    )
+
+    class Meta:
+        model = Announcement
+        fields = [
+            "title",
+            "summary",
+            "body",
+            "category",
+            "priority",
+            "plant",
+            "publish_start",
+            "publish_end",
+            "is_active",
+            "is_pinned",
+            "require_acknowledgment",
+            "attachment",
+            "external_link",
+            "action_label",
+        ]
+        labels = {
+            "title": "Judul",
+            "summary": "Ringkasan",
+            "body": "Konten lengkap",
+            "category": "Kategori",
+            "priority": "Prioritas",
+            "plant": "Plant target",
+            "publish_start": "Terbit mulai",
+            "publish_end": "Terbit sampai",
+            "is_active": "Aktif",
+            "is_pinned": "Sematkan di atas",
+            "require_acknowledgment": "Wajib diakui pengguna",
+            "attachment": "Lampiran",
+            "external_link": "Tautan eksternal",
+            "action_label": "Label tombol tautan",
+        }
+        widgets = {
+            "summary": forms.Textarea(attrs={"class": HRIS_TEXTAREA_CLASS, "rows": 3}),
+            "body": forms.Textarea(attrs={"class": HRIS_TEXTAREA_CLASS, "rows": 14}),
+            "external_link": forms.URLInput(attrs={"class": HRIS_INPUT_CLASS}),
+            "action_label": forms.TextInput(attrs={"class": HRIS_INPUT_CLASS}),
+        }
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_fields(self)
+        _base_init(self, tenant, user)
+        if tenant and "plant" in self.fields:
+            self.fields["plant"].required = False
+            self.fields["plant"].empty_label = "Semua plant"
+        for field_name in ("publish_start", "publish_end"):
+            if field_name not in self.fields:
+                continue
+            self.fields[field_name].widget = forms.DateTimeInput(
+                attrs={"class": HRIS_INPUT_CLASS, "type": "datetime-local"},
+                format="%Y-%m-%dT%H:%M",
+            )
+            self.fields[field_name].input_formats = [
+                "%Y-%m-%dT%H:%M",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y-%m-%d %H:%M",
+            ]
+        if self.instance.pk:
+            if self.instance.target_roles:
+                self.initial["target_roles"] = self.instance.target_roles
+            if self.instance.tags:
+                self.initial["tags_input"] = ", ".join(self.instance.tags)
+        elif "publish_start" in self.fields:
+            from django.utils import timezone
+
+            self.initial.setdefault("publish_start", timezone.localtime())
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.target_roles = self.cleaned_data.get("target_roles") or []
+        tags_raw = self.cleaned_data.get("tags_input", "")
+        instance.tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance

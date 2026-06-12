@@ -63,5 +63,8 @@ urlpatterns = [
     path("notifications/", views.notification_list, name="notification_list"),
     path("notifications/<int:pk>/read/", views.notification_mark_read, name="notification_mark_read"),
     path("notifications/read-all/", views.notification_mark_all_read, name="notification_mark_all_read"),
+    path("announcements/", views.announcement_list, name="announcement_list"),
+    path("announcements/<int:pk>/", views.announcement_detail, name="announcement_detail"),
+    path("announcements/<int:pk>/dismiss/", views.announcement_dismiss, name="announcement_dismiss"),
     path("audit/", views.audit_log_list, name="audit_log_list"),
 ]

@@ -1,5 +1,5 @@
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
-from apps.core.models import AuditLog, FeatureFlag, Notification, Plant, User
+from apps.core.models import Announcement, AuditLog, FeatureFlag, Notification, Plant, User
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
 from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
@@ -24,6 +24,7 @@ from apps.web.admin_crud.forms import (
     LeaveHourlySegmentForm,
     LeaveTypeForm,
     LegalEntityForm,
+    AnnouncementForm,
     NotificationAdminForm,
     PayslipForm,
     PlantForm,
@@ -545,6 +546,33 @@ def bootstrap_registry():
             allow_delete=False,
             tenant_scoped=True,
             list_limit=200,
+        )
+    )
+    register(
+        AdminResource(
+            slug="announcements",
+            model=Announcement,
+            form_class=AnnouncementForm,
+            section="Core",
+            title="Pengumuman",
+            title_plural="Pengumuman",
+            columns=[
+                Column("Judul", "title"),
+                Column("Kategori", "category"),
+                Column("Prioritas", "priority"),
+                Column("Plant", "plant"),
+                Column("Pin", "is_pinned"),
+                Column("Aktif", "is_active"),
+                Column("Mulai", "publish_start"),
+                Column("Selesai", "publish_end"),
+            ],
+            search_fields=["title", "summary", "body"],
+            select_related=["plant", "created_by"],
+            order_by=["-is_pinned", "-publish_start"],
+            allow_create=True,
+            allow_edit=True,
+            allow_delete=True,
+            tenant_scoped=True,
         )
     )
     register(

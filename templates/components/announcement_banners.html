@@ -1,0 +1,44 @@
+{% if announcement_banners and '/announcements/' not in request.path %}
+<div class="hris-announcement-stack" aria-label="Pengumuman aktif">
+  {% for item in announcement_banners %}
+  <article class="hris-announcement-banner hris-announcement-banner--{{ item.priority }}{% if item.is_pinned %} is-pinned{% endif %}">
+    <div class="hris-announcement-banner-head">
+      <div class="hris-announcement-banner-meta">
+        {% if item.is_pinned %}<span class="hris-announcement-chip is-pinned">Disematkan</span>{% endif %}
+        <span class="hris-announcement-chip is-category">{{ item.get_category_display }}</span>
+        <span class="hris-announcement-chip is-priority">{{ item.get_priority_display }}</span>
+        {% if item.plant %}<span class="hris-announcement-chip is-plant">{{ item.plant.code }}</span>{% endif %}
+      </div>
+      {% if not item.require_acknowledgment %}
+      <form method="post" action="{% url 'web:announcement_dismiss' item.pk %}" class="hris-announcement-dismiss-form">
+        {% csrf_token %}
+        <button type="submit" class="hris-announcement-dismiss" aria-label="Tutup pengumuman">&times;</button>
+      </form>
+      {% endif %}
+    </div>
+    <div class="hris-announcement-banner-body">
+      <h3 class="hris-announcement-banner-title">
+        <a href="{% url 'web:announcement_detail' item.pk %}">{{ item.title }}</a>
+      </h3>
+      {% if item.summary %}
+      <p class="hris-announcement-banner-summary">{{ item.summary }}</p>
+      {% endif %}
+    </div>
+    <div class="hris-announcement-banner-actions">
+      <a href="{% url 'web:announcement_detail' item.pk %}" class="hris-btn hris-btn-ghost hris-btn-sm">Baca lengkap</a>
+      {% if item.external_link %}
+      <a href="{{ item.external_link }}" class="hris-btn hris-btn-secondary hris-btn-sm" target="_blank" rel="noopener">
+        {{ item.action_label|default:"Tautan terkait" }} →
+      </a>
+      {% endif %}
+      {% if item.require_acknowledgment %}
+      <form method="post" action="{% url 'web:announcement_dismiss' item.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="hris-btn hris-btn-primary hris-btn-sm">Mengerti</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% endif %}

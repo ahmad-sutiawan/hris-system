@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load hris_ui %}
+{% block title %}{{ announcement.title }} — Pengumuman{% endblock %}
+{% block page_title %}Pengumuman{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>{{ announcement.title }}</h1>
+    <p>Detail pengumuman resmi perusahaan</p>
+  </div>
+  <a href="{% url 'web:announcement_list' %}" class="hris-btn hris-btn-ghost">← Daftar Pengumuman</a>
+</div>
+
+<article class="hris-card hris-announcement-detail hris-announcement-detail--{{ announcement.priority }}">
+  <div class="hris-card-body">
+    <div class="hris-announcement-banner-meta" style="margin-bottom:1rem">
+      {% if announcement.is_pinned %}<span class="hris-announcement-chip is-pinned">Disematkan</span>{% endif %}
+      <span class="hris-announcement-chip is-category">{{ announcement.get_category_display }}</span>
+      <span class="hris-announcement-chip is-priority">{{ announcement.get_priority_display }}</span>
+      {% if announcement.plant %}<span class="hris-announcement-chip is-plant">{{ announcement.plant.code }} · {{ announcement.plant.name }}</span>{% else %}<span class="hris-announcement-chip is-plant">Semua plant</span>{% endif %}
+    </div>
+
+    <dl class="hris-dl-grid hris-announcement-detail-meta">
+      <div><dt>Terbit</dt><dd>{{ announcement.publish_start|date:"d M Y, H:i" }}</dd></div>
+      <div><dt>Berakhir</dt><dd>{% if announcement.publish_end %}{{ announcement.publish_end|date:"d M Y, H:i" }}{% else %}Tidak ada batas{% endif %}</dd></div>
+      <div><dt>Dibuat oleh</dt><dd>{% if announcement.created_by %}{{ announcement.created_by.get_full_name|default:announcement.created_by.username }}{% else %}Admin{% endif %}</dd></div>
+      <div><dt>Dilihat</dt><dd>{{ announcement.view_count|num:0 }} kali</dd></div>
+      <div><dt>Target role</dt>
+        <dd>
+          {% if announcement.target_roles %}
+          {{ announcement.target_roles|join:", " }}
+          {% else %}
+          Semua role
+          {% endif %}
+        </dd>
+      </div>
+      <div><dt>Status</dt><dd>{% if announcement.is_active %}<span class="hris-badge hris-badge--approved">Aktif</span>{% else %}<span class="hris-badge hris-badge--default">Nonaktif</span>{% endif %}</dd></div>
+    </dl>
+
+    {% if announcement.summary %}
+    <div class="hris-announcement-detail-summary">
+      <h2>Ringkasan</h2>
+      <p>{{ announcement.summary }}</p>
+    </div>
+    {% endif %}
+
+    <div class="hris-announcement-detail-body">
+      <h2>Konten Lengkap</h2>
+      <div class="hris-announcement-prose">{{ announcement.body|linebreaksbr }}</div>
+    </div>
+
+    {% if announcement.tags %}
+    <div class="hris-announcement-tags" style="margin-top:1rem">
+      {% for tag in announcement.tags %}
+      <span class="hris-announcement-tag">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="hris-announcement-detail-actions">
+      {% if announcement.attachment %}
+      <a href="{{ announcement.attachment.url }}" class="hris-btn hris-btn-secondary" target="_blank" rel="noopener">Unduh Lampiran</a>
+      {% endif %}
+      {% if announcement.external_link %}
+      <a href="{{ announcement.external_link }}" class="hris-btn hris-btn-primary" target="_blank" rel="noopener">
+        {{ announcement.action_label|default:"Buka tautan terkait" }} →
+      </a>
+      {% endif %}
+      <form method="post" action="{% url 'web:announcement_dismiss' announcement.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="hris-btn hris-btn-ghost">Tutup dari banner</button>
+      </form>
+    </div>
+  </div>
+</article>
+{% endblock %}

@@ -2,11 +2,22 @@ from django.urls import reverse
 
 from apps.core.decorators import user_can_manage_master_data, user_has_admin_console
 from apps.core.models import Notification
+from apps.core.services.announcements import active_announcements_for_user
 from apps.web.admin_crud.registry import (
     ensure_bootstrapped,
     master_nav_items,
     resources_by_app,
 )
+
+
+def announcement_banners(request):
+    if not request.user.is_authenticated:
+        return {"announcement_banners": [], "active_announcement_count": 0}
+    banners = active_announcements_for_user(request.user, limit=5)
+    return {
+        "announcement_banners": banners,
+        "active_announcement_count": len(banners),
+    }
 
 
 def notifications(request):

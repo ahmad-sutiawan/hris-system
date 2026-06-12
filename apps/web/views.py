@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -22,6 +23,12 @@ from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.decorators import require_roles
 from apps.core.models import AuditLog, Notification, User
+from apps.core.services.announcements import (
+    announcements_for_user,
+    dismiss_announcement,
+    get_announcement_for_user,
+    increment_announcement_views,
+)
 from apps.core.services.notifications import mark_notifications_read
 from apps.employees.models import Employee
 from apps.leave.models import LeaveRequest
@@ -1186,3 +1193,45 @@ def audit_log_list(request):
             "extra_filter_active": bool(model_name),
         },
     )
+
+
+@login_required
+def announcement_list(request):
+    announcements = announcements_for_user(request.user)
+    return render(
+        request,
+        "web/announcements/list.html",
+        {
+            "announcements": announcements,
+            "result_count": len(announcements),
+        },
+    )
+
+
+@login_required
+def announcement_detail(request, pk):
+    announcement = get_announcement_for_user(request.user, pk)
+    if not announcement:
+        messages.error(request, "Pengumuman tidak ditemukan atau tidak tersedia untuk Anda.")
+        return redirect("web:announcement_list")
+
+    increment_announcement_views(announcement)
+    announcement.refresh_from_db(fields=["view_count"])
+    return render(
+        request,
+        "web/announcements/detail.html",
+        {"announcement": announcement},
+    )
+
+
+@login_required
+@require_POST
+def announcement_dismiss(request, pk):
+    announcement = get_announcement_for_user(request.user, pk)
+    if not announcement:
+        messages.error(request, "Pengumuman tidak ditemukan.")
+        return redirect(request.META.get("HTTP_REFERER") or reverse("web:dashboard"))
+
+    dismiss_announcement(request.user, announcement)
+    messages.success(request, "Pengumuman ditutup.")
+    return redirect(request.META.get("HTTP_REFERER") or reverse("web:dashboard"))

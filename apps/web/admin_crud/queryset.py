@@ -84,6 +84,11 @@ def save_instance(form, request, resource):
     if resource.tenant_scoped and _model_has_field(resource.model, "tenant") and not instance.tenant_id:
         instance.tenant = user.tenant
 
+    from apps.core.models import Announcement
+
+    if resource.model is Announcement and not instance.created_by_id:
+        instance.created_by = user
+
     instance.save()
     form.save_m2m()
     return instance

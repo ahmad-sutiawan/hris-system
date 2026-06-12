@@ -44,6 +44,11 @@
             Notifikasi
             {% if unread_notifications %}<span class="hris-notif-badge" style="position:static;margin-left:auto;min-width:1.25rem;height:1.25rem;line-height:1.25rem">{{ unread_notifications }}</span>{% endif %}
           </a>
+          <a href="{% url 'web:announcement_list' %}" class="hris-nav-link{% if '/announcements' in request.path %} is-active{% endif %}">
+            {% nav_icon "announcements" %}
+            Pengumuman
+            {% if active_announcement_count %}<span class="hris-notif-badge" style="position:static;margin-left:auto;min-width:1.25rem;height:1.25rem;line-height:1.25rem">{{ active_announcement_count }}</span>{% endif %}
+          </a>
           <a href="{% url 'web:employee_profile' %}" class="hris-nav-link{% nav_is_active 'employee_profile' %}">
             {% nav_icon "profile" %}
             Detail Karyawan
@@ -184,6 +189,7 @@
       </header>
 
       <main class="hris-content">
+        {% include "components/announcement_banners.html" %}
         {% include "components/messages.html" %}
         {% block content %}{% endblock %}
       </main>

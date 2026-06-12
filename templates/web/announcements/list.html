@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load hris_ui %}
+{% block title %}Pengumuman — BPS HRIS{% endblock %}
+{% block page_title %}Pengumuman{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>Pengumuman</h1>
+    <p>Informasi resmi perusahaan, kebijakan, dan pengumuman penting — {{ result_count|num:0 }} aktif</p>
+  </div>
+  {% if user.role == 'admin' %}
+  <a href="{% url 'web:manage_list' 'announcements' %}" class="hris-btn hris-btn-secondary">Kelola Pengumuman</a>
+  {% endif %}
+</div>
+
+{% if announcements %}
+<div class="hris-announcement-list">
+  {% for item in announcements %}
+  <article class="hris-announcement-card hris-announcement-card--{{ item.priority }}{% if item.is_pinned %} is-pinned{% endif %}">
+    <div class="hris-announcement-card-head">
+      <div class="hris-announcement-banner-meta">
+        {% if item.is_pinned %}<span class="hris-announcement-chip is-pinned">Disematkan</span>{% endif %}
+        <span class="hris-announcement-chip is-category">{{ item.get_category_display }}</span>
+        <span class="hris-announcement-chip is-priority">{{ item.get_priority_display }}</span>
+        {% if item.plant %}<span class="hris-announcement-chip is-plant">{{ item.plant.code }}</span>{% endif %}
+      </div>
+      <time class="hris-text-dim">{{ item.publish_start|date:"d M Y, H:i" }}</time>
+    </div>
+    <h2 class="hris-announcement-card-title">
+      <a href="{% url 'web:announcement_detail' item.pk %}">{{ item.title }}</a>
+    </h2>
+    {% if item.summary %}
+    <p class="hris-announcement-card-summary">{{ item.summary }}</p>
+    {% else %}
+    <p class="hris-announcement-card-summary">{{ item.body|truncatechars:220 }}</p>
+    {% endif %}
+    {% if item.tags %}
+    <div class="hris-announcement-tags">
+      {% for tag in item.tags %}
+      <span class="hris-announcement-tag">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <div class="hris-announcement-card-foot">
+      <span class="hris-text-dim">
+        {% if item.created_by %}{{ item.created_by.get_full_name|default:item.created_by.username }}{% else %}Admin{% endif %}
+        · {{ item.view_count|num:0 }} kali dibaca
+      </span>
+      <a href="{% url 'web:announcement_detail' item.pk %}" class="hris-link">Baca selengkapnya →</a>
+    </div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}
+<div class="hris-card">
+  <div class="hris-card-body">
+    <div class="hris-empty">Belum ada pengumuman aktif untuk Anda.</div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

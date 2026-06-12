@@ -57,6 +57,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.web.context_processors.announcement_banners",
                 "apps.web.context_processors.notifications",
                 "apps.web.context_processors.admin_navigation",
                 "apps.web.context_processors.master_data_navigation",
