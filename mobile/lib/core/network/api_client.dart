@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
@@ -267,8 +268,11 @@ class ApiClient {
     }
     if (e.type == DioExceptionType.connectionError ||
         e.type == DioExceptionType.connectionTimeout) {
+      final hint = kIsWeb
+          ? ' Browser memblokir koneksi (CORS). Untuk uji di Chrome gunakan backend lokal (127.0.0.1:8000), atau update CORS di server production lalu redeploy.'
+          : ' Periksa alamat server dan koneksi internet.';
       return ApiException(
-        'Tidak bisa terhubung ke server. Periksa alamat server dan WiFi.',
+        'Tidak bisa terhubung ke server.$hint',
         statusCode: status,
       );
     }

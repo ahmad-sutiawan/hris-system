@@ -168,7 +168,12 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://127.0.0.1:8000,http://localhost:8000",
     cast=Csv(),
 )
-# Flutter web dev server (port bervariasi per sesi)
+# Flutter web dev server (port acak per sesi, mis. localhost:63896)
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+]
+# Hanya untuk development; production set False di .env
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=DEBUG, cast=bool)
 
 EMAIL_BACKEND = config(
