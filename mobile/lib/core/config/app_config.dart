@@ -3,15 +3,21 @@ import 'package:flutter/foundation.dart';
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
-  /// Emulator Android → host PC
+  /// Server production (deploy publik)
+  static const productionBaseUrl = 'http://148.230.98.125:8080$apiPathSuffix';
+
+  /// Emulator Android → host PC (development)
   static const emulatorBaseUrl = 'http://10.0.2.2:8000$apiPathSuffix';
 
-  /// Web / iOS simulator
+  /// Web / iOS simulator (development)
   static const localBaseUrl = 'http://127.0.0.1:8000$apiPathSuffix';
 
   static String get defaultBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return override;
+
+    // APK/IPA release otomatis ke server production
+    if (kReleaseMode) return productionBaseUrl;
 
     if (kIsWeb) return localBaseUrl;
     if (defaultTargetPlatform == TargetPlatform.android) {

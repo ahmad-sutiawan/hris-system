@@ -24,13 +24,14 @@ class AuthState {
     Map<String, dynamic>? user,
     Map<String, dynamic>? employee,
     String? error,
+    bool clearError = false,
   }) {
     return AuthState(
       isLoading: isLoading ?? this.isLoading,
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       user: user ?? this.user,
       employee: employee ?? this.employee,
-      error: error,
+      error: clearError ? null : (error ?? this.error),
     );
   }
 }
@@ -43,33 +44,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final ApiClient _api;
 
   Future<void> _bootstrap() async {
-    await _api.init();
-    final hasToken = await _api.hasToken();
-    if (!hasToken) {
+    try {
+      await _api.init();
+      final hasToken = await _api.hasToken();
+      if (!hasToken) {
+        state = const AuthState(isLoading: false, isAuthenticated: false);
+        return;
+      }
+      await _loadMe();
+    } catch (_) {
       state = const AuthState(isLoading: false, isAuthenticated: false);
-      return;
+    } finally {
+      if (state.isLoading) {
+        state = state.copyWith(isLoading: false);
+      }
     }
-    await _loadMe();
   }
 
   Future<void> login(String username, String password, {String? serverUrl}) async {
-    state = state.copyWith(isLoading: true, error: null);
+    state = state.copyWith(isLoading: true, clearError: true);
     try {
       if (serverUrl != null && serverUrl.trim().isNotEmpty) {
         await _api.setBaseUrl(serverUrl);
       }
       await _api.login(username, password);
-      await _loadMe();
+      final ok = await _loadMe();
+      if (!ok) {
+        await _api.clearTokens();
+        state = state.copyWith(isLoading: false, isAuthenticated: false);
+      }
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: false,
-        error: e.toString(),
+        error: e is ApiException ? e.message : e.toString(),
       );
     }
   }
 
-  Future<void> _loadMe() async {
+  Future<bool> _loadMe() async {
     try {
       final me = await _api.getMe();
       state = AuthState(
@@ -78,29 +91,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: me,
         employee: me['employee'] as Map<String, dynamic>?,
       );
+      return true;
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await _api.clearTokens();
         state = const AuthState(isLoading: false, isAuthenticated: false);
-        return;
+        return false;
       }
-      final hasToken = await _api.hasToken();
       state = AuthState(
         isLoading: false,
-        isAuthenticated: hasToken,
-        user: state.user,
-        employee: state.employee,
+        isAuthenticated: false,
         error: e.message,
       );
+      return false;
     } catch (e) {
-      final hasToken = await _api.hasToken();
       state = AuthState(
         isLoading: false,
-        isAuthenticated: hasToken,
-        user: state.user,
-        employee: state.employee,
+        isAuthenticated: false,
         error: e.toString(),
       );
+      return false;
     }
   }
 

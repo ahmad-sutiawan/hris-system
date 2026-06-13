@@ -22,6 +22,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _serverCtrl = TextEditingController();
   bool _obscure = true;
   bool _showServer = false;
+  bool _submitting = false;
+  String? _validationError;
 
   @override
   void initState() {
@@ -45,11 +47,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    await ref.read(authProvider.notifier).login(
-          _userCtrl.text.trim(),
-          _passCtrl.text,
-          serverUrl: _serverCtrl.text.trim(),
-        );
+    if (_submitting) return;
+
+    final username = _userCtrl.text.trim();
+    final password = _passCtrl.text;
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _validationError = 'Username dan password wajib diisi.');
+      return;
+    }
+    setState(() => _validationError = null);
+
+    setState(() => _submitting = true);
+    try {
+      await ref.read(authProvider.notifier).login(
+            username,
+            password,
+            serverUrl: _showServer ? _serverCtrl.text.trim() : null,
+          );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   @override
@@ -206,17 +223,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               style: const TextStyle(color: AppColors.text),
                               decoration: const InputDecoration(
                                 labelText: 'Alamat server HRIS',
-                                hintText: 'http://192.168.1.10:8000',
+                                hintText: 'http://148.230.98.125:8080',
                                 prefixIcon: Icon(Icons.dns_outlined),
                                 helperText:
-                                    'HP fisik: IP komputer server (satu WiFi). Emulator: 10.0.2.2',
+                                    'Default: server production. Ubah hanya untuk development lokal.',
                               ),
                               keyboardType: TextInputType.url,
                               autocorrect: false,
                             ),
                             const SizedBox(height: 8),
                           ],
-                          if (auth.error != null) ...[
+                          if (_validationError != null || auth.error != null) ...[
                             const SizedBox(height: 12),
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -227,7 +244,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                               ),
                               child: Text(
-                                auth.error!,
+                                _validationError ?? auth.error!,
                                 style: const TextStyle(color: AppColors.danger),
                               ),
                             ),
@@ -235,7 +252,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 20),
                           PrimaryButton(
                             label: 'Masuk',
-                            loading: auth.isLoading,
+                            loading: _submitting,
                             onPressed: _submit,
                           ),
                           const SizedBox(height: 16),

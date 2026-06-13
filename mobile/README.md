@@ -50,9 +50,19 @@ flutter build apk --split-per-abi --release
 Output: `app-armeabi-v7a-release.apk`, `app-arm64-v8a-release.apk`, dll.  
 HP modern biasanya **arm64-v8a**.
 
-### Konfigurasi server di HP fisik
+### Konfigurasi server
 
-Saat pertama login, tap **Pengaturan server** dan isi IP komputer server:
+**Production (default di APK release):**
+
+```
+http://148.230.98.125:8080
+```
+
+Portal web: [http://148.230.98.125:8080/](http://148.230.98.125:8080/)
+
+APK release otomatis terhubung ke server di atas — **tidak perlu** atur server manual di HP.
+
+Untuk development lokal, tap **Pengaturan server** dan isi IP komputer:
 
 ```
 http://192.168.x.x:8000
@@ -63,13 +73,13 @@ Pastikan:
 2. HP dan PC **satu WiFi**
 3. Firewall PC izinkan port 8000
 
-Emulator Android otomatis pakai `http://10.0.2.2:8000`.
+Emulator Android (dev): `http://10.0.2.2:8000`.
 
-### Build dengan IP server baku (opsional)
+### Build dengan URL server kustom (opsional)
 
 ```bash
 flutter build apk --release \
-  --dart-define=API_BASE_URL=http://192.168.1.50:8000/api/v1
+  --dart-define=API_BASE_URL=http://148.230.98.125:8080/api/v1
 ```
 
 ## Menjalankan (development)
