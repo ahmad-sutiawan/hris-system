@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from apps.attendance.models import AttendanceRecord, DailyTimesheet
@@ -25,6 +26,25 @@ def _parse_punch_photo(request):
         return decode_selfie(photo_data)
     except PhotoError as exc:
         raise PunchError(str(exc)) from exc
+
+
+def attach_punch_records(timesheets, tenant) -> None:
+    if not timesheets:
+        return
+    records = AttendanceRecord.objects.filter(
+        tenant=tenant,
+        employee_id__in={row.employee_id for row in timesheets},
+        work_date__in={row.work_date for row in timesheets},
+    )
+    record_map = {(record.employee_id, record.work_date): record for record in records}
+    for row in timesheets:
+        row._punch_record = record_map.get((row.employee_id, row.work_date))
+
+
+class TimesheetPagination(PageNumberPagination):
+    page_size = 31
+    max_page_size = 120
+    page_size_query_param = "page_size"
 
 
 class AttendanceRecordViewSet(TenantScopedViewSet):
@@ -73,7 +93,7 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         try:
             photo = _parse_punch_photo(request)
             record = clock_in(profile, source=AttendanceRecord.Source.MOBILE, photo=photo)
-            return Response(AttendanceRecordSerializer(record).data)
+            return Response(AttendanceRecordSerializer(record, context={"request": request}).data)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -85,7 +105,7 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         try:
             photo = _parse_punch_photo(request)
             record = clock_out(profile, photo=photo)
-            return Response(AttendanceRecordSerializer(record).data)
+            return Response(AttendanceRecordSerializer(record, context={"request": request}).data)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -101,11 +121,34 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
     )
     serializer_class = DailyTimesheetSerializer
     filterset_fields = ["employee", "plant", "work_date", "calculation_status"]
+    pagination_class = TimesheetPagination
     http_method_names = ["get", "post", "head", "options"]
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return employee_scoped_queryset(self.request.user, qs)
+        qs = employee_scoped_queryset(self.request.user, qs)
+
+        work_date_from = self.request.query_params.get("work_date_from")
+        work_date_to = self.request.query_params.get("work_date_to")
+        if work_date_from:
+            qs = qs.filter(work_date__gte=work_date_from)
+        if work_date_to:
+            qs = qs.filter(work_date__lte=work_date_to)
+        return qs.order_by("-work_date")
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        items = list(page) if page is not None else list(queryset)
+        attach_punch_records(items, request.user.tenant)
+        serializer = self.get_serializer(
+            items,
+            many=True,
+            context=self.get_serializer_context(),
+        )
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["post"])
     def recalculate(self, request):
@@ -117,4 +160,5 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
 
         employee = Employee.objects.get(pk=employee_id, tenant=request.user.tenant)
         ts = recalculate_daily_timesheet(employee, work_date)
-        return Response(DailyTimesheetSerializer(ts).data)
+        attach_punch_records([ts], request.user.tenant)
+        return Response(DailyTimesheetSerializer(ts, context={"request": request}).data)

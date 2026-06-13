@@ -140,6 +140,46 @@ class ApiClient {
     return [];
   }
 
+  /// Fetch all pages for list endpoints (e.g. timesheet history).
+  Future<List<dynamic>> getPaginatedAll(
+    String path, {
+    Map<String, dynamic>? query,
+    int pageSize = 60,
+  }) async {
+    final merged = <dynamic>[];
+    var page = 1;
+    while (true) {
+      final params = {
+        ...?query,
+        'page': page,
+        'page_size': pageSize,
+      };
+      final data = await _getDynamic(path, query: params);
+      if (data is! Map || data['results'] is! List) {
+        if (data is List) return data;
+        break;
+      }
+      final batch = data['results'] as List;
+      merged.addAll(batch);
+      if (data['next'] == null || batch.isEmpty) break;
+      page += 1;
+      if (page > 20) break;
+    }
+    return merged;
+  }
+
+  /// Resolve media URL from API path or absolute URL using configured server base.
+  Future<String> resolveMediaUrl(String? urlOrPath) async {
+    if (urlOrPath == null || urlOrPath.isEmpty) return '';
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      return urlOrPath;
+    }
+    final apiBase = await loadBaseUrl();
+    final origin = apiBase.replaceAll(AppConfig.apiPathSuffix, '');
+    if (urlOrPath.startsWith('/')) return '$origin$urlOrPath';
+    return '$origin/$urlOrPath';
+  }
+
   Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? query}) {
     return _getMap(path, query: query);
   }
