@@ -57,6 +57,9 @@ ok "SECRET_KEY sudah diset"
 if [ "${HRIS_FIELD_ENCRYPTION_KEY:-}" = "generate-a-unique-32-char-secret-key" ] || [ -z "${HRIS_FIELD_ENCRYPTION_KEY:-}" ]; then
   fail "HRIS_FIELD_ENCRYPTION_KEY masih default. Generate: openssl rand -hex 32  lalu paste ke .env"
 fi
+if echo "${HRIS_FIELD_ENCRYPTION_KEY:-}" | grep -qiE 'PASTE_|GANTI_'; then
+  fail "HRIS_FIELD_ENCRYPTION_KEY masih placeholder. Generate: openssl rand -hex 32"
+fi
 ok "HRIS_FIELD_ENCRYPTION_KEY sudah diset"
 
 if echo "${ALLOWED_HOSTS:-}" | grep -q "your-server-ip"; then
@@ -77,7 +80,22 @@ if [ "$MODE" = "mysql" ]; then
   if [ -z "${MYSQL_ROOT_PASSWORD:-}" ] || [ "${MYSQL_ROOT_PASSWORD}" = "strong-root-password" ]; then
     fail "MYSQL_ROOT_PASSWORD masih default/kosong. Set password kuat di .env"
   fi
-  ok "Konfigurasi MySQL terdeteksi (DB_HOST=${DB_HOST:-mysql})"
+  if echo "${MYSQL_ROOT_PASSWORD:-}" | grep -qiE 'PASTE_|GANTI_'; then
+    fail "MYSQL_ROOT_PASSWORD masih placeholder (PASTE_/GANTI_). Generate: openssl rand -hex 32"
+  fi
+  if [ "${DB_USER:-}" = "root" ]; then
+    fail "DB_USER tidak boleh 'root'. Ganti: DB_USER=hris  (MySQL Docker tidak mendukung MYSQL_USER=root)"
+  fi
+  if [ "${DB_USER:-hris}" != "hris" ]; then
+    warn "DB_USER=${DB_USER} — container MySQL selalu buat user 'hris'. Set DB_USER=hris di .env agar Django cocok."
+  fi
+  if [ -z "${DB_USER:-}" ]; then
+    warn "DB_USER kosong — akan dipakai default 'hris'"
+  fi
+  if echo "${DB_PASSWORD:-}" | grep -q '[@# \$]'; then
+    warn 'DB_PASSWORD mengandung karakter spesial — amankan dengan tanda kutip di .env, contoh: DB_PASSWORD="pass@123"'
+  fi
+  ok "Konfigurasi MySQL terdeteksi (DB_NAME=${DB_NAME:-?}, DB_USER=${DB_USER}, DB_HOST=${DB_HOST:-mysql})"
 else
   if [ "${DB_ENGINE:-django.db.backends.sqlite3}" != "django.db.backends.sqlite3" ]; then
     warn "DB_ENGINE bukan SQLite tapi mode sqlite — pastikan sengaja"

@@ -73,10 +73,10 @@ docs/
 **Panduan lengkap (step-by-step, anti gagal):** [`deploy/DOCKER.md`](deploy/DOCKER.md)
 
 ```bash
-chmod +x scripts/*.sh
-bash scripts/generate-env.sh    # buat .env aman
-nano .env                       # sesuaikan IP server
-./scripts/docker-up.sh sqlite   # atau: mysql
+cp deploy/env.production.example .env   # production VPS
+nano .env                               # isi secret & password
+./scripts/docker-up.sh mysql            # production
+# atau: ./scripts/docker-up.sh sqlite   # uji coba
 docker compose exec web python manage.py seed_demo
 ```
 

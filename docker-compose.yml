@@ -22,7 +22,7 @@ services:
       DB_NAME: ${DB_NAME:-/app/data/db.sqlite3}
       DB_HOST: ${DB_HOST:-}
       DB_PORT: ${DB_PORT:-}
-      DB_USER: ${DB_USER:-}
+      DB_USER: ${DB_USER:-hris}
       DB_PASSWORD: ${DB_PASSWORD:-}
       DEBUG: ${DEBUG:-False}
       HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
@@ -61,19 +61,23 @@ services:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_NAME:-hris_lite}
-      MYSQL_USER: ${DB_USER:-hris}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-hris_secret}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secret}
+      MYSQL_DATABASE: ${DB_NAME:-hris_system}
+      # User MySQL HARUS bukan root (batasan image mysql:8.0)
+      MYSQL_USER: hris
+      MYSQL_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
     volumes:
       - mysql_data:/var/lib/mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=67108864
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
       timeout: 5s
-      retries: 8
-      start_period: 30s
+      retries: 12
+      start_period: 60s
 
   cron:
     profiles: ["mysql"]
@@ -84,10 +88,10 @@ services:
         required: false
     environment:
       DB_ENGINE: ${DB_ENGINE:-django.db.backends.mysql}
-      DB_NAME: ${DB_NAME:-hris_lite}
+      DB_NAME: ${DB_NAME:-hris_system}
       DB_HOST: mysql
       DB_PORT: ${DB_PORT:-3306}
-      DB_USER: ${DB_USER:-hris}
+      DB_USER: hris
       DB_PASSWORD: ${DB_PASSWORD:-hris_secret}
       HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
     volumes:

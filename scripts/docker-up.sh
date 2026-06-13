@@ -26,6 +26,7 @@ echo ""
 echo "=== Building & starting containers ==="
 if [ "$MODE" = "mysql" ]; then
   docker compose --profile mysql up -d --build
+  bash scripts/wait-mysql.sh
 else
   docker compose up -d --build
 fi
