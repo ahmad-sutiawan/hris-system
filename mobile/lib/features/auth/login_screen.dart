@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -68,16 +70,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             username,
             password,
             serverUrl: _showServer ? _serverCtrl.text.trim() : null,
-          );
+          ).timeout(const Duration(seconds: 45));
       if (!mounted) return;
       final auth = ref.read(authProvider);
       if (auth.isAuthenticated) {
         context.go('/home');
       }
+    } on TimeoutException {
+      if (mounted) {
+        setState(() {
+          _validationError =
+              'Login timeout. Periksa koneksi internet dan server HRIS.';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
-        await _loadServerUrl();
       }
     }
   }

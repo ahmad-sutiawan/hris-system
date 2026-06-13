@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -11,8 +12,12 @@ import '../config/app_config.dart';
 import 'api_exception.dart';
 
 class ApiClient {
+  static const _defaultStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+
   ApiClient({FlutterSecureStorage? storage})
-      : _storage = storage ?? const FlutterSecureStorage(),
+      : _storage = storage ?? _defaultStorage,
         _dio = Dio(
           BaseOptions(
             baseUrl: AppConfig.defaultBaseUrl,
@@ -24,13 +29,22 @@ class ApiClient {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          final token = await _storage.read(key: _accessKey);
-          if (token != null && token.isNotEmpty) {
-            options.headers['Authorization'] = 'Bearer $token';
+          final path = options.path;
+          final isAuthEndpoint = path.contains('/auth/token');
+          if (!isAuthEndpoint) {
+            final token = await _readStorage(_accessKey);
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
           }
           handler.next(options);
         },
         onError: (error, handler) async {
+          final path = error.requestOptions.path;
+          if (path.contains('/auth/token')) {
+            handler.next(error);
+            return;
+          }
           if (error.response?.statusCode == 401 &&
               error.requestOptions.extra['retried'] != true) {
             final refreshed = await _refreshToken();
@@ -38,7 +52,7 @@ class ApiClient {
               final opts = error.requestOptions;
               opts.extra['retried'] = true;
               opts.headers['Authorization'] =
-                  'Bearer ${await _storage.read(key: _accessKey)}';
+                  'Bearer ${await _readStorage(_accessKey)}';
               handler.resolve(await _dio.fetch(opts));
               return;
             }
@@ -59,8 +73,26 @@ class ApiClient {
   Dio get dio => _dio;
   String get baseUrl => _dio.options.baseUrl;
 
+  Future<String?> _readStorage(String key) async {
+    try {
+      return await _storage.read(key: key).timeout(const Duration(seconds: 8));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _writeStorage(String key, String value) async {
+    await _storage.write(key: key, value: value).timeout(const Duration(seconds: 8));
+  }
+
+  Future<void> _deleteStorage(String key) async {
+    try {
+      await _storage.delete(key: key).timeout(const Duration(seconds: 8));
+    } catch (_) {}
+  }
+
   Future<void> init() async {
-    final stored = await _storage.read(key: _baseUrlKey);
+    final stored = await _readStorage(_baseUrlKey);
     if (stored != null && stored.isNotEmpty) {
       _dio.options.baseUrl = stored;
     }
@@ -68,7 +100,7 @@ class ApiClient {
 
   Future<void> setBaseUrl(String url) async {
     final normalized = AppConfig.normalizeApiBaseUrl(url);
-    await _storage.write(key: _baseUrlKey, value: normalized);
+    await _writeStorage(_baseUrlKey, normalized);
     _dio.options.baseUrl = normalized;
   }
 
@@ -78,30 +110,34 @@ class ApiClient {
   }
 
   Future<void> setTokens({required String access, required String refresh}) async {
-    await _storage.write(key: _accessKey, value: access);
-    await _storage.write(key: _refreshKey, value: refresh);
+    await _writeStorage(_accessKey, access);
+    await _writeStorage(_refreshKey, refresh);
   }
 
   Future<void> clearTokens() async {
-    await _storage.delete(key: _accessKey);
-    await _storage.delete(key: _refreshKey);
+    await _deleteStorage(_accessKey);
+    await _deleteStorage(_refreshKey);
   }
 
   Future<bool> hasToken() async {
-    final token = await _storage.read(key: _accessKey);
+    final token = await _readStorage(_accessKey);
     return token != null && token.isNotEmpty;
   }
 
   Future<bool> _refreshToken() async {
-    final refresh = await _storage.read(key: _refreshKey);
+    final refresh = await _readStorage(_refreshKey);
     if (refresh == null) return false;
     try {
-      final res = await Dio(BaseOptions(baseUrl: _dio.options.baseUrl)).post(
+      final res = await Dio(BaseOptions(
+        baseUrl: _dio.options.baseUrl,
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 30),
+      )).post(
         '/auth/token/refresh/',
         data: {'refresh': refresh},
       );
       final access = res.data['access'] as String;
-      await _storage.write(key: _accessKey, value: access);
+      await _writeStorage(_accessKey, access);
       return true;
     } catch (_) {
       await clearTokens();
@@ -114,6 +150,7 @@ class ApiClient {
       final res = await _dio.post(
         '/auth/token/',
         data: {'username': username, 'password': password},
+        options: Options(extra: {'skipAuth': true}),
       );
       final data = res.data as Map<String, dynamic>;
       await setTokens(
@@ -123,6 +160,8 @@ class ApiClient {
       return data;
     } on DioException catch (e) {
       throw _wrap(e);
+    } on TimeoutException {
+      throw ApiException('Penyimpanan token timeout. Coba lagi.');
     }
   }
 

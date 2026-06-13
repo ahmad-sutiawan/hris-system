@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/api_client.dart';
@@ -62,17 +64,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> login(String username, String password, {String? serverUrl}) async {
-    state = state.copyWith(isLoading: true, clearError: true);
+    state = state.copyWith(clearError: true);
     try {
       if (serverUrl != null && serverUrl.trim().isNotEmpty) {
         await _api.setBaseUrl(serverUrl);
       }
-      await _api.login(username, password);
-      final ok = await _loadMe();
+      await _api.login(username, password).timeout(const Duration(seconds: 30));
+      final ok = await _loadMe().timeout(const Duration(seconds: 30));
       if (!ok) {
         await _api.clearTokens();
         state = state.copyWith(
-          isLoading: false,
           isAuthenticated: false,
           error: state.error ??
               'Login gagal. Periksa username, password, dan alamat server.',
@@ -80,20 +81,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
     } on ApiException catch (e) {
       state = state.copyWith(
-        isLoading: false,
         isAuthenticated: false,
         error: e.message,
       );
+    } on TimeoutException {
+      state = state.copyWith(
+        isAuthenticated: false,
+        error: 'Login timeout. Periksa koneksi internet dan server HRIS.',
+      );
     } catch (e) {
       state = state.copyWith(
-        isLoading: false,
         isAuthenticated: false,
         error: 'Terjadi kesalahan: $e',
       );
-    } finally {
-      if (state.isLoading) {
-        state = state.copyWith(isLoading: false);
-      }
     }
   }
 
@@ -142,5 +142,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(apiClientProvider));
+  return AuthNotifier(ref.read(apiClientProvider));
 });
