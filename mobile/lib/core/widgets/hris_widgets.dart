@@ -3,6 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
+/// Wrapper SafeArea standar — top selalu aman; bottom bisa dimatikan jika ada bottom nav.
+class HrisSafeBody extends StatelessWidget {
+  const HrisSafeBody({
+    super.key,
+    required this.child,
+    this.bottom = true,
+  });
+
+  final Widget child;
+  final bool bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: bottom,
+      child: child,
+    );
+  }
+}
+
 /// Latar belakang cerah dengan aksen purple-blue & gold.
 class HrisPageBackground extends StatelessWidget {
   const HrisPageBackground({super.key, required this.child});

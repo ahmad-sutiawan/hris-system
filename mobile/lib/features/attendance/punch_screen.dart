@@ -16,6 +16,7 @@ import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/shift_utils.dart';
 import '../../core/widgets/animated_interactions.dart';
+import '../../core/widgets/hris_widgets.dart';
 import '../home/home_screen.dart';
 
 enum _PunchStep { location, selfie }
@@ -263,7 +264,9 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
     return dashboard.when(
       loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppColors.chinaRed)),
+        body: HrisSafeBody(
+          child: Center(child: CircularProgressIndicator(color: AppColors.chinaRed)),
+        ),
       ),
       error: (e, _) => Scaffold(
         appBar: AppBar(title: Text(_title)),
@@ -278,7 +281,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
         return Scaffold(
           backgroundColor: AppColors.surface,
-          body: SafeArea(
+          body: HrisSafeBody(
             bottom: false,
             child: Column(
               children: [

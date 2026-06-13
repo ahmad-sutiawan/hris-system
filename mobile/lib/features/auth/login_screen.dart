@@ -59,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return HrisPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: SafeArea(
+        body: HrisSafeBody(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),

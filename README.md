@@ -68,27 +68,23 @@ docs/
 - **Tier B (MVP features):** Employee, attendance, leave, payroll flows — in progress
 - **Tier C (Scaffolded):** Hourly leave, OT before, THR, SSO — schema ready, logic later
 
-## Production (Docker — Ubuntu 24 / server)
+## Production (Docker)
 
-**SQLite (uji coba, satu perintah):**
+**Panduan lengkap (step-by-step, anti gagal):** [`deploy/DOCKER.md`](deploy/DOCKER.md)
 
 ```bash
-cp .env.example .env
-# Edit SECRET_KEY: openssl rand -hex 32
-chmod +x scripts/docker-up.sh
-./scripts/docker-up.sh sqlite
+chmod +x scripts/*.sh
+bash scripts/generate-env.sh    # buat .env aman
+nano .env                       # sesuaikan IP server
+./scripts/docker-up.sh sqlite   # atau: mysql
 docker compose exec web python manage.py seed_demo
 ```
 
-**MySQL 8 (production):** edit `.env` ke mode MySQL (lihat `.env.example`), lalu:
-
-```bash
-./scripts/docker-up.sh mysql
-docker compose exec web python manage.py seed_demo
-docker compose exec web python manage.py encrypt_employee_data
-```
-
-Panduan lengkap Ubuntu: [`deploy/UBUNTU.md`](deploy/UBUNTU.md)
+| Script | Fungsi |
+|---|---|
+| `scripts/docker-up.sh sqlite` | Deploy SQLite (default) |
+| `scripts/docker-up.sh mysql` | Deploy MySQL + cron backup |
+| `scripts/docker-verify.sh` | Cek health setelah deploy |
 
 | Service | Port | Keterangan |
 |---|---|---|

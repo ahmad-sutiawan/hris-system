@@ -16,7 +16,10 @@ class AppShell extends StatelessWidget {
     return HrisPageBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: navigationShell,
+        body: HrisSafeBody(
+          bottom: false,
+          child: navigationShell,
+        ),
         bottomNavigationBar: _ChinaBottomNav(
           currentIndex: navigationShell.currentIndex,
           onTap: navigationShell.goBranch,

@@ -1,36 +1,41 @@
 #!/usr/bin/env bash
-# Satu perintah deploy HRIS-Lite via Docker (Ubuntu 24 / lokal)
+# Deploy HRIS-Lite — satu perintah, dengan preflight & verifikasi.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [ ! -f .env ]; then
-  cp .env.example .env
-  echo "Created .env from .env.example — edit SECRET_KEY & ALLOWED_HOSTS before production."
-fi
-
 MODE="${1:-sqlite}"
 
-case "$MODE" in
-  sqlite)
-    docker compose up -d --build
-    ;;
-  mysql)
-    docker compose --profile mysql up -d --build
-    ;;
-  *)
-    echo "Usage: $0 [sqlite|mysql]"
-    exit 1
-    ;;
-esac
+if [ "$MODE" != "sqlite" ] && [ "$MODE" != "mysql" ]; then
+  echo "Usage: $0 [sqlite|mysql]"
+  echo ""
+  echo "  sqlite  — uji coba / staging (default, tanpa MySQL)"
+  echo "  mysql   — production (MySQL 8 + cron backup)"
+  exit 1
+fi
+
+if [ ! -f .env ]; then
+  echo "Membuat .env..."
+  bash scripts/generate-env.sh
+fi
+
+bash scripts/docker-preflight.sh "$MODE"
 
 echo ""
-echo "Waiting for health check..."
-sleep 5
-curl -fsS "http://127.0.0.1:${HTTP_PORT:-8080}/api/v1/health/" | head -c 200 || true
+echo "=== Building & starting containers ==="
+if [ "$MODE" = "mysql" ]; then
+  docker compose --profile mysql up -d --build
+else
+  docker compose up -d --build
+fi
+
+bash scripts/docker-verify.sh
+
 echo ""
+echo "=== Langkah berikutnya (opsional) ==="
+echo "  Seed demo:  docker compose exec web python manage.py seed_demo"
+echo "  Log live:   docker compose logs -f web nginx"
+echo "  Stop:       docker compose down"
 echo ""
-echo "HRIS-Lite running at http://127.0.0.1:${HTTP_PORT:-8080}"
-echo "Seed demo: docker compose exec web python manage.py seed_demo"
-echo "Logs:      docker compose logs -f web"
+echo "Login demo (setelah seed): admin / Admin123456!"
