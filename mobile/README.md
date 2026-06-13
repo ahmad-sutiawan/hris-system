@@ -107,4 +107,4 @@ Login demo: `budi` / `Employee123!`
 - Tanda tangani APK release dengan keystore perusahaan (bukan debug key)
 - Set `applicationId`: `id.bps.hris.employee`
 
-Lihat [`docs/API_FLUTTER.md`](../docs/API_FLUTTER.md) untuk dokumentasi API.
+Swagger API docs: `{SERVER_URL}/api/docs/` (contoh `http://127.0.0.1:8000/api/docs/`).

@@ -22,7 +22,7 @@ echo ""
 
 # Docker daemon
 if ! command -v docker >/dev/null 2>&1; then
-  fail "Docker belum terinstall. Lihat deploy/DOCKER.md bagian 'Install Docker'."
+  fail "Docker belum terinstall. Lihat README bagian Production (Docker)."
 fi
 if ! docker info >/dev/null 2>&1; then
   fail "Docker daemon tidak jalan. Jalankan: sudo systemctl start docker (lalu logout/login jika baru install)."
@@ -72,7 +72,7 @@ ok "ALLOWED_HOSTS: ${ALLOWED_HOSTS}"
 
 if [ "$MODE" = "mysql" ]; then
   if [ "${DB_ENGINE:-}" != "django.db.backends.mysql" ]; then
-    fail "Mode mysql but DB_ENGINE bukan MySQL. Edit .env — lihat deploy/DOCKER.md 'Mode MySQL'"
+    fail "Mode mysql but DB_ENGINE bukan MySQL. Edit .env — lihat .env.example"
   fi
   if [ -z "${DB_PASSWORD:-}" ] || [ "${DB_PASSWORD}" = "strong-db-password" ]; then
     fail "DB_PASSWORD masih default/kosong. Set password kuat di .env"

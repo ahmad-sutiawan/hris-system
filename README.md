@@ -57,9 +57,7 @@ apps/
   leave/         # Leave types, balance, requests
   payroll/       # Payroll run & payslip
   web/           # HTMX server-rendered views
-docs/
-  PRD.md         # Product requirements
-  TAD.md         # Technical architecture
+mobile/        # Flutter employee app
 ```
 
 ## Scope Tiers
@@ -70,20 +68,21 @@ docs/
 
 ## Production (Docker)
 
-**Panduan lengkap (step-by-step, anti gagal):** [`deploy/DOCKER.md`](deploy/DOCKER.md)
-
 ```bash
-cp deploy/env.production.example .env   # production VPS
-nano .env                               # isi secret & password
-./scripts/docker-up.sh mysql            # production
-# atau: ./scripts/docker-up.sh sqlite   # uji coba
+cp .env.example .env
+nano .env    # SECRET_KEY, ALLOWED_HOSTS, DB_* (lihat .env.example)
+chmod +x scripts/*.sh
+./scripts/docker-up.sh mysql     # production MySQL
+# ./scripts/docker-up.sh sqlite  # uji coba
 docker compose exec web python manage.py seed_demo
+docker compose exec web python manage.py encrypt_employee_data
 ```
 
 | Script | Fungsi |
 |---|---|
 | `scripts/docker-up.sh sqlite` | Deploy SQLite (default) |
 | `scripts/docker-up.sh mysql` | Deploy MySQL + cron backup |
+| `scripts/docker-preflight.sh` | Cek `.env` sebelum deploy |
 | `scripts/docker-verify.sh` | Cek health setelah deploy |
 
 | Service | Port | Keterangan |
@@ -101,6 +100,4 @@ python manage.py archive_audit_logs
 python manage.py backup_database
 ```
 
-## Documentation
-
-See [`docs/PRD.md`](docs/PRD.md), [`docs/TAD.md`](docs/TAD.md), and [`docs/API_FLUTTER.md`](docs/API_FLUTTER.md).
+Dokumentasi PRD/TAD/API Flutter disimpan lokal di folder `docs/` (tidak di repository).

@@ -18,3 +18,7 @@ dist/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Dokumentasi & panduan deploy lokal (tidak di-push — bisa berisi IP/password contoh)
+deploy/
+docs/
