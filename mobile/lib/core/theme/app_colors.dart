@@ -1,54 +1,100 @@
 import 'package:flutter/material.dart';
 
-/// Palet identik dengan `static/css/hris.css` (:root).
+/// Palet China modern — merah, emas & dark gold luxury.
 abstract final class AppColors {
-  static const bg = Color(0xFF0A0C10);
-  static const bgElevated = Color(0xFF11151C);
-  static const surface = Color(0xFF161B24);
-  static const surfaceHover = Color(0xFF1C2330);
+  // Brand China
+  static const chinaRed = Color(0xFFDE2910);
+  static const chinaRedDark = Color(0xFFB91C1C);
+  static const chinaRedLight = Color(0xFFFFEBEB);
 
-  static const border = Color(0x2E94A3B8); // rgba(148,163,184,0.18)
-  static const borderStrong = Color(0x5294A3B8); // rgba(148,163,184,0.32)
+  static const chinaGold = Color(0xFFF5C518);
+  static const chinaGoldDark = Color(0xFFD4A017);
+  static const chinaGoldLight = Color(0xFFFFF8E1);
 
-  static const text = Color(0xFFF3F6FB);
-  static const textMuted = Color(0xFFC4CEDA);
-  static const textDim = Color(0xFFA3B0C2);
+  // Dark gold — aksen premium
+  static const darkGold = Color(0xFF8B6914);
+  static const darkGoldRich = Color(0xFF5C4A1E);
+  static const darkGoldLight = Color(0xFFF5EDD6);
+  static const darkGoldMuted = Color(0xFFE8DCC4);
 
-  static const accent = Color(0xFFF59E0B);
-  static const accentHover = Color(0xFFFBBF24);
-  static const accentGlow = Color(0x40F59E0B); // rgba(245,158,11,0.25)
+  // Surfaces (tema cerah)
+  static const bg = Color(0xFFF7F5F0);
+  static const bgElevated = Color(0xFFFFFFFF);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceHover = Color(0xFFFAFAF8);
 
-  static const cyan = Color(0xFF22D3EE);
-  static const cyanDim = Color(0x2622D3EE);
+  static const border = Color(0xFFE8E4DC);
+  static const borderStrong = Color(0xFFD4CFC4);
 
-  static const success = Color(0xFF34D399);
-  static const successDim = Color(0x1F34D399);
+  static const text = Color(0xFF1F2937);
+  static const textMuted = Color(0xFF6B7280);
+  static const textDim = Color(0xFF9CA3AF);
 
-  static const danger = Color(0xFFFB7185);
-  static const dangerDim = Color(0x1FFB7185);
+  // Brand aliases
+  static const accent = chinaRed;
+  static const accentHover = chinaRedDark;
+  static const accentGlow = Color(0x33DE2910);
+  static const accentSoft = chinaRedLight;
+  static const accentBorder = Color(0x66DE2910);
 
-  static const warning = Color(0xFFFBBF24);
-  static const warningDim = Color(0x1FFBBF24);
+  static const cyan = darkGold;
+  static const cyanDim = darkGoldLight;
 
-  static const info = Color(0xFF60A5FA);
-  static const infoDim = Color(0x1F60A5FA);
+  static const success = Color(0xFF059669);
+  static const successDim = Color(0xFFECFDF5);
 
-  static const sidebarGradientTop = Color(0xFF0E1219);
-  static const sidebarGradientBottom = Color(0xFF0A0C10);
+  static const danger = Color(0xFFDC2626);
+  static const dangerDim = Color(0xFFFEF2F2);
 
-  // Alias untuk kompatibilitas widget lama
+  static const warning = darkGold;
+  static const warningDim = darkGoldLight;
+
+  static const info = Color(0xFF2563EB);
+  static const infoDim = Color(0xFFEFF6FF);
+
+  static const sidebarGradientTop = chinaRed;
+  static const sidebarGradientBottom = chinaRedDark;
+
   static const textPrimary = text;
   static const textSecondary = textMuted;
   static const error = danger;
   static const errorSoft = dangerDim;
-  static const accentSoft = Color(0x1FF59E0B);
-  static const accentBorder = Color(0xA6F59E0B);
-  static const surfaceMuted = surfaceHover;
-  static const navBar = bgElevated;
+  static const surfaceMuted = Color(0xFFF3F0EA);
+  static const navBar = surface;
   static const steel700 = textMuted;
   static const steel500 = textDim;
   static const steel300 = textDim;
   static const infoSoft = infoDim;
   static const successSoft = successDim;
-  static const warningSoft = warningDim;
+  static const warningSoft = darkGoldLight;
+
+  static const onPrimary = Color(0xFFFFFFFF);
+  static const onGold = Color(0xFF422006);
+  static const onDarkGold = Color(0xFFFFFDF7);
+
+  static const cardShadow = Color(0x12000000);
+
+  static const headerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [chinaRed, chinaRedDark],
+  );
+
+  static const goldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFF5C518), darkGold],
+  );
+
+  static const darkGoldGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [darkGold, darkGoldRich],
+  );
+
+  static const premiumGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [chinaRedDark, darkGoldRich],
+  );
 }

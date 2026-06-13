@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
+import '../../core/widgets/talenta_widgets.dart';
 import '../home/home_screen.dart';
 
 class MenuScreen extends ConsumerWidget {
@@ -24,113 +25,99 @@ class MenuScreen extends ConsumerWidget {
       data: (d) => d['active_announcements'] as int? ?? 0,
       orElse: () => 0,
     );
+    final name = employee?['full_name'] ?? auth.user?['username'] ?? '';
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset('assets/images/logo.png', height: 24),
-            const SizedBox(width: 10),
-            const Text('Akun Saya'),
+      body: RefreshIndicator(
+        color: AppColors.accent,
+        onRefresh: () async => ref.invalidate(dashboardProvider),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: HomeGreetingHeader(
+                name: name,
+                subtitle: employee?['employee_id'] ?? '',
+                onAvatarTap: () => context.push('/profile'),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              sliver: SliverToBoxAdapter(
+                child: ProfileInfoCard(
+                  department: employee?['department_name'] as String?,
+                  jobTitle: employee?['job_title'] as String?,
+                  managerName: employee?['manager_name'] as String?,
+                  onTap: () => context.push('/profile'),
+                ),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: HomeSectionHeader(title: 'Menu akun'),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _MenuTile(
+                    icon: Icons.mail_outline_rounded,
+                    label: 'Kotak Masuk',
+                    badge: unread > 0 ? '$unread' : null,
+                    onTap: () => context.go('/inbox'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.campaign_outlined,
+                    label: 'Pengumuman',
+                    badge: announcements > 0 ? '$announcements' : null,
+                    onTap: () => context.push('/announcements'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.apps_rounded,
+                    label: 'Semua Aplikasi',
+                    onTap: () => context.push('/all-apps'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.calendar_month_outlined,
+                    label: 'Rekap Absensi',
+                    onTap: () => context.go('/attendance'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.beach_access_outlined,
+                    label: 'Pengajuan Cuti',
+                    onTap: () => context.push('/leave'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.more_time_outlined,
+                    label: 'Pengajuan Lembur',
+                    onTap: () => context.push('/overtime'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'Slip Gaji',
+                    onTap: () => context.push('/payslips'),
+                  ),
+                  _MenuTile(
+                    icon: Icons.add_circle_outline_rounded,
+                    label: 'Buat Pengajuan',
+                    onTap: () => context.go('/request'),
+                  ),
+                  const SizedBox(height: 20),
+                  PrimaryButton(
+                    label: 'Keluar',
+                    secondary: true,
+                    icon: Icons.logout,
+                    onPressed: () async {
+                      await ref.read(authProvider.notifier).logout();
+                      if (context.mounted) context.go('/login');
+                    },
+                  ),
+                  const SizedBox(height: 100),
+                ]),
+              ),
+            ),
           ],
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          HrisCard(
-            showAccentBar: true,
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: AppColors.accentSoft,
-                  child: Icon(Icons.person, size: 32, color: AppColors.accent),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        employee?['full_name'] ?? auth.user?['username'] ?? '',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        employee?['employee_id'] ?? '',
-                        style: const TextStyle(color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => context.push('/profile'),
-                  child: const Text('Detail'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          const SectionHeader(title: 'Utama', subtitle: 'Sama seperti menu web'),
-          const SizedBox(height: 8),
-          _MenuTile(
-            icon: Icons.notifications_outlined,
-            label: 'Notifikasi',
-            badge: unread > 0 ? '$unread' : null,
-            onTap: () => context.push('/notifications'),
-          ),
-          _MenuTile(
-            icon: Icons.campaign_outlined,
-            label: 'Pengumuman',
-            badge: announcements > 0 ? '$announcements' : null,
-            onTap: () => context.push('/announcements'),
-          ),
-          _MenuTile(
-            icon: Icons.badge_outlined,
-            label: 'Detail Karyawan',
-            onTap: () => context.push('/profile'),
-          ),
-          const SizedBox(height: 16),
-          const SectionHeader(title: 'Operasional'),
-          const SizedBox(height: 8),
-          _MenuTile(
-            icon: Icons.calendar_month_outlined,
-            label: 'Rekap Absensi',
-            onTap: () => context.go('/attendance'),
-          ),
-          _MenuTile(
-            icon: Icons.beach_access_outlined,
-            label: 'Pengajuan Cuti',
-            onTap: () => context.go('/leave'),
-          ),
-          _MenuTile(
-            icon: Icons.more_time_outlined,
-            label: 'Pengajuan Lembur',
-            onTap: () => context.go('/overtime'),
-          ),
-          const SizedBox(height: 16),
-          const SectionHeader(title: 'Keuangan'),
-          const SizedBox(height: 8),
-          _MenuTile(
-            icon: Icons.receipt_long_outlined,
-            label: 'Slip Gaji',
-            onTap: () => context.push('/payslips'),
-          ),
-          const SizedBox(height: 28),
-          PrimaryButton(
-            label: 'Keluar',
-            secondary: true,
-            icon: Icons.logout,
-            onPressed: () async {
-              await ref.read(authProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
-            },
-          ),
-        ],
       ),
     );
   }
@@ -152,46 +139,60 @@ class _MenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: HrisCard(
-        onTap: onTap,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-        child: ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Container(
-            padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
             ),
-            child: Icon(icon, color: AppColors.steel700),
-          ),
-          title: Text(
-            label,
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
-          ),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (badge != null)
+            child: Row(
+              children: [
                 Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  width: 44,
+                  height: 44,
                   decoration: BoxDecoration(
-                    color: AppColors.accent,
+                    color: AppColors.chinaRedLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Icon(icon, color: AppColors.chinaRed, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Text(
-                    badge!,
-                    style: const TextStyle(
-                      color: Color(0xFF0A0C10),
-                      fontSize: 12,
+                    label,
+                    style: GoogleFonts.plusJakartaSans(
                       fontWeight: FontWeight.w700,
+                      fontSize: 15,
                     ),
                   ),
                 ),
-              const Icon(Icons.chevron_right, color: AppColors.textMuted),
-            ],
+                if (badge != null)
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.chinaRed,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      badge!,
+                      style: const TextStyle(
+                        color: AppColors.onPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+              ],
+            ),
           ),
         ),
       ),

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/shift_utils.dart';
+import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/hris_widgets.dart';
+import '../../core/widgets/talenta_widgets.dart';
 
 final dashboardProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getDashboard();
@@ -25,477 +27,256 @@ class HomeScreen extends ConsumerWidget {
     final employeeId = employee?['employee_id'] ?? '';
 
     return RefreshIndicator(
-      color: AppColors.accent,
+      color: AppColors.chinaRed,
+      backgroundColor: AppColors.surface,
       onRefresh: () async => ref.invalidate(dashboardProvider),
-      child: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            floating: true,
-            pinned: true,
-            backgroundColor: AppColors.bgElevated,
-            title: Row(
-              children: [
-                Image.asset(
-                  'assets/images/logo.png',
-                  height: 28,
-                  fit: BoxFit.contain,
+      child: dashboard.when(
+        loading: () => const CustomScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        ),
+        error: (e, _) => CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverFillRemaining(
+              child: EmptyState(
+                icon: Icons.cloud_off,
+                title: 'Gagal memuat dashboard',
+                subtitle: '$e',
+              ),
+            ),
+          ],
+        ),
+        data: (data) {
+          final punchUi = data['punch_ui'] as Map<String, dynamic>? ?? {};
+          final shift = data['today_shift'] as Map<String, dynamic>?;
+          final record = data['today_record'] as Map<String, dynamic>?;
+          final fmt = DateFormat('HH:mm');
+          final dateFmt = DateFormat('EEE, dd MMM yyyy');
+
+          String? checkInLabel;
+          String? checkOutLabel;
+          if (record?['check_in'] != null) {
+            checkInLabel = fmt.format(
+              DateTime.parse(record!['check_in'] as String).toLocal(),
+            );
+          }
+          if (record?['check_out'] != null) {
+            checkOutLabel = fmt.format(
+              DateTime.parse(record!['check_out'] as String).toLocal(),
+            );
+          }
+
+          final announcementItems =
+              (data['featured_announcements'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          final directReports =
+              (data['direct_reports'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          final teamColleagues =
+              (data['team_colleagues'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          final teamMembers = directReports.isNotEmpty ? directReports : teamColleagues;
+          final teamTitle =
+              directReports.isNotEmpty ? 'Bawahan langsung' : 'Rekan tim';
+          final upcomingShifts =
+              (data['upcoming_shifts'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+          final pending = data['pending_requests'] as Map<String, dynamic>? ?? {};
+          final pendingLeave = pending['leave'] as int? ?? 0;
+          final pendingOvertime = pending['overtime'] as int? ?? 0;
+          final leaveBalances = data['leave_balances'] as List? ?? [];
+          var sectionIndex = 0;
+
+          Widget section(Widget child) {
+            final index = sectionIndex++;
+            return SliverToBoxAdapter(
+              child: FadeSlideIn(index: index, child: child),
+            );
+          }
+
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: HomeGreetingHeader(
+                  name: name,
+                  subtitle: employeeId.isNotEmpty ? employeeId : null,
+                  onAvatarTap: () => context.push('/profile'),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              section(
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.section),
+                  child: ShiftScheduleCard(
+                    dateLabel: 'Jadwal shift ${dateFmt.format(DateTime.now())}',
+                    location: shiftLocationLabel(shift, employee: employee),
+                    timeRange: formatShiftTimeRange(shift),
+                    canClockIn: punchUi['can_clock_in'] as bool? ?? true,
+                    canClockOut: punchUi['can_clock_out'] as bool? ?? true,
+                    checkInLabel: checkInLabel,
+                    checkOutLabel: checkOutLabel,
+                    onClockIn: () => context.push('/punch?action=in'),
+                    onClockOut: () => context.push('/punch?action=out'),
+                  ),
+                ),
+              ),
+              if (pendingLeave > 0 || pendingOvertime > 0)
+                section(
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.item),
+                    child: PendingRequestsStrip(
+                      leaveCount: pendingLeave,
+                      overtimeCount: pendingOvertime,
+                      onLeaveTap: () => context.push('/leave'),
+                      onOvertimeTap: () => context.push('/overtime'),
+                    ),
+                  ),
+                ),
+              section(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const GoldSectionTitle(title: 'Menu cepat'),
+                    GoldPanel(
+                      padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
+                      child: TalentaAppGrid(items: _homeQuickApps(context)),
+                    ),
+                  ],
+                ),
+              ),
+              if (leaveBalances.isNotEmpty)
+                section(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        'Halo, ${name.split(' ').first}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      if (employeeId.isNotEmpty)
-                        Text(
-                          employeeId,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textMuted,
-                          ),
-                        ),
+                      const GoldSectionTitle(title: 'Saldo cuti'),
+                      LeaveBalanceStrip(balances: leaveBalances),
                     ],
                   ),
                 ),
-              ],
-            ),
-            actions: [
-              IconButton(
-                tooltip: 'Notifikasi',
-                icon: const Icon(Icons.notifications_outlined),
-                onPressed: () => context.push('/notifications'),
-              ),
-              IconButton(
-                tooltip: 'Pengumuman',
-                icon: const Icon(Icons.campaign_outlined),
-                onPressed: () => context.push('/announcements'),
-              ),
-            ],
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            sliver: dashboard.when(
-              loading: () => const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, _) => SliverFillRemaining(
-                child: EmptyState(
-                  icon: Icons.cloud_off,
-                  title: 'Gagal memuat dashboard',
-                  subtitle: '$e',
-                ),
-              ),
-              data: (data) => SliverList(
-                delegate: SliverChildListDelegate([
-                  _PunchSection(data: data),
-                  const SizedBox(height: 16),
-                  _QuickActions(),
-                  const SizedBox(height: 16),
-                  if ((data['leave_balances'] as List?)?.isNotEmpty ?? false)
-                    _LeaveBalances(balances: data['leave_balances'] as List),
-                  const SizedBox(height: 16),
-                  _TodaySummary(data: data),
-                  const SizedBox(height: 16),
-                  if ((data['recent_notifications'] as List?)?.isNotEmpty ?? false)
-                    _RecentNotifications(items: data['recent_notifications'] as List),
-                ]),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PunchSection extends StatelessWidget {
-  const _PunchSection({required this.data});
-
-  final Map<String, dynamic> data;
-
-  @override
-  Widget build(BuildContext context) {
-    final punchUi = data['punch_ui'] as Map<String, dynamic>? ?? {};
-    final status = punchUi['status'] as String? ?? 'pending';
-    final record = data['today_record'] as Map<String, dynamic>?;
-    final fmt = DateFormat('HH:mm');
-
-    String statusText;
-    Color statusColor;
-    IconData statusIcon;
-    switch (status) {
-      case 'in':
-        statusText = 'Anda sedang bekerja';
-        statusColor = AppColors.success;
-        statusIcon = Icons.check_circle_outline;
-      case 'out':
-        statusText = 'Anda sudah pulang hari ini';
-        statusColor = AppColors.info;
-        statusIcon = Icons.logout;
-      default:
-        statusText = 'Belum absen hari ini';
-        statusColor = AppColors.warning;
-        statusIcon = Icons.schedule;
-    }
-
-    return HrisCard(
-      showAccentBar: true,
-      accentColor: statusColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(statusIcon, color: statusColor, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      statusText,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+              if (announcementItems.isNotEmpty)
+                section(
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.item),
+                    child: PromoBannerCarousel(
+                      items: announcementItems,
+                      onTap: (item) => context.push('/announcements/${item['id']}'),
                     ),
-                    if (record?['check_in'] != null)
-                      Text(
-                        'Masuk ${fmt.format(DateTime.parse(record!['check_in'] as String).toLocal())}'
-                        '${record['check_out'] != null ? ' · Pulang ${fmt.format(DateTime.parse(record['check_out'] as String).toLocal())}' : ''}',
-                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: PrimaryButton(
-                  label: 'Absen Masuk',
-                  icon: Icons.login,
-                  onPressed: () => context.push('/punch?action=in'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: PrimaryButton(
-                  label: 'Absen Pulang',
-                  icon: Icons.logout,
-                  secondary: true,
-                  onPressed: () => context.push('/punch?action=out'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickActions extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(title: 'Menu cepat'),
-        const SizedBox(height: 12),
-        GridView.count(
-          crossAxisCount: 4,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: 0.82,
-          children: [
-            QuickActionTile(
-              icon: Icons.beach_access,
-              label: 'Ajukan Cuti',
-              color: AppColors.info,
-              onTap: () => context.push('/leave/new'),
-            ),
-            QuickActionTile(
-              icon: Icons.more_time,
-              label: 'Ajukan Lembur',
-              color: AppColors.accent,
-              onTap: () => context.push('/overtime/new'),
-            ),
-            QuickActionTile(
-              icon: Icons.receipt_long,
-              label: 'Slip Gaji',
-              color: AppColors.success,
-              onTap: () => context.push('/payslips'),
-            ),
-            QuickActionTile(
-              icon: Icons.badge_outlined,
-              label: 'Profil Saya',
-              color: AppColors.steel700,
-              onTap: () => context.push('/profile'),
-            ),
-            QuickActionTile(
-              icon: Icons.calendar_month,
-              label: 'Rekap Absensi',
-              color: AppColors.steel500,
-              onTap: () => context.go('/attendance'),
-            ),
-            QuickActionTile(
-              icon: Icons.notifications,
-              label: 'Notifikasi',
-              color: AppColors.warning,
-              onTap: () => context.push('/notifications'),
-            ),
-            QuickActionTile(
-              icon: Icons.campaign,
-              label: 'Pengumuman',
-              color: AppColors.info,
-              onTap: () => context.push('/announcements'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _LeaveBalances extends StatelessWidget {
-  const _LeaveBalances({required this.balances});
-
-  final List balances;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(title: 'Saldo cuti'),
-        const SizedBox(height: 10),
-        SizedBox(
-          height: 88,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: balances.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (context, i) {
-              final b = balances[i] as Map<String, dynamic>;
-              return Container(
-                width: 140,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '${b['leave_type_code'] ?? '—'}',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: AppColors.accent,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sisa ${b['remaining']} hari',
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TodaySummary extends StatelessWidget {
-  const _TodaySummary({required this.data});
-
-  final Map<String, dynamic> data;
-
-  @override
-  Widget build(BuildContext context) {
-    final shift = data['today_shift'] as Map<String, dynamic>?;
-    final payslip = data['latest_payslip'] as Map<String, dynamic>?;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SectionHeader(title: 'Informasi hari ini'),
-        const SizedBox(height: 10),
-        if (shift != null)
-          HrisCard(
-            onTap: () => context.push('/profile'),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.infoSoft,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.schedule, color: AppColors.info),
-              ),
-              title: Text('Shift ${shift['shift_code'] ?? '—'}'),
-              subtitle: Text('${shift['shift_name'] ?? ''}'),
-            ),
-          ),
-        if (payslip != null) ...[
-          const SizedBox(height: 10),
-          HrisCard(
-            onTap: () => context.push('/payslips'),
-            child: ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.successSoft,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.payments_outlined, color: AppColors.success),
-              ),
-              title: const Text('Slip gaji terakhir'),
-              subtitle: Text(
-                '${payslip['period_start']} — ${payslip['period_end']}\nNet: Rp ${payslip['net_amount']}',
-              ),
-            ),
-          ),
-        ],
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _InfoChip(
-                icon: Icons.notifications,
-                label: 'Notifikasi baru',
-                value: '${data['unread_notifications'] ?? 0}',
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _InfoChip(
-                icon: Icons.campaign,
-                label: 'Pengumuman',
-                value: '${data['active_announcements'] ?? 0}',
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return HrisCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.accent, size: 22),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                Text(
-                  value,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RecentNotifications extends StatelessWidget {
-  const _RecentNotifications({required this.items});
-
-  final List items;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SectionHeader(
-          title: 'Notifikasi terbaru',
-          trailing: TextButton(
-            onPressed: () => context.push('/notifications'),
-            child: const Text('Lihat semua'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        ...items.take(3).map((n) {
-          final item = n as Map<String, dynamic>;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: HrisCard(
-              onTap: () => context.push('/notifications'),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  item['title'] ?? '',
-                  style: TextStyle(
-                    fontWeight: item['is_read'] == true ? FontWeight.w500 : FontWeight.w700,
+              if (teamMembers.isNotEmpty)
+                section(
+                  Column(
+                    children: [
+                      GoldSectionTitle(
+                        title: teamTitle,
+                        actionLabel: 'Lihat aktivitas',
+                        onAction: () => context.go('/attendance'),
+                      ),
+                      DirectReportsRow(
+                        members: teamMembers,
+                        onTap: () => context.go('/attendance'),
+                      ),
+                    ],
                   ),
                 ),
-                subtitle: Text(
-                  item['message'] ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: item['is_read'] == true
-                    ? null
-                    : Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: AppColors.accent,
-                          shape: BoxShape.circle,
-                        ),
+              if (upcomingShifts.isNotEmpty)
+                section(
+                  Column(
+                    children: [
+                      GoldSectionTitle(
+                        title: 'Jadwal mendatang',
+                        actionLabel: 'Kalender',
+                        onAction: () => context.push('/calendar'),
                       ),
+                      UpcomingShiftsPreview(
+                        shifts: upcomingShifts,
+                        formatTimeRange: formatShiftTimeRange,
+                        onTap: () => context.push('/calendar'),
+                      ),
+                    ],
+                  ),
+                ),
+              if ((data['recent_notifications'] as List?)?.isNotEmpty ?? false)
+                section(
+                  Column(
+                    children: [
+                      GoldSectionTitle(
+                        title: 'Kotak masuk',
+                        actionLabel: 'Lihat semua',
+                        onAction: () => context.go('/inbox'),
+                      ),
+                      ...((data['recent_notifications'] as List).take(3).map((n) {
+                        final item = n as Map<String, dynamic>;
+                        return InboxPreviewTile(
+                          title: item['title'] ?? '',
+                          message: item['message'] ?? '',
+                          unread: item['is_read'] != true,
+                          onTap: () => context.go('/inbox'),
+                        );
+                      })),
+                    ],
+                  ),
+                ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.bottomNav),
               ),
-            ),
+            ],
           );
-        }),
-      ],
+        },
+      ),
     );
   }
+
+  static List<TalentaAppGridItem> _homeQuickApps(BuildContext context) => [
+        TalentaAppGridItem(
+          icon: Icons.beach_access_rounded,
+          label: 'Cuti',
+          color: AppColors.chinaRed,
+          onTap: () => context.push('/leave/new'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.more_time_rounded,
+          label: 'Lembur',
+          color: AppColors.darkGold,
+          onTap: () => context.push('/overtime/new'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.location_on_rounded,
+          label: 'Absen Live',
+          color: AppColors.chinaRedDark,
+          onTap: () => context.push('/punch?action=in'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.history_rounded,
+          label: 'Log Absensi',
+          color: AppColors.darkGoldRich,
+          onTap: () => context.go('/attendance'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.receipt_long_rounded,
+          label: 'Slip Gaji',
+          color: AppColors.success,
+          onTap: () => context.push('/payslips'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.calendar_month_rounded,
+          label: 'Kalender',
+          color: AppColors.darkGold,
+          onTap: () => context.push('/calendar'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.campaign_rounded,
+          label: 'Pengumuman',
+          color: AppColors.chinaRed,
+          onTap: () => context.push('/announcements'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.apps_rounded,
+          label: 'Semua App',
+          color: AppColors.textMuted,
+          onTap: () => context.push('/all-apps'),
+        ),
+      ];
 }

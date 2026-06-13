@@ -29,11 +29,11 @@ Aplikasi mobile **employee-only** untuk HRIS-Lite — terhubung ke REST API Djan
 cd mobile
 flutter pub get
 
-# APK release (siap install)
+# APK release (siap install) — ~57 MB
 flutter build apk --release
 ```
 
-File APK hasil build:
+**APK terbaru (jika sudah pernah build):**
 
 ```
 mobile/build/app/outputs/flutter-apk/app-release.apk

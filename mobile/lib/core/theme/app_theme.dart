@@ -4,22 +4,25 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 abstract final class AppTheme {
-  static ThemeData get dark {
+  static const _radius = 14.0;
+
+  static ThemeData get light {
     final textTheme = GoogleFonts.plusJakartaSansTextTheme(
-      ThemeData(brightness: Brightness.dark).textTheme,
+      ThemeData(brightness: Brightness.light).textTheme,
     );
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bg,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.accent,
-        onPrimary: Color(0xFF0A0C10),
-        secondary: AppColors.cyan,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.chinaRed,
+        onPrimary: AppColors.onPrimary,
+        secondary: AppColors.chinaGold,
+        onSecondary: AppColors.onGold,
         surface: AppColors.surface,
-        error: AppColors.danger,
         onSurface: AppColors.text,
+        error: AppColors.danger,
       ),
       dividerColor: AppColors.border,
       textTheme: textTheme.apply(
@@ -27,14 +30,14 @@ abstract final class AppTheme {
         displayColor: AppColors.text,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.bgElevated,
+        backgroundColor: AppColors.surface,
         foregroundColor: AppColors.text,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: GoogleFonts.plusJakartaSans(
           fontSize: 17,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: AppColors.text,
         ),
         iconTheme: const IconThemeData(color: AppColors.textMuted),
@@ -44,37 +47,39 @@ abstract final class AppTheme {
         color: AppColors.surface,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(_radius),
+          side: const BorderSide(color: AppColors.border),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.bgElevated,
+        fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(_radius),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.circular(_radius),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.zero,
-          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+          borderRadius: BorderRadius.circular(_radius),
+          borderSide: const BorderSide(color: AppColors.chinaRed, width: 1.5),
         ),
         labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 15),
         hintStyle: const TextStyle(color: AppColors.textDim),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: const Color(0xFF0A0C10),
+          backgroundColor: AppColors.chinaRed,
+          foregroundColor: AppColors.onPrimary,
           elevation: 0,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size.fromHeight(50),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w700,
@@ -83,10 +88,12 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.text,
-          minimumSize: const Size.fromHeight(48),
-          side: BorderSide(color: AppColors.borderStrong),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          foregroundColor: AppColors.chinaRed,
+          minimumSize: const Size.fromHeight(50),
+          side: const BorderSide(color: AppColors.chinaRed),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(_radius),
+          ),
           textStyle: GoogleFonts.plusJakartaSans(
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -94,22 +101,21 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.accent,
-        foregroundColor: Color(0xFF0A0C10),
-        elevation: 2,
+        backgroundColor: AppColors.chinaRed,
+        foregroundColor: AppColors.onPrimary,
+        elevation: 4,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.surface,
-        contentTextStyle: GoogleFonts.plusJakartaSans(color: AppColors.text),
+        backgroundColor: AppColors.text,
+        contentTextStyle: GoogleFonts.plusJakartaSans(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.zero,
-          side: BorderSide(color: AppColors.border),
+          borderRadius: BorderRadius.all(Radius.circular(_radius)),
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.bgElevated,
-        selectedItemColor: AppColors.accent,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.chinaRed,
         unselectedItemColor: AppColors.textDim,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -122,6 +128,6 @@ abstract final class AppTheme {
     );
   }
 
-  /// Alias — tema utama selalu dark (sama web).
-  static ThemeData get light => dark;
+  /// Alias — mobile pakai tema cerah China.
+  static ThemeData get dark => light;
 }

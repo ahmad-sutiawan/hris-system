@@ -6,7 +6,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("SECRET_KEY", default="django-insecure-dev-only-change-in-production")
 DEBUG = config("DEBUG", default=True, cast=bool)
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="127.0.0.1,localhost", cast=Csv())
+_allowed_hosts = config("ALLOWED_HOSTS", default="", cast=Csv())
+if _allowed_hosts:
+    ALLOWED_HOSTS = _allowed_hosts
+elif DEBUG:
+    # Dev: izinkan akses dari HP/emulator via IP LAN (runserver 0.0.0.0:8000)
+    ALLOWED_HOSTS = ["*"]
+else:
+    ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -161,6 +168,8 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://127.0.0.1:8000,http://localhost:8000",
     cast=Csv(),
 )
+# Flutter web dev server (port bervariasi per sesi)
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=DEBUG, cast=bool)
 
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND",

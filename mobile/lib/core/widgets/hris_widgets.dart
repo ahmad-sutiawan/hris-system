@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
-/// Latar belakang identik nuansa web (`body.hris-body`).
+/// Latar belakang cerah dengan aksen merah-emas China.
 class HrisPageBackground extends StatelessWidget {
   const HrisPageBackground({super.key, required this.child});
 
@@ -12,51 +12,48 @@ class HrisPageBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        color: AppColors.bg,
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF0E1219),
+            const Color(0xFFFFF9F5),
             AppColors.bg,
-            Color(0xFF0A0C10),
+            AppColors.darkGoldLight.withValues(alpha: 0.25),
           ],
         ),
       ),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Amber glow kiri atas (web ::before)
           Positioned(
-            top: -80,
-            left: -60,
+            top: -100,
+            right: -60,
             child: Container(
-              width: 280,
-              height: 280,
+              width: 260,
+              height: 260,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.accent.withValues(alpha: 0.11),
+                    AppColors.darkGold.withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
-          // Cyan glow kanan atas
           Positioned(
             top: -40,
-            right: -80,
+            left: -80,
             child: Container(
-              width: 240,
-              height: 240,
+              width: 220,
+              height: 220,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.cyan.withValues(alpha: 0.08),
+                    AppColors.chinaRed.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -92,12 +89,13 @@ class HrisCard extends StatelessWidget {
     final card = Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x59000000),
-            blurRadius: 48,
-            offset: Offset(0, 24),
+            color: AppColors.cardShadow,
+            blurRadius: 20,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -106,9 +104,15 @@ class HrisCard extends StatelessWidget {
           if (showAccentBar)
             Positioned(
               left: 0,
-              top: 0,
-              bottom: 0,
-              child: Container(width: 3, color: accent),
+              top: 12,
+              bottom: 12,
+              child: Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: accent,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
             ),
           Padding(padding: padding, child: child),
         ],
@@ -120,6 +124,7 @@ class HrisCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: card,
       ),
     );
@@ -152,7 +157,7 @@ class SectionHeader extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
+                  letterSpacing: 0.5,
                   color: AppColors.textMuted,
                 ),
               ),
@@ -245,7 +250,8 @@ class StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: _bg,
-        border: Border.all(color: _color.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _color.withValues(alpha: 0.25)),
       ),
       child: Text(
         statusLabel(status),
@@ -284,6 +290,7 @@ class EmptyState extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
               ),
               child: Icon(icon, size: 40, color: AppColors.textDim),
@@ -343,7 +350,7 @@ class PrimaryButton extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: secondary ? AppColors.text : const Color(0xFF0A0C10),
+              color: secondary ? AppColors.chinaRed : AppColors.onPrimary,
             ),
           )
         else if (icon != null) ...[
@@ -379,24 +386,34 @@ class QuickActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = color ?? AppColors.accent;
     return Material(
-      color: AppColors.surface,
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: c.withValues(alpha: 0.12),
-                  border: Border.all(color: c.withValues(alpha: 0.25)),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: c, size: 22),
+                child: Icon(icon, color: c, size: 24),
               ),
               const SizedBox(height: 8),
               Text(

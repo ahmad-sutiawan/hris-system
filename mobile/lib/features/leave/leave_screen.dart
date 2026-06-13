@@ -41,7 +41,7 @@ class LeaveScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.accent,
-        foregroundColor: const Color(0xFF0A0C10),
+        foregroundColor: AppColors.onPrimary,
         onPressed: () => context.push('/leave/new'),
         icon: const Icon(Icons.add),
         label: const Text('Ajukan'),
