@@ -187,6 +187,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   }
 
   Future<void> _goToSelfieStep() async {
+    await _positionSub?.cancel();
+    _positionSub = null;
     setState(() => _step = _PunchStep.selfie);
     await _initCamera();
   }

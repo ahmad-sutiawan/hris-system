@@ -132,12 +132,7 @@ class ApiClient {
   Future<Map<String, dynamic>> getProfile() async => _getMap('/mobile/profile/');
 
   Future<List<dynamic>> getPaginated(String path, {Map<String, dynamic>? query}) async {
-    final data = await _getDynamic(path, query: query);
-    if (data is Map && data['results'] is List) {
-      return data['results'] as List;
-    }
-    if (data is List) return data;
-    return [];
+    return getPaginatedAll(path, query: query, pageSize: 50);
   }
 
   /// Fetch all pages for list endpoints (e.g. timesheet history).

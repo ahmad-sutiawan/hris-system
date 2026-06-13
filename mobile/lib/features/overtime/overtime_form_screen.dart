@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -28,6 +30,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
   String _compMode = 'cash';
   bool _loading = false;
   Map<String, dynamic>? _preview;
+  Timer? _previewDebounce;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
 
   @override
   void dispose() {
+    _previewDebounce?.cancel();
     _reasonCtrl.dispose();
     _beforeCtrl.dispose();
     _afterCtrl.dispose();
@@ -56,6 +60,11 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
       });
       await _refreshPreview();
     } catch (_) {}
+  }
+
+  void _schedulePreviewRefresh() {
+    _previewDebounce?.cancel();
+    _previewDebounce = Timer(const Duration(milliseconds: 400), _refreshPreview);
   }
 
   Future<void> _refreshPreview() async {
@@ -170,7 +179,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Lembur Sebelum Shift (menit)',
                   ),
-                  onChanged: (_) => _refreshPreview(),
+                  onChanged: (_) => _schedulePreviewRefresh(),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -179,7 +188,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
                   decoration: const InputDecoration(
                     labelText: 'Lembur Sesudah Shift (menit)',
                   ),
-                  onChanged: (_) => _refreshPreview(),
+                  onChanged: (_) => _schedulePreviewRefresh(),
                 ),
               ],
             ),

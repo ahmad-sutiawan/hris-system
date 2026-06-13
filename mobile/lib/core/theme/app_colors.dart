@@ -1,44 +1,53 @@
 import 'package:flutter/material.dart';
 
-/// Palet China modern — merah, emas & dark gold luxury.
+/// Palet brand — purple/blue dominan, gold aksen, orange sekunder.
 abstract final class AppColors {
-  // Brand China
-  static const chinaRed = Color(0xFFDE2910);
-  static const chinaRedDark = Color(0xFFB91C1C);
-  static const chinaRedLight = Color(0xFFFFEBEB);
+  // Brand core (dari palet user)
+  static const brandNavy = Color(0xFF140B6E);
+  static const brandPurple = Color(0xFF3428A8);
+  static const brandBlue = Color(0xFF3269CC);
+  static const brandGold = Color(0xFFFBD02F);
+  static const brandGoldDark = Color(0xFFD4A817);
+  static const brandGoldLight = Color(0xFFFFF8DC);
+  static const brandOrange = Color(0xFFF67E2D);
 
-  static const chinaGold = Color(0xFFF5C518);
-  static const chinaGoldDark = Color(0xFFD4A017);
-  static const chinaGoldLight = Color(0xFFFFF8E1);
+  // Alias legacy (agar widget lama otomatis ikut tema baru)
+  static const chinaRed = brandPurple;
+  static const chinaRedDark = brandNavy;
+  static const chinaRedLight = Color(0xFFEDE9FF);
 
-  // Dark gold — aksen premium
-  static const darkGold = Color(0xFF8B6914);
-  static const darkGoldRich = Color(0xFF5C4A1E);
-  static const darkGoldLight = Color(0xFFF5EDD6);
-  static const darkGoldMuted = Color(0xFFE8DCC4);
+  static const chinaGold = brandGold;
+  static const chinaGoldDark = brandGoldDark;
+  static const chinaGoldLight = brandGoldLight;
 
-  // Surfaces (tema cerah)
-  static const bg = Color(0xFFF7F5F0);
+  static const darkGold = brandGoldDark;
+  static const darkGoldRich = brandNavy;
+  static const darkGoldLight = brandGoldLight;
+  static const darkGoldMuted = Color(0xFFF5EAB8);
+
+  // Surfaces — nuansa biru dingin
+  static const bg = Color(0xFFF3F5FC);
   static const bgElevated = Color(0xFFFFFFFF);
   static const surface = Color(0xFFFFFFFF);
-  static const surfaceHover = Color(0xFFFAFAF8);
+  static const surfaceHover = Color(0xFFF8F9FE);
+  static const surfaceMuted = Color(0xFFE8EDF8);
 
-  static const border = Color(0xFFE8E4DC);
-  static const borderStrong = Color(0xFFD4CFC4);
+  static const border = Color(0xFFD4DCF0);
+  static const borderStrong = Color(0xFFB8C4E8);
 
-  static const text = Color(0xFF1F2937);
-  static const textMuted = Color(0xFF6B7280);
-  static const textDim = Color(0xFF9CA3AF);
+  static const text = Color(0xFF140B6E);
+  static const textMuted = Color(0xFF5A6490);
+  static const textDim = Color(0xFF8B94B8);
 
   // Brand aliases
-  static const accent = chinaRed;
-  static const accentHover = chinaRedDark;
-  static const accentGlow = Color(0x33DE2910);
+  static const accent = brandPurple;
+  static const accentHover = brandNavy;
+  static const accentGlow = Color(0x333428A8);
   static const accentSoft = chinaRedLight;
-  static const accentBorder = Color(0x66DE2910);
+  static const accentBorder = Color(0x663428A8);
 
-  static const cyan = darkGold;
-  static const cyanDim = darkGoldLight;
+  static const cyan = brandBlue;
+  static const cyanDim = Color(0xFFE8F0FD);
 
   static const success = Color(0xFF059669);
   static const successDim = Color(0xFFECFDF5);
@@ -46,55 +55,60 @@ abstract final class AppColors {
   static const danger = Color(0xFFDC2626);
   static const dangerDim = Color(0xFFFEF2F2);
 
-  static const warning = darkGold;
-  static const warningDim = darkGoldLight;
+  static const warning = brandOrange;
+  static const warningDim = Color(0xFFFFF0E6);
 
-  static const info = Color(0xFF2563EB);
-  static const infoDim = Color(0xFFEFF6FF);
+  static const info = brandBlue;
+  static const infoDim = Color(0xFFE8F0FD);
 
-  static const sidebarGradientTop = chinaRed;
-  static const sidebarGradientBottom = chinaRedDark;
+  static const sidebarGradientTop = brandNavy;
+  static const sidebarGradientBottom = brandPurple;
 
   static const textPrimary = text;
   static const textSecondary = textMuted;
   static const error = danger;
   static const errorSoft = dangerDim;
-  static const surfaceMuted = Color(0xFFF3F0EA);
   static const navBar = surface;
   static const steel700 = textMuted;
   static const steel500 = textDim;
   static const steel300 = textDim;
   static const infoSoft = infoDim;
   static const successSoft = successDim;
-  static const warningSoft = darkGoldLight;
+  static const warningSoft = brandGoldLight;
 
   static const onPrimary = Color(0xFFFFFFFF);
-  static const onGold = Color(0xFF422006);
-  static const onDarkGold = Color(0xFFFFFDF7);
+  static const onGold = brandNavy;
+  static const onDarkGold = brandNavy;
 
-  static const cardShadow = Color(0x12000000);
+  static const cardShadow = Color(0x14140B6E);
 
   static const headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [chinaRed, chinaRedDark],
+    colors: [brandNavy, brandPurple],
+  );
+
+  static const headerGradientBlue = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [brandPurple, brandBlue],
   );
 
   static const goldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFF5C518), darkGold],
+    colors: [brandGold, brandGoldDark],
   );
 
   static const darkGoldGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [darkGold, darkGoldRich],
+    colors: [brandGold, brandGoldDark],
   );
 
   static const premiumGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [chinaRedDark, darkGoldRich],
+    colors: [brandNavy, brandBlue],
   );
 }

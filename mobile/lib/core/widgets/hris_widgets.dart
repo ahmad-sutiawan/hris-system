@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
-/// Latar belakang cerah dengan aksen merah-emas China.
+/// Latar belakang cerah dengan aksen purple-blue & gold.
 class HrisPageBackground extends StatelessWidget {
   const HrisPageBackground({super.key, required this.child});
 
@@ -17,9 +17,9 @@ class HrisPageBackground extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            const Color(0xFFFFF9F5),
+            const Color(0xFFF8F9FE),
             AppColors.bg,
-            AppColors.darkGoldLight.withValues(alpha: 0.25),
+            AppColors.brandBlue.withValues(alpha: 0.06),
           ],
         ),
       ),
@@ -36,7 +36,7 @@ class HrisPageBackground extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.darkGold.withValues(alpha: 0.12),
+                    AppColors.brandGold.withValues(alpha: 0.14),
                     Colors.transparent,
                   ],
                 ),
@@ -53,7 +53,7 @@ class HrisPageBackground extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.chinaRed.withValues(alpha: 0.08),
+                    AppColors.brandPurple.withValues(alpha: 0.10),
                     Colors.transparent,
                   ],
                 ),

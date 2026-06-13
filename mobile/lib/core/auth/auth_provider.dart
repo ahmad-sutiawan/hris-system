@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/api_client.dart';
+import '../network/api_exception.dart';
 
 class AuthState {
   const AuthState({
@@ -77,9 +78,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: me,
         employee: me['employee'] as Map<String, dynamic>?,
       );
-    } catch (_) {
-      await _api.clearTokens();
-      state = const AuthState(isLoading: false, isAuthenticated: false);
+    } on ApiException catch (e) {
+      if (e.statusCode == 401) {
+        await _api.clearTokens();
+        state = const AuthState(isLoading: false, isAuthenticated: false);
+        return;
+      }
+      final hasToken = await _api.hasToken();
+      state = AuthState(
+        isLoading: false,
+        isAuthenticated: hasToken,
+        user: state.user,
+        employee: state.employee,
+        error: e.message,
+      );
+    } catch (e) {
+      final hasToken = await _api.hasToken();
+      state = AuthState(
+        isLoading: false,
+        isAuthenticated: hasToken,
+        user: state.user,
+        employee: state.employee,
+        error: e.toString(),
+      );
     }
   }
 

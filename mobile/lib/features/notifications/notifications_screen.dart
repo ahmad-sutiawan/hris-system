@@ -211,12 +211,16 @@ class NotificationsScreen extends ConsumerWidget {
       switch ('${n['category']}') {
         case 'leave':
           leave += 1;
+          break;
         case 'attendance':
           attendance += 1;
+          break;
         case 'payroll':
           payroll += 1;
+          break;
         case 'system':
           system += 1;
+          break;
       }
     }
     return _InboxStats(

@@ -16,10 +16,11 @@ abstract final class AppTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.bg,
       colorScheme: const ColorScheme.light(
-        primary: AppColors.chinaRed,
+        primary: AppColors.brandPurple,
         onPrimary: AppColors.onPrimary,
-        secondary: AppColors.chinaGold,
+        secondary: AppColors.brandGold,
         onSecondary: AppColors.onGold,
+        tertiary: AppColors.brandBlue,
         surface: AppColors.surface,
         onSurface: AppColors.text,
         error: AppColors.danger,
@@ -65,14 +66,14 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
-          borderSide: const BorderSide(color: AppColors.chinaRed, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.brandPurple, width: 1.5),
         ),
         labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 15),
         hintStyle: const TextStyle(color: AppColors.textDim),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.chinaRed,
+          backgroundColor: AppColors.brandPurple,
           foregroundColor: AppColors.onPrimary,
           elevation: 0,
           minimumSize: const Size.fromHeight(50),
@@ -88,9 +89,9 @@ abstract final class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.chinaRed,
+          foregroundColor: AppColors.brandPurple,
           minimumSize: const Size.fromHeight(50),
-          side: const BorderSide(color: AppColors.chinaRed),
+          side: const BorderSide(color: AppColors.brandPurple),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_radius),
           ),
@@ -101,12 +102,12 @@ abstract final class AppTheme {
         ),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: AppColors.chinaRed,
-        foregroundColor: AppColors.onPrimary,
+        backgroundColor: AppColors.brandGold,
+        foregroundColor: AppColors.onGold,
         elevation: 4,
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: AppColors.text,
+        backgroundColor: AppColors.brandNavy,
         contentTextStyle: GoogleFonts.plusJakartaSans(color: Colors.white),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -115,7 +116,7 @@ abstract final class AppTheme {
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.chinaRed,
+        selectedItemColor: AppColors.brandPurple,
         unselectedItemColor: AppColors.textDim,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
@@ -125,9 +126,16 @@ abstract final class AppTheme {
         ),
         unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 11),
       ),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: AppColors.brandPurple,
+      ),
+      sliderTheme: const SliderThemeData(
+        activeTrackColor: AppColors.brandGold,
+        thumbColor: AppColors.brandGold,
+        inactiveTrackColor: AppColors.border,
+      ),
     );
   }
 
-  /// Alias — mobile pakai tema cerah China.
   static ThemeData get dark => light;
 }
