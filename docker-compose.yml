@@ -1,5 +1,63 @@
+# HRIS-Lite — Docker deployment
+#
+# Quick start (SQLite, cocok uji coba / Ubuntu 24 tanpa MySQL):
+#   cp .env.example .env && docker compose up -d --build
+#
+# Production (MySQL 8):
+#   cp .env.example .env
+#   # set DB_* ke MySQL, SECRET_KEY, ALLOWED_HOSTS, HRIS_SITE_URL
+#   docker compose --profile mysql up -d --build
+
+name: hris-lite
+
 services:
+  web:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_ENGINE: ${DB_ENGINE:-django.db.backends.sqlite3}
+      DB_NAME: ${DB_NAME:-/app/data/db.sqlite3}
+      DB_HOST: ${DB_HOST:-}
+      DB_PORT: ${DB_PORT:-}
+      DB_USER: ${DB_USER:-}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      DEBUG: ${DEBUG:-False}
+      HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
+    volumes:
+      - app_data:/app/data
+      - media_data:/app/media
+      - audit_archive:/app/audit_archive
+      - backups:/app/backups
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: false
+    expose:
+      - "8000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/v1/health/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - media_data:/app/media:ro
+    depends_on:
+      web:
+        condition: service_healthy
+
   mysql:
+    profiles: ["mysql"]
     image: mysql:8.0
     restart: unless-stopped
     environment:
@@ -11,59 +69,40 @@ services:
       - mysql_data:/var/lib/mysql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
       timeout: 5s
-      retries: 5
-
-  web:
-    build: .
-    restart: unless-stopped
-    env_file: .env
-    environment:
-      DB_ENGINE: django.db.backends.mysql
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DEBUG: "False"
-    volumes:
-      - media_data:/app/media
-      - audit_archive:/app/audit_archive
-      - backups:/app/backups
-    depends_on:
-      mysql:
-        condition: service_healthy
-    expose:
-      - "8000"
-
-  nginx:
-    image: nginx:1.27-alpine
-    restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-8080}:80"
-    volumes:
-      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-      - media_data:/app/media:ro
-    depends_on:
-      - web
+      retries: 8
+      start_period: 30s
 
   cron:
+    profiles: ["mysql"]
     build: .
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
-      DB_ENGINE: django.db.backends.mysql
+      DB_ENGINE: ${DB_ENGINE:-django.db.backends.mysql}
+      DB_NAME: ${DB_NAME:-hris_lite}
       DB_HOST: mysql
-      DB_PORT: 3306
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-hris}
+      DB_PASSWORD: ${DB_PASSWORD:-hris_secret}
+      HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
     volumes:
       - audit_archive:/app/audit_archive
       - backups:/app/backups
     depends_on:
       mysql:
         condition: service_healthy
+      web:
+        condition: service_started
     entrypoint: ["/bin/sh", "/app/scripts/cron.sh"]
 
 volumes:
-  mysql_data:
+  app_data:
   media_data:
   audit_archive:
   backups:
+  mysql_data:

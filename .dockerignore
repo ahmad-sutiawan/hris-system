@@ -1,0 +1,33 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.py[cod]
+*.sqlite3
+db.sqlite3
+.env
+.env.*
+!.env.example
+staticfiles
+media
+audit_archive
+backups
+node_modules
+.pytest_cache
+htmlcov
+.coverage
+*.log
+.DS_Store
+.idea
+.vscode
+
+# Mobile app — tidak diperlukan untuk image backend
+mobile/
+mobile/**
+
+# Docs & dev artifacts
+docs/
+*.md
+!README.md
+agent-transcripts/

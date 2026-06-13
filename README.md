@@ -68,23 +68,34 @@ docs/
 - **Tier B (MVP features):** Employee, attendance, leave, payroll flows — in progress
 - **Tier C (Scaffolded):** Hourly leave, OT before, THR, SSO — schema ready, logic later
 
-## Production (MySQL + Docker)
+## Production (Docker — Ubuntu 24 / server)
+
+**SQLite (uji coba, satu perintah):**
 
 ```bash
 cp .env.example .env
-# Edit: SECRET_KEY, DB_PASSWORD, HRIS_FIELD_ENCRYPTION_KEY, EMAIL_*, ALLOWED_HOSTS
+# Edit SECRET_KEY: openssl rand -hex 32
+chmod +x scripts/docker-up.sh
+./scripts/docker-up.sh sqlite
+docker compose exec web python manage.py seed_demo
+```
 
-docker compose up -d --build
+**MySQL 8 (production):** edit `.env` ke mode MySQL (lihat `.env.example`), lalu:
+
+```bash
+./scripts/docker-up.sh mysql
 docker compose exec web python manage.py seed_demo
 docker compose exec web python manage.py encrypt_employee_data
 ```
 
+Panduan lengkap Ubuntu: [`deploy/UBUNTU.md`](deploy/UBUNTU.md)
+
 | Service | Port | Keterangan |
 |---|---|---|
-| nginx | 8080 | Reverse proxy + HTTPS header |
+| nginx | 8080 (default) | Reverse proxy + media |
 | web | internal | Gunicorn + WhiteNoise |
-| mysql | internal | MySQL 8 utf8mb4 |
-| cron | internal | Arsip audit (02:00) + backup DB (03:00) |
+| mysql | internal | Profile `--profile mysql` |
+| cron | internal | Arsip audit + backup (MySQL) |
 
 **Health check:** `GET /api/v1/health/`
 

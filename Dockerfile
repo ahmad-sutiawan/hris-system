@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gzip \
     default-mysql-client \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -19,9 +20,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/cron.sh
+RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/cron.sh \
+    && mkdir -p /app/data /app/media /app/audit_archive /app/backups
 
 EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:8000/api/v1/health/ || exit 1
 
 ENTRYPOINT ["/app/scripts/entrypoint.sh"]
 CMD ["gunicorn", "config.wsgi:application", "-c", "gunicorn.conf.py"]

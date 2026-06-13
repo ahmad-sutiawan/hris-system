@@ -180,6 +180,16 @@ HRIS_SITE_URL = config("HRIS_SITE_URL", default="http://127.0.0.1:8000")
 HRIS_DEFAULT_TENANT_SLUG = config("HRIS_DEFAULT_TENANT_SLUG", default="default")
 HRIS_AUTO_PROVISION_EMPLOYEES = config("HRIS_AUTO_PROVISION_EMPLOYEES", default=DEBUG, cast=bool)
 
+_csrf_origins = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+if _csrf_origins:
+    CSRF_TRUSTED_ORIGINS = _csrf_origins
+elif not DEBUG:
+    CSRF_TRUSTED_ORIGINS = [HRIS_SITE_URL.rstrip("/")]
+else:
+    CSRF_TRUSTED_ORIGINS = []
+
+USE_X_FORWARDED_HOST = config("USE_X_FORWARDED_HOST", default=not DEBUG, cast=bool)
+
 # Audit log retention — DB hanya menyimpan log terbaru; sisanya diarsipkan via archive_audit_logs
 HRIS_AUDIT_RETENTION_DAYS = config("HRIS_AUDIT_RETENTION_DAYS", default=365, cast=int)
 HRIS_AUDIT_LIST_DEFAULT_DAYS = config("HRIS_AUDIT_LIST_DEFAULT_DAYS", default=90, cast=int)
@@ -204,8 +214,8 @@ if not DEBUG:
         raise ValueError("Set SECRET_KEY yang kuat sebelum DEBUG=False.")
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=SECURE_SSL_REDIRECT, cast=bool)
+    CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=SECURE_SSL_REDIRECT, cast=bool)
     SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
