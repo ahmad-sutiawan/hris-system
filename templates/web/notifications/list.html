@@ -34,7 +34,7 @@
       </thead>
       <tbody>
         {% for n in notifications %}
-        <tr{% if not n.is_read %} style="background:rgba(245,158,11,0.04)"{% endif %}>
+        <tr{% if not n.is_read %} class="hris-row-unread"{% endif %}>
           <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td class="hris-strong">{{ n.title }}</td>
           <td>{{ n.message|truncatechars:80 }}</td>

@@ -194,7 +194,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile):
         context["leave_balances"] = employee_leave_balances_summary(profile)
         context["today_shift"] = (
             ShiftAssignment.objects.filter(employee=profile, work_date=today)
-            .select_related("shift")
+            .select_related("shift", "employee", "employee__plant")
             .first()
         )
         context["latest_payslip"] = (

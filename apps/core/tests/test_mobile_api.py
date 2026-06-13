@@ -125,3 +125,18 @@ class MobileDashboardApiTests(TestCase):
         data = response.json()
         self.assertEqual(data["direct_reports"], [])
         self.assertGreaterEqual(len(data["team_colleagues"]), 1)
+
+    def test_dashboard_avoids_redundant_shift_query(self):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        self._login(self.employee_user)
+        with CaptureQueriesContext(connection) as ctx:
+            response = self.client.get("/api/v1/mobile/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        shift_queries = [
+            q["sql"]
+            for q in ctx.captured_queries
+            if "shifts_shiftassignment" in q["sql"].lower()
+        ]
+        self.assertLessEqual(len(shift_queries), 2)

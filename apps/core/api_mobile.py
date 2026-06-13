@@ -102,13 +102,7 @@ class MobileDashboardView(APIView):
 
         today_shift = dashboard.get("today_shift")
         if today_shift is not None:
-            today_shift = _serialize_shift(
-                ShiftAssignment.objects.select_related(
-                    "shift",
-                    "employee",
-                    "employee__plant",
-                ).get(pk=today_shift.pk)
-            )
+            today_shift = _serialize_shift(today_shift)
 
         payload = {
             "today": today.isoformat(),

@@ -91,7 +91,7 @@ Login demo: `budi` / `Employee123!`
 ## Desain UI
 
 - Tema gelap industrial — **sama dengan web** (`static/css/hris.css`)
-- Palet: `#0a0c10` bg, `#161b24` surface, `#f59e0b` accent, `#22d3ee` cyan
+- Palet web/mobile: navy `#140B6E`, purple `#3428A8`, blue `#3269CC`, gold `#FBD02F`, bg `#F3F5FC`
 - Logo & hero login dari `static/img/` (logo.png, login-hero.jpg)
 - Font Plus Jakarta Sans, sudut tajam (radius 0), tombol min 48px
 - Nav: Beranda · Absensi · Cuti · Lembur · Akun
