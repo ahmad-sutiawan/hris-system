@@ -71,14 +71,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final ok = await _loadMe();
       if (!ok) {
         await _api.clearTokens();
-        state = state.copyWith(isLoading: false, isAuthenticated: false);
+        state = state.copyWith(
+          isLoading: false,
+          isAuthenticated: false,
+          error: state.error ??
+              'Login gagal. Periksa username, password, dan alamat server.',
+        );
       }
+    } on ApiException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        isAuthenticated: false,
+        error: e.message,
+      );
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
         isAuthenticated: false,
-        error: e is ApiException ? e.message : e.toString(),
+        error: 'Terjadi kesalahan: $e',
       );
+    } finally {
+      if (state.isLoading) {
+        state = state.copyWith(isLoading: false);
+      }
     }
   }
 
@@ -95,7 +110,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await _api.clearTokens();
-        state = const AuthState(isLoading: false, isAuthenticated: false);
+        state = AuthState(
+          isLoading: false,
+          isAuthenticated: false,
+          error: e.message.isNotEmpty
+              ? e.message
+              : 'Username atau password salah.',
+        );
         return false;
       }
       state = AuthState(
@@ -108,7 +129,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         isLoading: false,
         isAuthenticated: false,
-        error: e.toString(),
+        error: 'Gagal memuat profil: $e',
       );
       return false;
     }

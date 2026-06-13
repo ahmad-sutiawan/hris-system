@@ -257,6 +257,8 @@ class ApiClient {
   ApiException _wrap(DioException e) {
     final status = e.response?.statusCode;
     final body = e.response?.data;
+    final server = _dio.options.baseUrl;
+
     if (body is Map && body['detail'] != null) {
       return ApiException('${body['detail']}', statusCode: status);
     }
@@ -265,19 +267,42 @@ class ApiClient {
       if (first is List && first.isNotEmpty) {
         return ApiException('${first.first}', statusCode: status);
       }
+      if (first is String && first.isNotEmpty) {
+        return ApiException(first, statusCode: status);
+      }
+    }
+    if (status == 401) {
+      return ApiException(
+        'Username atau password salah.',
+        statusCode: status,
+      );
+    }
+    if (status == 403) {
+      return ApiException(
+        'Akses ditolak. Akun ini mungkin tidak diizinkan untuk mobile.',
+        statusCode: status,
+      );
+    }
+    if (status != null && status >= 500) {
+      return ApiException(
+        'Server error ($status). Coba lagi beberapa saat.',
+        statusCode: status,
+      );
     }
     if (e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.connectionTimeout) {
+        e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.sendTimeout ||
+        e.type == DioExceptionType.receiveTimeout) {
       final hint = kIsWeb
-          ? ' Browser memblokir koneksi (CORS). Untuk uji di Chrome gunakan backend lokal (127.0.0.1:8000), atau update CORS di server production lalu redeploy.'
-          : ' Periksa alamat server dan koneksi internet.';
+          ? ' Browser memblokir koneksi (CORS). Gunakan backend lokal atau update CORS server.'
+          : ' Periksa koneksi internet HP dan pastikan server bisa diakses.';
       return ApiException(
-        'Tidak bisa terhubung ke server.$hint',
+        'Tidak bisa terhubung ke $server.$hint',
         statusCode: status,
       );
     }
     return ApiException(
-      e.message ?? 'Koneksi gagal. Periksa server HRIS.',
+      e.message ?? 'Koneksi gagal ke $server.',
       statusCode: status,
     );
   }

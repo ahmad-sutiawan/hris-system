@@ -24,6 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _showServer = false;
   bool _submitting = false;
   String? _validationError;
+  String _activeServer = '';
 
   @override
   void initState() {
@@ -34,7 +35,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loadServerUrl() async {
     final url = await ref.read(apiClientProvider).loadBaseUrl();
     if (mounted) {
-      _serverCtrl.text = url.replaceAll(AppConfig.apiPathSuffix, '');
+      setState(() {
+        _activeServer = url.replaceAll(AppConfig.apiPathSuffix, '');
+        _serverCtrl.text = _activeServer;
+      });
     }
   }
 
@@ -65,13 +69,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             serverUrl: _showServer ? _serverCtrl.text.trim() : null,
           );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) {
+        setState(() => _submitting = false);
+        await _loadServerUrl();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+
+    ref.listen<AuthState>(authProvider, (prev, next) {
+      final err = next.error;
+      if (err != null && err != prev?.error && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(err),
+            backgroundColor: AppColors.danger,
+            duration: const Duration(seconds: 6),
+          ),
+        );
+      }
+    });
 
     return HrisPageBackground(
       child: Scaffold(
@@ -217,6 +237,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             label: Text(_showServer ? 'Sembunyikan server' : 'Pengaturan server'),
                           ),
+                          if (!_showServer && _activeServer.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Server: $_activeServer',
+                              style: const TextStyle(
+                                color: AppColors.textDim,
+                                fontSize: 11,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                           if (_showServer) ...[
                             TextField(
                               controller: _serverCtrl,
@@ -243,9 +274,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   color: AppColors.danger.withValues(alpha: 0.35),
                                 ),
                               ),
-                              child: Text(
-                                _validationError ?? auth.error!,
-                                style: const TextStyle(color: AppColors.danger),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Login gagal',
+                                    style: TextStyle(
+                                      color: AppColors.danger,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    _validationError ?? auth.error!,
+                                    style: const TextStyle(color: AppColors.danger),
+                                  ),
+                                  if (_activeServer.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Server: $_activeServer',
+                                      style: TextStyle(
+                                        color: AppColors.danger.withValues(alpha: 0.85),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],
