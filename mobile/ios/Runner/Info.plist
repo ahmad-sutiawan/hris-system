@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>Kamera digunakan untuk verifikasi selfie saat absensi.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Lokasi digunakan untuk verifikasi absensi di area kantor.</string>
 </dict>
 </plist>

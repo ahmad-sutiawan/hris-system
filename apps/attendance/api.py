@@ -92,7 +92,14 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
             return Response({"detail": "No employee profile."}, status=400)
         try:
             photo = _parse_punch_photo(request)
-            record = clock_in(profile, source=AttendanceRecord.Source.MOBILE, photo=photo)
+            record = clock_in(
+                profile,
+                source=AttendanceRecord.Source.MOBILE,
+                photo=photo,
+                latitude=request.data.get("latitude"),
+                longitude=request.data.get("longitude"),
+                notes=request.data.get("notes") or "",
+            )
             return Response(AttendanceRecordSerializer(record, context={"request": request}).data)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
@@ -104,7 +111,13 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
             return Response({"detail": "No employee profile."}, status=400)
         try:
             photo = _parse_punch_photo(request)
-            record = clock_out(profile, photo=photo)
+            record = clock_out(
+                profile,
+                photo=photo,
+                latitude=request.data.get("latitude"),
+                longitude=request.data.get("longitude"),
+                notes=request.data.get("notes") or "",
+            )
             return Response(AttendanceRecordSerializer(record, context={"request": request}).data)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)

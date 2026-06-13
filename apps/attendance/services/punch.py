@@ -40,6 +40,9 @@ def clock_in(
     source=AttendanceRecord.Source.WEB,
     when=None,
     photo: ContentFile | None = None,
+    latitude=None,
+    longitude=None,
+    notes: str = "",
 ):
     if not photo:
         raise PunchError("Foto selfie wajib untuk clock in.")
@@ -61,6 +64,12 @@ def clock_in(
     record.check_in = when
     record.check_out = None
     record.source = source
+    if latitude is not None:
+        record.latitude = latitude
+    if longitude is not None:
+        record.longitude = longitude
+    if notes:
+        record.notes = notes
 
     assignment = _get_assignment(employee, work_date)
     if assignment:
@@ -78,6 +87,9 @@ def clock_out(
     *,
     when=None,
     photo: ContentFile | None = None,
+    latitude=None,
+    longitude=None,
+    notes: str = "",
 ):
     if not photo:
         raise PunchError("Foto selfie wajib untuk clock out.")
@@ -100,7 +112,20 @@ def clock_out(
         record.check_in = when
 
     record.check_out = when
-    record.save(update_fields=["check_in", "check_out", "updated_at"])
+    if latitude is not None:
+        record.latitude = latitude
+    if longitude is not None:
+        record.longitude = longitude
+    if notes:
+        record.notes = notes
+    record.save(update_fields=[
+        "check_in",
+        "check_out",
+        "latitude",
+        "longitude",
+        "notes",
+        "updated_at",
+    ])
     _save_photo(record, "check_out_photo", photo)
     recalculate_daily_timesheet(employee, work_date)
     return record

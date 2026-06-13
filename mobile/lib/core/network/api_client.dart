@@ -204,12 +204,32 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> clockIn(String photoBase64) {
-    return post('/attendance/clock_in/', body: {'photo': photoBase64});
+  Future<Map<String, dynamic>> clockIn(
+    String photoBase64, {
+    double? latitude,
+    double? longitude,
+    String? notes,
+  }) {
+    return post('/attendance/clock_in/', body: {
+      'photo': photoBase64,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
   }
 
-  Future<Map<String, dynamic>> clockOut(String photoBase64) {
-    return post('/attendance/clock_out/', body: {'photo': photoBase64});
+  Future<Map<String, dynamic>> clockOut(
+    String photoBase64, {
+    double? latitude,
+    double? longitude,
+    String? notes,
+  }) {
+    return post('/attendance/clock_out/', body: {
+      'photo': photoBase64,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
   }
 
   Future<File> downloadPdf(int payslipId, String filename) async {
