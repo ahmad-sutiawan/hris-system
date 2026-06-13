@@ -23,12 +23,14 @@ import '../features/auth/login_screen.dart';
 import 'app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authProvider);
+  final refresh = _AuthRefresh(ref);
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     initialLocation: '/login',
-    refreshListenable: _AuthRefresh(ref),
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final auth = ref.read(authProvider);
       final loggingIn = state.matchedLocation == '/login';
       if (auth.isLoading) return null;
       if (!auth.isAuthenticated && !loggingIn) return '/login';
@@ -114,7 +116,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
 class _AuthRefresh extends ChangeNotifier {
   _AuthRefresh(this.ref) {
-    ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    _subscription = ref.listen<AuthState>(authProvider, (_, __) {
+      notifyListeners();
+    });
   }
+
   final Ref ref;
+  late final ProviderSubscription<AuthState> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.close();
+    super.dispose();
+  }
 }

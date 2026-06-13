@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/auth/auth_provider.dart';
@@ -68,6 +69,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password,
             serverUrl: _showServer ? _serverCtrl.text.trim() : null,
           );
+      if (!mounted) return;
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated) {
+        context.go('/home');
+      }
     } finally {
       if (mounted) {
         setState(() => _submitting = false);
