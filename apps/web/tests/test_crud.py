@@ -8,7 +8,7 @@ from django.utils import timezone
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
-from apps.organization.models import Department, JobPosition
+from apps.organization.models import Department, JobPosition, LegalEntity
 from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
 
@@ -126,6 +126,88 @@ class WebCRUDTests(TestCase):
         self.assertEqual(response.status_code, 302)
         emp.refresh_from_db()
         self.assertEqual(emp.full_name, "Baru Updated")
+
+    def test_employee_edit_preserves_legal_entity(self):
+        legal = LegalEntity.objects.create(
+            tenant=self.tenant,
+            name="PT Demo Legal",
+            npwp="01.234.567.8-901.000",
+        )
+        self.employee.legal_entity = legal
+        self.employee.save(update_fields=["legal_entity", "updated_at"])
+
+        data = {
+            "employee_id": self.employee.employee_id,
+            "full_name": "Budi CRUD Updated",
+            "nik": "",
+            "email": "emp@crud.local",
+            "phone": "",
+            "plant": self.plant.pk,
+            "department": self.dept.pk,
+            "job_position": self.job.pk,
+            "manager": self.manager.pk,
+            "join_date": "",
+            "status": "permanent",
+            "salary_scheme": "monthly",
+            "base_salary": "5000000",
+            "allowance_transport": "0",
+            "allowance_meal": "0",
+            "allowance_position": "0",
+            "tax_status": "",
+            "npwp": "",
+            "bpjs_kesehatan_number": "",
+            "bpjs_ketenagakerjaan_number": "",
+            "bank_name": "",
+            "bank_account_number": "",
+            "bank_account_name": "",
+        }
+        response = self.client.post(reverse("web:employee_edit", args=[self.employee.pk]), data)
+        self.assertEqual(response.status_code, 302)
+        self.employee.refresh_from_db()
+        self.assertEqual(self.employee.full_name, "Budi CRUD Updated")
+        self.assertEqual(self.employee.legal_entity_id, legal.pk)
+
+    def test_employee_edit_assigns_default_shift(self):
+        evening = Shift.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            name="Sore",
+            code="SORE",
+            scheduled_check_in="15:00",
+            scheduled_check_out="23:00",
+        )
+        data = {
+            "employee_id": self.employee.employee_id,
+            "full_name": self.employee.full_name,
+            "nik": "",
+            "email": "emp@crud.local",
+            "phone": "",
+            "plant": self.plant.pk,
+            "department": self.dept.pk,
+            "job_position": self.job.pk,
+            "manager": self.manager.pk,
+            "default_shift": evening.pk,
+            "join_date": "",
+            "status": "permanent",
+            "salary_scheme": "monthly",
+            "base_salary": "5000000",
+            "allowance_transport": "0",
+            "allowance_meal": "0",
+            "allowance_position": "0",
+            "tax_status": "",
+            "npwp": "",
+            "bpjs_kesehatan_number": "",
+            "bpjs_ketenagakerjaan_number": "",
+            "bank_name": "",
+            "bank_account_number": "",
+            "bank_account_name": "",
+        }
+        response = self.client.post(reverse("web:employee_edit", args=[self.employee.pk]), data)
+        self.assertEqual(response.status_code, 302)
+        self.employee.refresh_from_db()
+        self.assertEqual(self.employee.default_shift_id, evening.pk)
+        assignment = ShiftAssignment.objects.get(employee=self.employee, work_date=self.today)
+        self.assertEqual(assignment.shift_id, evening.pk)
 
     def test_shift_assign_update_or_create(self):
         data = {

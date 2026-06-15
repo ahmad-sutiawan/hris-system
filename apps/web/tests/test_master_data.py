@@ -76,13 +76,13 @@ class MasterDataTests(TestCase):
             create_url,
             {
                 "plant": self.plant.pk,
-                "code": "QA",
                 "name": "Quality Assurance",
                 "is_active": True,
             },
         )
         self.assertEqual(response.status_code, 302)
-        dept = Department.objects.get(code="QA", tenant=self.tenant)
+        dept = Department.objects.get(name="Quality Assurance", tenant=self.tenant)
+        self.assertTrue(dept.code)
         self.assertEqual(dept.name, "Quality Assurance")
 
         edit_url = reverse("web:master_edit", args=["departments", dept.pk])
@@ -90,7 +90,6 @@ class MasterDataTests(TestCase):
             edit_url,
             {
                 "plant": self.plant.pk,
-                "code": "QA",
                 "name": "QA Dept",
                 "is_active": True,
             },

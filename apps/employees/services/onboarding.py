@@ -8,6 +8,9 @@ from apps.shifts.models import Shift, ShiftAssignment
 
 
 def resolve_default_shift(employee: Employee) -> Shift | None:
+    if employee.default_shift_id and employee.default_shift.is_active:
+        return employee.default_shift
+
     plant = employee.plant
     if plant.default_shift_id and plant.default_shift.is_active:
         return plant.default_shift
@@ -28,13 +31,13 @@ def resolve_default_shift(employee: Employee) -> Shift | None:
     )
 
 
-def assign_default_shift(employee: Employee, *, work_date=None) -> ShiftAssignment | None:
+def sync_employee_default_shift(employee: Employee, *, work_date=None) -> ShiftAssignment | None:
     shift = resolve_default_shift(employee)
     if not shift:
         return None
 
-    work_date = work_date or employee.join_date or timezone.localdate()
-    assignment, created = ShiftAssignment.objects.get_or_create(
+    work_date = work_date or timezone.localdate()
+    assignment, _created = ShiftAssignment.objects.update_or_create(
         employee=employee,
         work_date=work_date,
         defaults={
@@ -44,9 +47,13 @@ def assign_default_shift(employee: Employee, *, work_date=None) -> ShiftAssignme
             "scheduled_check_out": shift.scheduled_check_out,
         },
     )
-    if created:
-        recalculate_daily_timesheet(employee, work_date)
+    recalculate_daily_timesheet(employee, work_date)
     return assignment
+
+
+def assign_default_shift(employee: Employee, *, work_date=None) -> ShiftAssignment | None:
+    work_date = work_date or employee.join_date or timezone.localdate()
+    return sync_employee_default_shift(employee, work_date=work_date)
 
 
 def provision_new_employee(

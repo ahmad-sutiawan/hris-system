@@ -32,7 +32,7 @@ String shiftLocationLabel(Map<String, dynamic>? shift, {Map<String, dynamic>? em
   if (plantName != null && plantName.isNotEmpty) return plantName;
   final shiftName = shift?['shift_name'] as String?;
   if (shiftName != null && shiftName.isNotEmpty) return shiftName;
-  final dept = employee?['department_name'] as String?;
+  final dept = employee?['department_name'] as String? ?? employee?['department'] as String?;
   if (dept != null && dept.isNotEmpty) return dept;
   final plantCode = employee?['plant_code'] as String?;
   if (plantCode != null && plantCode.isNotEmpty) return plantCode;

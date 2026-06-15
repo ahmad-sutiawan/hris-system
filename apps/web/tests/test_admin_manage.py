@@ -70,13 +70,12 @@ class AdminManageTests(TestCase):
             create_url,
             {
                 "plant": self.plant.pk,
-                "code": "HR",
                 "name": "Human Resources",
                 "is_active": True,
             },
         )
         self.assertEqual(response.status_code, 302)
-        dept = Department.objects.get(code="HR", tenant=self.tenant)
+        dept = Department.objects.get(name="Human Resources", tenant=self.tenant)
         self.assertEqual(dept.name, "Human Resources")
 
         edit_url = reverse("web:master_edit", args=["departments", dept.pk])
@@ -84,7 +83,6 @@ class AdminManageTests(TestCase):
             edit_url,
             {
                 "plant": self.plant.pk,
-                "code": "HR",
                 "name": "HR Dept",
                 "is_active": True,
             },

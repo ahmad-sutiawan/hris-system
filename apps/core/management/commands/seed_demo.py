@@ -10,7 +10,7 @@ from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.models import LeaveType
 from apps.leave.services.leave_workflow import get_or_create_balance
-from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
+from apps.organization.models import Department, EmployeeGrade, JobPosition
 from apps.payroll.models import SalaryComponent
 from apps.shifts.models import Shift, ShiftAssignment
 
@@ -27,11 +27,6 @@ class Command(BaseCommand):
             tenant=tenant,
             code="PLT01",
             defaults={"name": "Plant Utama"},
-        )
-        LegalEntity.objects.get_or_create(
-            tenant=tenant,
-            name="PT Demo Manufaktur",
-            defaults={"npwp": "00.000.000.0-000.000"},
         )
         dept, _ = Department.objects.get_or_create(
             tenant=tenant,

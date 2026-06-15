@@ -35,7 +35,11 @@ class ProfileScreen extends ConsumerWidget {
             final stats = data['month_stats'] as Map<String, dynamic>? ?? {};
             final balances = data['leave_balances'] as List? ?? [];
             final shifts = data['upcoming_shifts'] as List? ?? [];
+            final todayShift = data['today_assignment'] as Map<String, dynamic>?;
+            final defaultShift = emp['default_shift'] as Map<String, dynamic>?;
+            final deptName = emp['department_name'] as String? ?? emp['department'] as String?;
             final fmt = DateFormat('dd MMM');
+            final timeFmt = DateFormat('HH:mm');
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -59,15 +63,74 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       _InfoRow('Plant', emp['plant']),
-                      _InfoRow('Departemen', emp['department']),
+                      _InfoRow('Departemen', deptName),
                       _InfoRow('Jabatan', emp['job_title']),
                       _InfoRow('Grade', emp['grade']),
                       _InfoRow('Atasan', emp['manager_name']),
+                      if (emp['join_date'] != null)
+                        _InfoRow(
+                          'Bergabung',
+                          fmt.format(DateTime.parse(emp['join_date'] as String)),
+                        ),
                       _InfoRow('Email', emp['email']),
                       _InfoRow('Telepon', emp['phone']),
                     ],
                   ),
                 ),
+                if (todayShift != null || defaultShift != null) ...[
+                  const SizedBox(height: 16),
+                  const SectionHeader(title: 'Shift'),
+                  const SizedBox(height: 10),
+                  HrisCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (todayShift != null) ...[
+                          Text(
+                            'Shift hari ini',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${todayShift['shift_name'] ?? todayShift['shift_code']} '
+                            '(${todayShift['shift_code'] ?? '—'})',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          if (todayShift['scheduled_check_in'] != null &&
+                              todayShift['scheduled_check_out'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                '${timeFmt.format(DateTime.parse(todayShift['scheduled_check_in'] as String).toLocal())} — '
+                                '${timeFmt.format(DateTime.parse(todayShift['scheduled_check_out'] as String).toLocal())}',
+                                style: const TextStyle(color: AppColors.textSecondary),
+                              ),
+                            ),
+                        ],
+                        if (defaultShift != null) ...[
+                          if (todayShift != null) const SizedBox(height: 12),
+                          Text(
+                            defaultShift['source_label'] as String? ?? 'Shift default',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${defaultShift['name']} (${defaultShift['code']})',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 const SectionHeader(title: 'Statistik Bulan Ini'),
                 const SizedBox(height: 10),

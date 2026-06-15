@@ -62,6 +62,14 @@ class Employee(TenantScopedModel):
         related_name="employees",
         verbose_name="Grade karyawan",
     )
+    default_shift = models.ForeignKey(
+        "shifts.Shift",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="default_for_employees",
+        verbose_name="Shift default",
+    )
     manager = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
@@ -132,6 +140,11 @@ class Employee(TenantScopedModel):
             if self.employee_grade.plant_id != self.plant_id:
                 raise ValidationError(
                     {"employee_grade": "Grade karyawan harus dari plant yang sama."}
+                )
+        if self.default_shift_id and self.plant_id:
+            if self.default_shift.plant_id != self.plant_id:
+                raise ValidationError(
+                    {"default_shift": "Shift harus dari plant yang sama."}
                 )
 
     @property

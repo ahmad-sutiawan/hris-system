@@ -357,7 +357,9 @@
       <div style="margin-top:1rem;display:flex;flex-wrap:wrap;gap:0.625rem">
         <a href="{% url 'web:leave_create' %}" class="hris-quick-link">Ajukan Cuti</a>
         <a href="{% url 'web:overtime_create' %}" class="hris-quick-link">Ajukan Lembur</a>
+        {% if user.role != 'admin' and user.role != 'hr' %}
         <a href="{% url 'web:employee_profile' %}" class="hris-quick-link">Detail Karyawan</a>
+        {% endif %}
         <a href="{% url 'web:payslip_list' %}" class="hris-quick-link">Lihat Slip Gaji</a>
         <a href="{% url 'web:attendance_list' %}" class="hris-quick-link">Riwayat Absensi</a>
         {% if user.role == 'admin' or user.role == 'hr' %}

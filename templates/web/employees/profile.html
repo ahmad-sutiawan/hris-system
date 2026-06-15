@@ -81,7 +81,6 @@
         <div><dt>Jabatan</dt><dd>{{ employee.job_position.title|default:"—" }}</dd></div>
         <div><dt>Grade</dt><dd>{{ employee.grade_label|default:"—" }}</dd></div>
         <div><dt>Atasan Langsung</dt><dd>{{ employee.manager.full_name|default:"—" }}</dd></div>
-        <div><dt>Entitas Legal</dt><dd>{{ employee.legal_entity.name|default:"—" }}</dd></div>
         <div><dt>Akun Login</dt><dd>{{ employee.user.username|default:"—" }}</dd></div>
       </dl>
     </div>
@@ -101,7 +100,9 @@
       {% else %}
       <p class="hris-text-dim">Belum ada penjadwalan shift untuk hari ini.</p>
       {% endif %}
-      {% if default_shift %}
+      {% if employee.default_shift %}
+      <p class="hris-profile-note">Shift default karyawan: <strong>{{ employee.default_shift.name }}</strong> ({{ employee.default_shift.code }})</p>
+      {% elif default_shift %}
       <p class="hris-profile-note">Shift default plant: <strong>{{ default_shift.name }}</strong> ({{ default_shift.code }})</p>
       {% endif %}
       {% if upcoming_shifts %}

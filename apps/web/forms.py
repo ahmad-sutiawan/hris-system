@@ -42,6 +42,41 @@ def _filter_plant_queryset(form, tenant, user=None):
         form.fields["plant"].queryset = qs
 
 
+def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=None):
+    from apps.organization.models import Department, EmployeeGrade, JobPosition
+
+    plant_id = plant_id or (
+        form.data.get("plant")
+        if form.data
+        else (form.instance.plant_id if form.instance.pk else None)
+    )
+    if user and user.plant_id and not user.is_admin and not plant_id:
+        plant_id = user.plant_id
+
+    dept_qs = Department.objects.filter(tenant=tenant, is_active=True)
+    job_qs = JobPosition.objects.filter(tenant=tenant, is_active=True)
+    grade_qs = EmployeeGrade.objects.filter(tenant=tenant, is_active=True)
+    shift_qs = Shift.objects.filter(tenant=tenant, is_active=True)
+    if plant_id:
+        dept_qs = dept_qs.filter(plant_id=plant_id)
+        job_qs = job_qs.filter(plant_id=plant_id)
+        grade_qs = grade_qs.filter(plant_id=plant_id)
+        shift_qs = shift_qs.filter(plant_id=plant_id)
+
+    form.fields["department"].queryset = dept_qs
+    form.fields["department"].label = "Departemen"
+    form.fields["department"].label_from_instance = lambda obj: obj.name
+    form.fields["job_position"].queryset = job_qs
+    form.fields["employee_grade"].queryset = grade_qs
+    form.fields["default_shift"].queryset = shift_qs
+    form.fields["default_shift"].required = False
+    form.fields["default_shift"].empty_label = "— Pilih shift —"
+    form.fields["default_shift"].label = "Shift default"
+    form.fields["default_shift"].help_text = (
+        "Shift tetap untuk karyawan ini. Penjadwalan hari ini diperbarui otomatis saat disimpan."
+    )
+
+
 class HRISLoginForm(AuthenticationForm):
     error_messages = {
         "invalid_login": "Username atau password salah. Periksa kembali kredensial Anda.",
@@ -87,10 +122,10 @@ class EmployeeForm(forms.ModelForm):
             "email",
             "phone",
             "plant",
-            "legal_entity",
             "department",
             "job_position",
             "employee_grade",
+            "default_shift",
             "manager",
             "user",
             "join_date",
@@ -113,11 +148,11 @@ class EmployeeForm(forms.ModelForm):
         labels = {
             "employee_id": "ID Karyawan",
             "full_name": "Nama lengkap",
-            "legal_entity": "Legal entity",
             "join_date": "Tanggal bergabung",
             "contract_end_date": "Akhir kontrak",
             "resign_date": "Tanggal resign",
             "employee_grade": "Grade karyawan",
+            "default_shift": "Shift default",
             "salary_scheme": "Skema gaji",
             "base_salary": "Gaji pokok",
             "allowance_transport": "Tunjangan transport",
@@ -135,29 +170,15 @@ class EmployeeForm(forms.ModelForm):
         _style_fields(self)
         apply_date_fields(self, "join_date", "contract_end_date", "resign_date")
         self.fields["user"].required = False
-        self.fields["legal_entity"].required = False
         self.fields["user"].help_text = (
             "Hubungkan ke akun login agar karyawan bisa clock in, ajukan cuti, dan lihat slip gaji."
         )
         if tenant:
-            from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
-
             _filter_plant_queryset(self, tenant, user)
-            self.fields["legal_entity"].queryset = LegalEntity.objects.filter(
-                tenant=tenant, is_active=True
-            )
-
             plant_id = self._resolve_plant_id(user)
-            dept_qs = Department.objects.filter(tenant=tenant, is_active=True)
-            job_qs = JobPosition.objects.filter(tenant=tenant, is_active=True)
-            grade_qs = EmployeeGrade.objects.filter(tenant=tenant, is_active=True)
-            if plant_id:
-                dept_qs = dept_qs.filter(plant_id=plant_id)
-                job_qs = job_qs.filter(plant_id=plant_id)
-                grade_qs = grade_qs.filter(plant_id=plant_id)
-            self.fields["department"].queryset = dept_qs
-            self.fields["job_position"].queryset = job_qs
-            self.fields["employee_grade"].queryset = grade_qs
+            _configure_employee_department_shift_fields(
+                self, tenant=tenant, user=user, plant_id=plant_id
+            )
             self.fields["employee_grade"].required = False
             self.fields["employee_grade"].help_text = (
                 "Golongan menentukan gaji harian dasar perhitungan gaji pokok dan lembur."
@@ -189,10 +210,13 @@ class EmployeeForm(forms.ModelForm):
         plant = cleaned.get("plant")
         department = cleaned.get("department")
         job_position = cleaned.get("job_position")
+        default_shift = cleaned.get("default_shift")
         if department and plant and department.plant_id != plant.pk:
             self.add_error("department", "Department harus sesuai plant yang dipilih.")
         if job_position and plant and job_position.plant_id != plant.pk:
             self.add_error("job_position", "Jabatan harus sesuai plant yang dipilih.")
+        if default_shift and plant and default_shift.plant_id != plant.pk:
+            self.add_error("default_shift", "Shift harus sesuai plant yang dipilih.")
         linked_user = cleaned.get("user")
         email = cleaned.get("email")
         if linked_user and email and not linked_user.email:

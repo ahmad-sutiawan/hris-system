@@ -29,7 +29,6 @@
           <th>Email</th>
           <th>Telepon</th>
           <th>Plant</th>
-          <th>Legal Entity</th>
           <th>Department</th>
           <th>Jabatan</th>
           <th>Atasan</th>
@@ -65,7 +64,6 @@
           <td>{{ employee.email|default:"-" }}</td>
           <td>{{ employee.phone|default:"-" }}</td>
           <td>{{ employee.plant.code }}</td>
-          <td>{{ employee.legal_entity.name|default:"-" }}</td>
           <td>{{ employee.department.name|default:"-" }}</td>
           <td>{{ employee.job_position.title|default:"-" }}</td>
           <td>{{ employee.manager.full_name|default:"-" }}</td>

@@ -50,7 +50,6 @@ def employee_list_queryset(user: User, filters: ListFilters):
             | Q(bpjs_ketenagakerjaan_number__icontains=text)
             | Q(plant__code__icontains=text)
             | Q(plant__name__icontains=text)
-            | Q(legal_entity__name__icontains=text)
             | Q(department__name__icontains=text)
             | Q(department__code__icontains=text)
             | Q(job_position__title__icontains=text)

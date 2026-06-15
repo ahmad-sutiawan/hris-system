@@ -86,6 +86,20 @@ class OnboardingServiceTests(TestCase):
         self.assertIsNotNone(assignment)
         self.assertEqual(assignment.shift_id, self.shift.pk)
 
+    def test_assign_default_shift_prefers_employee_default(self):
+        evening = Shift.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            name="Sore",
+            code="SORE",
+            scheduled_check_in=time(15, 0),
+            scheduled_check_out=time(23, 0),
+        )
+        self.employee.default_shift = evening
+        self.employee.save(update_fields=["default_shift"])
+        assignment = assign_default_shift(self.employee)
+        self.assertEqual(assignment.shift_id, evening.pk)
+
     def test_skips_inactive_employee(self):
         self.employee.status = Employee.Status.INACTIVE
         self.employee.save(update_fields=["status"])

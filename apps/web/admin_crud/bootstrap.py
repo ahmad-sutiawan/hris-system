@@ -2,9 +2,9 @@ from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesh
 from apps.core.models import Announcement, AuditLog, FeatureFlag, Notification, Plant, User
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
-from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
+from apps.organization.models import Department, EmployeeGrade, JobPosition
 from apps.payroll.models import PayrollRun, Payslip, SalaryComponent, THRRun
-from apps.shifts.models import Shift, ShiftAssignment, ShiftRotationTemplate
+from apps.shifts.models import Shift, ShiftAssignment
 from apps.web.admin_crud.forms import (
     AdminEmployeeForm,
     AdminLeaveRequestForm,
@@ -23,14 +23,12 @@ from apps.web.admin_crud.forms import (
     LeaveBalanceForm,
     LeaveHourlySegmentForm,
     LeaveTypeForm,
-    LegalEntityForm,
     AnnouncementForm,
     NotificationAdminForm,
     PayslipForm,
     PlantForm,
     SalaryComponentForm,
     ShiftForm,
-    ShiftRotationTemplateForm,
     THRRunForm,
 )
 from apps.web.admin_crud.registry import AdminResource, Column, register
@@ -104,22 +102,6 @@ def bootstrap_registry():
     )
     register(
         AdminResource(
-            slug="legal-entities",
-            model=LegalEntity,
-            form_class=LegalEntityForm,
-            section="Organization",
-            title="Legal Entity",
-            title_plural="Legal Entity",
-            columns=[Column("Nama", "name"), Column("NPWP", "npwp"), Column("Aktif", "is_active")],
-            search_fields=["name", "npwp"],
-            order_by=["name"],
-            master_data=True,
-            master_group="Struktur Organisasi",
-            list_limit=500,
-        )
-    )
-    register(
-        AdminResource(
             slug="departments",
             model=Department,
             form_class=DepartmentForm,
@@ -127,7 +109,6 @@ def bootstrap_registry():
             title="Department",
             title_plural="Department",
             columns=[
-                Column("Kode", "code"),
                 Column("Nama", "name"),
                 Column("Plant", "plant"),
                 Column("Aktif", "is_active"),
@@ -264,28 +245,6 @@ def bootstrap_registry():
             select_related=["employee", "shift"],
             order_by=["-work_date"],
             hide_from_admin_nav=True,
-        )
-    )
-    register(
-        AdminResource(
-            slug="shift-rotations",
-            model=ShiftRotationTemplate,
-            form_class=ShiftRotationTemplateForm,
-            section="Shifts",
-            title="Rotasi Shift",
-            title_plural="Rotasi Shift",
-            columns=[
-                Column("Nama", "name"),
-                Column("Plant", "plant"),
-                Column("Siklus (minggu)", "cycle_weeks"),
-                Column("Aktif", "is_active"),
-            ],
-            search_fields=["name"],
-            select_related=["plant"],
-            order_by=["name"],
-            master_data=True,
-            master_group="Operasional",
-            list_limit=500,
         )
     )
     register(

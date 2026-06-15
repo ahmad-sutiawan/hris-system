@@ -19,6 +19,10 @@ class EmployeeSerializer(serializers.ModelSerializer):
     effective_daily_wage = serializers.SerializerMethodField()
     effective_hourly_wage = serializers.SerializerMethodField()
     manager_name = serializers.CharField(source="manager.full_name", read_only=True)
+    legal_entity_name = serializers.CharField(source="legal_entity.name", read_only=True)
+
+    default_shift_code = serializers.CharField(source="default_shift.code", read_only=True)
+    default_shift_name = serializers.CharField(source="default_shift.name", read_only=True)
 
     class Meta:
         model = Employee
@@ -32,11 +36,15 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "plant",
             "plant_code",
             "legal_entity",
+            "legal_entity_name",
             "department",
             "department_name",
             "job_position",
             "job_title",
             "employee_grade",
+            "default_shift",
+            "default_shift_code",
+            "default_shift_name",
             "grade_code",
             "grade_name",
             "grade_daily_wage",
@@ -63,7 +71,15 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["created_at", "updated_at"]
+        read_only_fields = [
+            "created_at",
+            "updated_at",
+            "legal_entity",
+            "legal_entity_name",
+            "default_shift",
+            "default_shift_code",
+            "default_shift_name",
+        ]
 
     def get_effective_daily_wage(self, obj) -> str:
         return str(effective_daily_wage(obj))

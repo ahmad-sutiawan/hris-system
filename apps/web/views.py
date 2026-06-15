@@ -44,7 +44,7 @@ from apps.employees.services.profile import build_employee_profile_context
 from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.employees.services.import_csv import import_employees_csv, template_csv
-from apps.employees.services.onboarding import provision_new_employee
+from apps.employees.services.onboarding import provision_new_employee, sync_employee_default_shift
 from apps.attendance.services.import_punches import (
     PunchImportError,
     import_attendance_csv,
@@ -304,6 +304,7 @@ def employee_create(request):
             employee.tenant = request.user.tenant
             employee.save()
             provision_new_employee(employee, assign_shift=True)
+            sync_employee_default_shift(employee)
             messages.success(
                 request,
                 "Karyawan berhasil ditambahkan. Jatah cuti dan shift default telah diinisialisasi.",
@@ -339,6 +340,7 @@ def employee_edit(request, pk):
             updated.tenant = request.user.tenant
             updated.save()
             provision_new_employee(updated)
+            sync_employee_default_shift(updated)
             messages.success(request, "Data karyawan berhasil diperbarui.")
             return redirect("web:employee_list")
     else:

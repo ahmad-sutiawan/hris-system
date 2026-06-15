@@ -12,8 +12,9 @@ from apps.core.models import Notification
 from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
 from apps.employees.models import Employee
-from apps.employees.services.user_link import ensure_employee_profile
+from apps.employees.services.onboarding import resolve_default_shift
 from apps.employees.services.profile import build_employee_profile_context
+from apps.employees.services.user_link import ensure_employee_profile
 from apps.leave.models import LeaveRequest
 from apps.shifts.models import ShiftAssignment
 from apps.web.services.dashboard import build_dashboard_context
@@ -69,9 +70,11 @@ class MobileDashboardView(APIView):
             profile = (
                 Employee.objects.select_related(
                     "plant",
+                    "plant__default_shift",
                     "department",
                     "job_position",
                     "manager",
+                    "default_shift",
                 )
                 .filter(pk=profile.pk)
                 .first()
@@ -103,6 +106,10 @@ class MobileDashboardView(APIView):
         today_shift = dashboard.get("today_shift")
         if today_shift is not None:
             today_shift = _serialize_shift(today_shift)
+        elif profile:
+            fallback_shift = resolve_default_shift(profile)
+            if fallback_shift:
+                today_shift = _serialize_shift_preview(profile, fallback_shift, today)
 
         payload = {
             "today": today.isoformat(),
@@ -146,6 +153,9 @@ class MobileProfileView(APIView):
 
         ctx = build_employee_profile_context(profile)
         employee = ctx["employee"]
+        resolved_default = ctx.get("default_shift")
+        default_shift_payload = _serialize_default_shift(employee, resolved_default)
+        dept_name = employee.department.name if employee.department_id else None
         return Response(
             {
                 "employee": {
@@ -159,16 +169,23 @@ class MobileProfileView(APIView):
                     "join_date": employee.join_date.isoformat() if employee.join_date else None,
                     "plant": employee.plant.name if employee.plant_id else None,
                     "plant_code": employee.plant.code if employee.plant_id else None,
-                    "department": employee.department.name if employee.department_id else None,
+                    "department": dept_name,
+                    "department_name": dept_name,
                     "job_title": employee.job_position.title if employee.job_position_id else None,
                     "grade": employee.grade_label or None,
                     "manager_name": employee.manager.full_name if employee.manager_id else None,
                     "salary_scheme": employee.salary_scheme,
+                    "default_shift": default_shift_payload,
                 },
                 "today": ctx["today"].isoformat(),
                 "month_stats": ctx["month_stats"],
                 "leave_balances": _serialize_leave_balances(ctx.get("leave_balances") or []),
-                "today_assignment": _serialize_shift(ctx.get("today_assignment")),
+                "today_assignment": _serialize_shift(ctx.get("today_assignment"))
+                or (
+                    _serialize_shift_preview(employee, resolved_default, ctx["today"])
+                    if resolved_default
+                    else None
+                ),
                 "upcoming_shifts": [
                     _serialize_shift(item) for item in ctx.get("upcoming_shifts") or []
                 ],
@@ -248,6 +265,52 @@ def _serialize_leave_balances(balances) -> list[dict]:
             }
         )
     return rows
+
+
+def _serialize_default_shift(employee: Employee, resolved_shift) -> dict | None:
+    if employee.default_shift_id and employee.default_shift.is_active:
+        shift = employee.default_shift
+        source = "employee"
+        source_label = "Shift default karyawan"
+    elif resolved_shift:
+        shift = resolved_shift
+        if employee.plant_id and employee.plant.default_shift_id == shift.pk:
+            source = "plant"
+            source_label = "Shift default plant"
+        else:
+            source = "fallback"
+            source_label = "Shift aktif plant"
+    else:
+        return None
+
+    return {
+        "id": shift.pk,
+        "code": shift.code,
+        "name": shift.name,
+        "source": source,
+        "source_label": source_label,
+    }
+
+
+def _serialize_shift_preview(employee: Employee, shift, work_date) -> dict:
+    check_in = shift.scheduled_check_in
+    check_out = shift.scheduled_check_out
+    if check_out and check_in and check_out <= check_in:
+        check_out_date = work_date + timedelta(days=1)
+    else:
+        check_out_date = work_date
+
+    plant = employee.plant if employee.plant_id else None
+    return {
+        "work_date": work_date.isoformat(),
+        "shift_code": shift.code,
+        "shift_name": shift.name,
+        "plant_name": plant.name if plant else None,
+        "plant_code": plant.code if plant else None,
+        "scheduled_check_in": _shift_datetime(work_date, check_in),
+        "scheduled_check_out": _shift_datetime(check_out_date, check_out),
+        "is_preview": True,
+    }
 
 
 def _serialize_shift(assignment):

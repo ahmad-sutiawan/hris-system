@@ -9,7 +9,7 @@ Aplikasi mobile **employee-only** untuk HRIS-Lite — terhubung ke REST API Djan
 | Dashboard + absen masuk/pulang (selfie) | Beranda + Absen | ✓ |
 | Notifikasi + tandai dibaca | Notifikasi | ✓ |
 | Pengumuman + dismiss | Pengumuman | ✓ |
-| Detail Karyawan + statistik + jadwal shift | Profil | ✓ |
+| Detail Karyawan + statistik + jadwal shift + shift default | Profil | ✓ |
 | Rekap Absensi / timesheet | Tab Absensi | ✓ |
 | Pengajuan Cuti + saldo + batalkan | Tab Cuti | ✓ |
 | Pengajuan Lembur + preview + batalkan | Tab Lembur | ✓ |

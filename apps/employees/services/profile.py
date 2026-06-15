@@ -28,6 +28,7 @@ def build_employee_profile_context(employee: Employee) -> dict:
             "employee_grade",
             "manager",
             "legal_entity",
+            "default_shift",
             "user",
         )
         .get(pk=employee.pk)

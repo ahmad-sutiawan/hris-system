@@ -46,7 +46,8 @@ class MenuScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               sliver: SliverToBoxAdapter(
                 child: ProfileInfoCard(
-                  department: employee?['department_name'] as String?,
+                  department: employee?['department_name'] as String? ??
+                      employee?['department'] as String?,
                   jobTitle: employee?['job_title'] as String?,
                   managerName: employee?['manager_name'] as String?,
                   onTap: () => context.push('/profile'),

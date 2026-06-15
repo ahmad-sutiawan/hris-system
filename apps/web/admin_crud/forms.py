@@ -5,13 +5,14 @@ from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesh
 from apps.core.models import Announcement, FeatureFlag, Notification, Plant, Tenant
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
-from apps.organization.models import Department, EmployeeGrade, JobPosition, LegalEntity
+from apps.organization.models import Department, EmployeeGrade, JobPosition
 from apps.payroll.models import PayrollRun, Payslip, SalaryComponent, THRRun
-from apps.shifts.models import Shift, ShiftAssignment, ShiftRotationTemplate
+from apps.shifts.models import Shift, ShiftAssignment
 from apps.web.forms import (
     HRIS_INPUT_CLASS,
     HRIS_SELECT_CLASS,
     HRIS_TEXTAREA_CLASS,
+    _configure_employee_department_shift_fields,
     _filter_plant_queryset,
     _style_fields,
 )
@@ -139,26 +140,37 @@ class AdminUserForm(forms.ModelForm):
         return user
 
 
-class LegalEntityForm(forms.ModelForm):
-    class Meta:
-        model = LegalEntity
-        fields = ["name", "npwp", "is_active"]
-
-    def __init__(self, *args, tenant=None, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        _style_fields(self)
+from apps.organization.services.codes import department_code_from_name
 
 
 class DepartmentForm(forms.ModelForm):
     class Meta:
         model = Department
-        fields = ["plant", "code", "name", "parent", "is_active"]
+        fields = ["plant", "name", "is_active"]
+        labels = {
+            "name": "Nama departemen",
+            "is_active": "Aktif",
+        }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.tenant = tenant
         _base_init(self, tenant, user)
-        if tenant:
-            self.fields["parent"].queryset = Department.objects.filter(tenant=tenant)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        tenant_id = instance.tenant_id or (self.tenant.pk if self.tenant else None)
+        if not instance.code and instance.name and tenant_id and instance.plant_id:
+            instance.code = department_code_from_name(
+                instance.name,
+                tenant_id=tenant_id,
+                plant_id=instance.plant_id,
+                exclude_pk=instance.pk,
+            )
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class JobPositionForm(forms.ModelForm):
@@ -171,6 +183,7 @@ class JobPositionForm(forms.ModelForm):
         _base_init(self, tenant, user)
         if tenant:
             self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
+            self.fields["department"].label_from_instance = lambda obj: obj.name
 
 
 class EmployeeGradeForm(forms.ModelForm):
@@ -198,10 +211,10 @@ class AdminEmployeeForm(forms.ModelForm):
             "email",
             "phone",
             "plant",
-            "legal_entity",
             "department",
             "job_position",
             "employee_grade",
+            "default_shift",
             "manager",
             "user",
             "join_date",
@@ -228,18 +241,15 @@ class AdminEmployeeForm(forms.ModelForm):
         apply_date_fields(self, "join_date", "contract_end_date", "resign_date")
         _base_init(self, tenant, user)
         if tenant:
-            from apps.organization.models import Department, JobPosition
+            from apps.organization.models import JobPosition
 
-            self.fields["legal_entity"].queryset = LegalEntity.objects.filter(tenant=tenant)
-            self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
-            self.fields["job_position"].queryset = JobPosition.objects.filter(tenant=tenant)
-            grade_qs = EmployeeGrade.objects.filter(tenant=tenant, is_active=True)
             plant_id = self.data.get("plant") or (
                 self.instance.plant_id if self.instance.pk else None
             )
-            if plant_id:
-                grade_qs = grade_qs.filter(plant_id=plant_id)
-            self.fields["employee_grade"].queryset = grade_qs
+            _configure_employee_department_shift_fields(
+                self, tenant=tenant, user=user, plant_id=plant_id
+            )
+            self.fields["job_position"].queryset = JobPosition.objects.filter(tenant=tenant)
             self.fields["employee_grade"].required = False
             self.fields["employee_grade"].help_text = (
                 "Golongan karyawan menentukan gaji harian untuk perhitungan gaji & lembur."
@@ -313,19 +323,6 @@ class AdminShiftAssignmentForm(forms.ModelForm):
         if tenant:
             self.fields["employee"].queryset = Employee.objects.filter(tenant=tenant)
             self.fields["shift"].queryset = Shift.objects.filter(tenant=tenant, is_active=True)
-
-
-class ShiftRotationTemplateForm(forms.ModelForm):
-    class Meta:
-        model = ShiftRotationTemplate
-        fields = ["plant", "name", "cycle_weeks", "pattern", "is_active"]
-        widgets = {"pattern": forms.Textarea(attrs={"class": HRIS_TEXTAREA_CLASS, "rows": 4})}
-
-    def __init__(self, *args, tenant=None, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        _style_fields(self)
-        _base_init(self, tenant, user)
-        self.fields["pattern"].help_text = "Format JSON array, contoh: [\"PAGI\",\"SORE\",\"LIBUR\"]"
 
 
 class AttendanceCodeForm(forms.ModelForm):

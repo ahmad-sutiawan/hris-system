@@ -140,3 +140,71 @@ class MobileDashboardApiTests(TestCase):
             if "shifts_shiftassignment" in q["sql"].lower()
         ]
         self.assertLessEqual(len(shift_queries), 2)
+
+
+class MobileProfileApiTests(TestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(slug="mobile-prof", name="Mobile Prof Co")
+        self.plant = Plant.objects.create(tenant=self.tenant, code="SP", name="Plant SP")
+        self.dept = Department.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            code="PRODUKSI",
+            name="Produksi",
+        )
+        self.job = JobPosition.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            code="OPR",
+            title="Operator",
+            department=self.dept,
+        )
+        self.shift = Shift.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            code="SORE",
+            name="Shift Sore",
+            scheduled_check_in=time(15, 0),
+            scheduled_check_out=time(23, 0),
+        )
+        self.plant.default_shift = self.shift
+        self.plant.save(update_fields=["default_shift"])
+        self.user = User.objects.create_user(
+            username="emp-prof",
+            password="TestPassword123!",
+            tenant=self.tenant,
+            plant=self.plant,
+            role=User.Role.EMPLOYEE,
+        )
+        self.employee = Employee.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            department=self.dept,
+            job_position=self.job,
+            employee_id="SP-001",
+            full_name="Profil Mobile",
+            user=self.user,
+            base_salary=Decimal("5000000"),
+            default_shift=self.shift,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_profile_returns_department_name_and_default_shift(self):
+        response = self.client.get("/api/v1/mobile/profile/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        employee = data["employee"]
+        self.assertEqual(employee["department"], "Produksi")
+        self.assertEqual(employee["department_name"], "Produksi")
+        self.assertEqual(employee["default_shift"]["code"], "SORE")
+        self.assertEqual(employee["default_shift"]["source"], "employee")
+        self.assertIsNotNone(data["today_assignment"])
+        self.assertEqual(data["today_assignment"]["shift_code"], "SORE")
+
+    def test_dashboard_falls_back_to_default_shift_when_no_assignment(self):
+        response = self.client.get("/api/v1/mobile/dashboard/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["today_shift"]["shift_code"], "SORE")
+        self.assertTrue(data["today_shift"].get("is_preview"))
