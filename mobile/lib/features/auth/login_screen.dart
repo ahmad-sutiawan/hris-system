@@ -6,8 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/auth/auth_provider.dart';
-import '../../core/config/app_config.dart';
-import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/brand_logo.dart';
 import '../../core/widgets/hris_widgets.dart';
@@ -22,34 +20,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _serverCtrl = TextEditingController();
   bool _obscure = true;
-  bool _showServer = false;
   bool _submitting = false;
   String? _validationError;
-  String _activeServer = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadServerUrl();
-  }
-
-  Future<void> _loadServerUrl() async {
-    final url = await ref.read(apiClientProvider).loadBaseUrl();
-    if (mounted) {
-      setState(() {
-        _activeServer = url.replaceAll(AppConfig.apiPathSuffix, '');
-        _serverCtrl.text = _activeServer;
-      });
-    }
-  }
 
   @override
   void dispose() {
     _userCtrl.dispose();
     _passCtrl.dispose();
-    _serverCtrl.dispose();
     super.dispose();
   }
 
@@ -66,11 +44,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _submitting = true);
     try {
-      await ref.read(authProvider.notifier).login(
-            username,
-            password,
-            serverUrl: _showServer ? _serverCtrl.text.trim() : null,
-          ).timeout(const Duration(seconds: 45));
+      await ref
+          .read(authProvider.notifier)
+          .login(username, password)
+          .timeout(const Duration(seconds: 45));
       if (!mounted) return;
       final auth = ref.read(authProvider);
       if (auth.isAuthenticated) {
@@ -119,7 +96,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Hero brand — sama web login
                     ClipRect(
                       child: Stack(
                         children: [
@@ -142,10 +118,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ),
-                          SizedBox(
+                          const SizedBox(
                             height: 160,
                             child: Center(
-                              child: const BrandLogo(
+                              child: BrandLogo(
                                 size: BrandLogoSize.panel,
                                 showHrisLabel: true,
                               ),
@@ -242,42 +218,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             onSubmitted: (_) => _submit(),
                           ),
-                          const SizedBox(height: 8),
-                          TextButton.icon(
-                            onPressed: () => setState(() => _showServer = !_showServer),
-                            icon: Icon(
-                              _showServer ? Icons.expand_less : Icons.settings_outlined,
-                              size: 18,
-                            ),
-                            label: Text(_showServer ? 'Sembunyikan server' : 'Pengaturan server'),
-                          ),
-                          if (!_showServer && _activeServer.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'Server: $_activeServer',
-                              style: const TextStyle(
-                                color: AppColors.textDim,
-                                fontSize: 11,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                          if (_showServer) ...[
-                            TextField(
-                              controller: _serverCtrl,
-                              style: const TextStyle(color: AppColors.text),
-                              decoration: const InputDecoration(
-                                labelText: 'Alamat server HRIS',
-                                hintText: 'http://148.230.98.125:8080',
-                                prefixIcon: Icon(Icons.dns_outlined),
-                                helperText:
-                                    'Default: server production. Ubah hanya untuk development lokal.',
-                              ),
-                              keyboardType: TextInputType.url,
-                              autocorrect: false,
-                            ),
-                            const SizedBox(height: 8),
-                          ],
                           if (_validationError != null || auth.error != null) ...[
                             const SizedBox(height: 12),
                             Container(
@@ -303,16 +243,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     _validationError ?? auth.error!,
                                     style: const TextStyle(color: AppColors.danger),
                                   ),
-                                  if (_activeServer.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Server: $_activeServer',
-                                      style: TextStyle(
-                                        color: AppColors.danger.withValues(alpha: 0.85),
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
                                 ],
                               ),
                             ),

@@ -92,6 +92,10 @@ class ApiClient {
   }
 
   Future<void> init() async {
+    if (kReleaseMode) {
+      _dio.options.baseUrl = AppConfig.defaultBaseUrl;
+      return;
+    }
     final stored = await _readStorage(_baseUrlKey);
     if (stored != null && stored.isNotEmpty) {
       _dio.options.baseUrl = stored;
@@ -203,16 +207,31 @@ class ApiClient {
     return merged;
   }
 
-  /// Resolve media URL from API path or absolute URL using configured server base.
+  /// Resolve media URL — selalu pakai origin server app (dengan port benar).
+  /// API kadang mengembalikan http://host/media/... tanpa :8080.
   Future<String> resolveMediaUrl(String? urlOrPath) async {
     if (urlOrPath == null || urlOrPath.isEmpty) return '';
-    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
-      return urlOrPath;
-    }
+    if (urlOrPath.startsWith('data:image')) return urlOrPath;
+
     final apiBase = await loadBaseUrl();
     final origin = apiBase.replaceAll(AppConfig.apiPathSuffix, '');
-    if (urlOrPath.startsWith('/')) return '$origin$urlOrPath';
-    return '$origin/$urlOrPath';
+    final originUri = Uri.parse(origin);
+
+    final String path;
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      path = Uri.parse(urlOrPath).path;
+    } else if (urlOrPath.startsWith('/')) {
+      path = urlOrPath;
+    } else {
+      path = '/$urlOrPath';
+    }
+
+    return Uri(
+      scheme: originUri.scheme,
+      host: originUri.host,
+      port: originUri.hasPort ? originUri.port : null,
+      path: path,
+    ).toString();
   }
 
   Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? query}) {

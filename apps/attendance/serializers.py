@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework import serializers
 
 from apps.attendance.models import AttendanceRecord, DailyTimesheet
@@ -10,6 +11,9 @@ def _photo_url(record: AttendanceRecord | None, field: str, request) -> str | No
     if not image or not image.name:
         return None
     url = image.url
+    site = getattr(settings, "HRIS_SITE_URL", "").rstrip("/")
+    if site:
+        return f"{site}{url}" if url.startswith("/") else f"{site}/{url}"
     if request is not None:
         return request.build_absolute_uri(url)
     return url

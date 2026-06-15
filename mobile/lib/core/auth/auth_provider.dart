@@ -63,12 +63,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> login(String username, String password, {String? serverUrl}) async {
+  Future<void> login(String username, String password) async {
     state = state.copyWith(clearError: true);
     try {
-      if (serverUrl != null && serverUrl.trim().isNotEmpty) {
-        await _api.setBaseUrl(serverUrl);
-      }
       await _api.login(username, password).timeout(const Duration(seconds: 30));
       final ok = await _loadMe().timeout(const Duration(seconds: 30));
       if (!ok) {
