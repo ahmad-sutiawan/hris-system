@@ -28,10 +28,10 @@ class DashboardContentTests(TestCase):
         self.client.login(username="dashadmin", password="TestPassword123!")
         response = self.client.get(reverse("web:dashboard"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Absensi 7 Hari Terakhir")
+        self.assertContains(response, "Command Center")
         self.assertContains(response, "Notifikasi Terbaru")
-        self.assertContains(response, "Perlu Persetujuan")
-        self.assertContains(response, "Ringkasan Hari Ini")
+        self.assertContains(response, "Indikator Operasional")
+        self.assertContains(response, "Ringkasan Operasional")
         self.assertContains(response, "Hadir Hari Ini")
 
     def test_dashboard_profile_summary_uses_job_position_title(self):
@@ -110,5 +110,5 @@ class DashboardContentTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Sedang Cuti Hari Ini")
         self.assertContains(response, "Siti Cuti")
-        self.assertContains(response, "hris-leave-today-avatar")
+        self.assertContains(response, "hx-people-av")
         self.assertContains(response, "Cuti Tahunan")

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
@@ -40,6 +41,8 @@ class ProfileScreen extends ConsumerWidget {
             final defaultShift = emp['default_shift'] as Map<String, dynamic>?;
             final salaryPreview = data['salary_preview'] as Map<String, dynamic>?;
             final latestPayslip = data['latest_payslip'] as Map<String, dynamic>?;
+            final todayTimesheet = data['today_timesheet'] as Map<String, dynamic>?;
+            final recentTimesheets = data['recent_timesheets'] as List? ?? [];
             final deptName = emp['department_name'] as String? ?? emp['department'] as String?;
             final fmt = DateFormat('dd MMM');
             final timeFmt = DateFormat('HH:mm');
@@ -78,6 +81,28 @@ class ProfileScreen extends ConsumerWidget {
                       _InfoRow('Telepon', emp['phone']),
                     ],
                   ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/payslips'),
+                      icon: const Icon(Icons.receipt_long_outlined, size: 18),
+                      label: const Text('Slip Gaji'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => context.go('/attendance'),
+                      icon: const Icon(Icons.history_rounded, size: 18),
+                      label: const Text('Riwayat Absensi'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => context.push('/punch?action=in'),
+                      icon: const Icon(Icons.fingerprint_rounded, size: 18),
+                      label: const Text('Clock In/Out'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 const SectionHeader(title: 'Gaji & Tunjangan'),
@@ -225,6 +250,52 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                 ],
+                if (todayTimesheet != null || recentTimesheets.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const SectionHeader(title: 'Absensi & Timesheet'),
+                  const SizedBox(height: 10),
+                  if (todayTimesheet != null)
+                    HrisCard(
+                      accentColor: AppColors.accent,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Hari ini',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          ..._timesheetRows(todayTimesheet, fmt, timeFmt),
+                        ],
+                      ),
+                    ),
+                  if (recentTimesheets.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ...recentTimesheets.take(7).map((raw) {
+                      final ts = raw as Map<String, dynamic>;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: HrisCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                fmt.format(DateTime.parse(ts['work_date'] as String)),
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 4),
+                              ..._timesheetRows(ts, fmt, timeFmt),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ],
                 const SizedBox(height: 16),
                 const SectionHeader(title: 'Statistik Bulan Ini'),
                 const SizedBox(height: 10),
@@ -284,6 +355,35 @@ class ProfileScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+List<Widget> _timesheetRows(
+  Map<String, dynamic> ts,
+  DateFormat dateFmt,
+  DateFormat timeFmt,
+) {
+  String? inLabel;
+  String? outLabel;
+  if (ts['check_in'] != null) {
+    inLabel = timeFmt.format(DateTime.parse(ts['check_in'] as String).toLocal());
+  }
+  if (ts['check_out'] != null) {
+    outLabel = timeFmt.format(DateTime.parse(ts['check_out'] as String).toLocal());
+  }
+
+  return [
+    _InfoRow('Shift', ts['shift_code']),
+    _InfoRow('Clock in', inLabel),
+    _InfoRow('Clock out', outLabel),
+    _InfoRow('Kode', ts['attendance_code']),
+    if ((ts['late_in_minutes'] as int? ?? 0) > 0)
+      _InfoRow('Telat', '${ts['late_in_minutes']} m'),
+    if (((ts['ot_before_minutes'] as int? ?? 0) + (ts['ot_after_minutes'] as int? ?? 0)) > 0)
+      _InfoRow(
+        'Lembur',
+        '${(ts['ot_before_minutes'] as int? ?? 0) + (ts['ot_after_minutes'] as int? ?? 0)} m',
+      ),
+  ];
 }
 
 class _SalaryPreviewCard extends StatelessWidget {

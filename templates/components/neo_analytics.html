@@ -1,0 +1,260 @@
+{% load hris_ui %}
+<section class="hris-neo-deck" aria-label="Matrix analitik operasional">
+  <div class="hris-neo-deck-head">
+    <div>
+      <span class="hris-neo-eyebrow">Industrial Matrix</span>
+      <h2>Pulse Operasional</h2>
+      <p>Data real-time · gauge · spektrum · radar · heatmap</p>
+    </div>
+    <div class="hris-neo-head-stat" title="Workforce aktif">
+      <strong data-neo-count="{{ analytics.neo.headline_total|num:0 }}">{{ analytics.neo.headline_total|num:0 }}</strong>
+      <span>Workforce</span>
+      <em class="hris-neo-rate">{{ analytics.neo.attendance_rate|num:1 }}% hadir</em>
+    </div>
+  </div>
+
+  <svg width="0" height="0" aria-hidden="true" focusable="false" class="hris-neo-defs">
+    <defs>
+      <linearGradient id="neo-grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#6366f1"/>
+      </linearGradient>
+      <linearGradient id="neo-grad-magenta" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#c026d3"/>
+      </linearGradient>
+      <linearGradient id="neo-grad-gold" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f97316"/>
+      </linearGradient>
+      <linearGradient id="neo-grad-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+      <linearGradient id="neo-grad-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fb923c"/><stop offset="100%" stop-color="#ea580c"/>
+      </linearGradient>
+      <linearGradient id="neo-grad-green" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/>
+      </linearGradient>
+      <pattern id="neo-grid" width="12" height="12" patternUnits="userSpaceOnUse">
+        <path d="M 12 0 L 0 0 0 12" fill="none" stroke="rgba(20,11,110,0.06)" stroke-width="0.5"/>
+      </pattern>
+    </defs>
+  </svg>
+
+  <div class="hris-neo-grid">
+    <article class="hris-neo-panel hris-neo-panel--kpi">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip">KPI Matrix</span>
+        <h3>Indikator Operasional</h3>
+      </header>
+      <div class="hris-neo-kpi-matrix">
+        {% for tile in analytics.neo.kpi_tiles %}
+        <div class="hris-neo-kpi hris-neo-kpi--{{ tile.tone }}"
+             tabindex="0"
+             data-neo-kpi
+             data-value="{{ tile.value }}"
+             data-label="{{ tile.label }}"
+             title="{{ tile.label }}: {{ tile.value|num:0 }}">
+          <div class="hris-neo-kpi-top">
+            <span class="hris-neo-kpi-label">{{ tile.label }}</span>
+            <span class="hris-neo-kpi-pct">{{ tile.pct|num:0 }}%</span>
+          </div>
+          <strong class="hris-neo-kpi-value" data-neo-count="{{ tile.value|num:0 }}">{{ tile.value|num:0 }}</strong>
+          <div class="hris-neo-kpi-bar" aria-hidden="true">
+            <span style="--fill: {{ tile.pct }}%;"></span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--compact">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip">Radial Gauge</span>
+        <h3>Kehadiran Hari Ini</h3>
+      </header>
+      <div class="hris-neo-gauge-matrix">
+        {% for gauge in analytics.neo.gauges %}
+        <div class="hris-neo-gauge" data-neo-gauge data-label="{{ gauge.label }}" data-value="{{ gauge.value|num:0 }}">
+          <svg viewBox="0 0 100 100" role="img" aria-label="{{ gauge.label }} {{ gauge.pct }} persen">
+            <circle cx="50" cy="50" r="40" class="hris-neo-gauge-track"/>
+            <circle cx="50" cy="50" r="40" class="hris-neo-gauge-arc hris-neo-gauge-arc--{{ gauge.tone }}"
+                    stroke-dasharray="251.33" stroke-dashoffset="{{ gauge.offset }}"
+                    transform="rotate(-90 50 50)"/>
+          </svg>
+          <strong class="hris-neo-gauge-value">{{ gauge.pct|num:0 }}<small>%</small></strong>
+          <span class="hris-neo-gauge-label">{{ gauge.label }}</span>
+          <span class="hris-neo-gauge-sub">{{ gauge.value|num:0 }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--compact">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip hris-neo-chip--magenta">Diverging</span>
+        <h3>Karyawan per Cabang</h3>
+      </header>
+      <div class="hris-neo-diverge" role="img" aria-label="Spektrum cabang">
+        <div class="hris-neo-diverge-axis" aria-hidden="true"></div>
+        {% for row in analytics.neo.diverging_plants %}
+        <div class="hris-neo-diverge-row" data-neo-bar style="--bar: {{ row.bar_pct }}%;">
+          <div class="hris-neo-diverge-left">
+            <span class="hris-neo-diverge-bar hris-neo-diverge-bar--cyan"></span>
+          </div>
+          <span class="hris-neo-diverge-label">{{ row.label }}</span>
+          <div class="hris-neo-diverge-right">
+            <span class="hris-neo-diverge-bar hris-neo-diverge-bar--magenta"></span>
+          </div>
+          <strong class="hris-neo-diverge-value">{{ row.value|num:0 }}</strong>
+        </div>
+        {% empty %}
+        <p class="hris-neo-empty">Belum ada data cabang.</p>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--wide">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip hris-neo-chip--cyan">Pulse Line</span>
+        <h3>Tren Timesheet 7 Hari</h3>
+      </header>
+      <div class="hris-neo-trend" data-neo-trend>
+        <svg viewBox="0 0 300 90" class="hris-neo-trend-svg" role="img" aria-label="Tren timesheet">
+          <rect width="300" height="90" fill="url(#neo-grid)" opacity="0.5"/>
+          <rect x="{{ analytics.neo.trend_highlight.x|add:-10 }}" y="6" width="20" height="78" class="hris-neo-trend-zone" data-neo-trend-zone/>
+          {% for line in analytics.neo.trend_lines %}
+          <polyline points="{{ line.points }}" class="hris-neo-trend-line hris-neo-trend-line--{{ line.tone }}" fill="none"/>
+          {% endfor %}
+          {% for pt in analytics.neo.trend_points %}
+          <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="3" class="hris-neo-trend-dot{% if pt.is_today %} is-active{% endif %}"
+                  data-neo-trend-pt data-label="{{ pt.label }}" data-value="{{ pt.value|num:0 }}"/>
+          <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="10" class="hris-neo-trend-hit"
+                  data-neo-trend-pt data-label="{{ pt.label }}" data-value="{{ pt.value|num:0 }}"/>
+          {% endfor %}
+        </svg>
+        <div class="hris-neo-trend-callout" data-neo-trend-callout style="left: {% widthratio analytics.neo.trend_highlight.x 300 100 %}%;">
+          <span>{{ analytics.neo.trend_highlight.label }}</span>
+          <strong>{{ analytics.neo.trend_highlight.value|num:0 }}</strong>
+        </div>
+        <div class="hris-neo-trend-legend">
+          <span><i class="hris-neo-sq hris-neo-sq--cyan"></i>Timesheet</span>
+          <span><i class="hris-neo-sq hris-neo-sq--magenta"></i>Baseline</span>
+          <span><i class="hris-neo-sq hris-neo-sq--gold"></i>Peak</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--compact">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip hris-neo-chip--gold">Arc Stack</span>
+        <h3>Status Employee</h3>
+      </header>
+      <div class="hris-neo-radial-stack">
+        <svg viewBox="0 0 120 120" role="img" aria-label="Stack status employee">
+          {% for arc in analytics.neo.radial_arcs %}
+          <circle cx="60" cy="60" r="{{ arc.r }}" class="hris-neo-arc-track"/>
+          <circle cx="60" cy="60" r="{{ arc.r }}" class="hris-neo-arc hris-neo-arc--{{ arc.tone }}"
+                  stroke-dasharray="{{ arc.dash }} {{ arc.circ }}"
+                  data-neo-arc
+                  transform="rotate(-120 60 60)"/>
+          {% endfor %}
+          <text x="60" y="64" text-anchor="middle" class="hris-neo-radial-core">OPS</text>
+        </svg>
+        <ul class="hris-neo-radial-legend">
+          {% for arc in analytics.neo.radial_arcs %}
+          <li><span class="hris-neo-sq hris-neo-sq--{{ arc.tone }}"></span>{{ arc.label }} · {{ arc.value|num:0 }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--wide">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip">Bi-Rank</span>
+        <h3>Top Organization</h3>
+      </header>
+      <div class="hris-neo-rank">
+        {% for row in analytics.neo.diverging_depts %}
+        <div class="hris-neo-rank-row" data-neo-bar style="--left: {{ row.left_pct }}%; --right: {{ row.right_pct }}%;">
+          <div class="hris-neo-rank-left"><span></span></div>
+          <div class="hris-neo-rank-mid">
+            <span>{{ row.label }}</span>
+            <strong>{{ row.value|num:0 }}</strong>
+          </div>
+          <div class="hris-neo-rank-right"><span></span></div>
+        </div>
+        {% empty %}
+        <p class="hris-neo-empty">Belum ada data organization.</p>
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--compact">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip hris-neo-chip--magenta">Flow Node</span>
+        <h3>Antrian Approval</h3>
+      </header>
+      <div class="hris-neo-diamond-flow">
+        {% for node in analytics.neo.diamonds %}
+        <div class="hris-neo-diamond-node" data-neo-diamond tabindex="0">
+          <div class="hris-neo-diamond hris-neo-diamond--{{ node.tone }}">
+            <span>{{ node.code }}</span>
+          </div>
+          <strong>{{ node.value|num:0 }}</strong>
+          <small>{{ node.label }}</small>
+        </div>
+        {% if not forloop.last %}<div class="hris-neo-diamond-link" aria-hidden="true"></div>{% endif %}
+        {% endfor %}
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--compact">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip hris-neo-chip--cyan">Radar</span>
+        <h3>Ops Snapshot</h3>
+      </header>
+      <div class="hris-neo-radar-wrap">
+        <svg viewBox="0 0 120 120" class="hris-neo-radar" role="img" aria-label="Radar operasional">
+          <rect width="120" height="120" fill="url(#neo-grid)" opacity="0.4"/>
+          <polygon points="60,18 98,48 82,98 38,98 22,48" class="hris-neo-radar-grid"/>
+          <polygon points="60,30 86,50 76,86 44,86 34,50" class="hris-neo-radar-grid hris-neo-radar-grid--inner"/>
+          {% for point in analytics.neo.radar_points %}
+          <line x1="60" y1="60" x2="{{ point.lx }}" y2="{{ point.ly }}" class="hris-neo-radar-axis"/>
+          {% endfor %}
+          <polygon points="{{ analytics.neo.radar_poly }}" class="hris-neo-radar-fill" data-neo-radar-fill/>
+          {% for point in analytics.neo.radar_points %}
+          <circle cx="{{ point.x }}" cy="{{ point.y }}" r="2.5" class="hris-neo-radar-node" data-neo-radar-node data-label="{{ point.label }}" data-value="{{ point.value|num:0 }}"/>
+          {% endfor %}
+        </svg>
+        <ul class="hris-neo-radar-legend">
+          {% for point in analytics.neo.radar_points %}
+          <li data-neo-radar-leg data-label="{{ point.label }}">{{ point.label }} · {{ point.value|num:0 }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </article>
+
+    <article class="hris-neo-panel hris-neo-panel--wide">
+      <header class="hris-neo-panel-head">
+        <span class="hris-neo-chip hris-neo-chip--gold">Heat Matrix</span>
+        <h3>Intensitas Mingguan</h3>
+      </header>
+      <div class="hris-neo-heat-row">
+        {% for cell in analytics.heatmap_week %}
+        <div class="hris-neo-heat-cell{% if cell.is_today %} is-today{% endif %}"
+             style="--heat: {{ cell.intensity }};"
+             data-neo-heat
+             data-label="{{ cell.label }}"
+             data-date="{{ cell.date }}"
+             data-value="{{ cell.value|num:0 }}"
+             tabindex="0">
+          <div class="hris-neo-heat-core"></div>
+          <strong>{{ cell.value|num:0 }}</strong>
+          <span>{{ cell.label }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </article>
+  </div>
+
+  <div class="hris-neo-tooltip" data-neo-tooltip hidden aria-live="polite"></div>
+</section>

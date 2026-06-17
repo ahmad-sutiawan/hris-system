@@ -235,6 +235,27 @@ class MobileDashboardView(APIView):
                 AttendanceRecordSerializer(today_record).data if today_record else None
             ),
             "profile_summary": dashboard.get("profile_summary"),
+            "stats_extra": dashboard.get("stats_extra") or {},
+            "attendance_rate": (
+                dashboard.get("analytics", {}).get("attendance_rate", 0.0)
+            ),
+            "on_leave_today": [
+                {
+                    "employee_id": item["employee"].employee_id,
+                    "full_name": item["employee"].full_name,
+                    "department": (
+                        item["employee"].department.name
+                        if item["employee"].department_id
+                        else None
+                    ),
+                    "leave_type": (
+                        item["leave_request"].leave_type.name
+                        if item["leave_request"].leave_type_id
+                        else None
+                    ),
+                }
+                for item in dashboard.get("on_leave_today_items") or []
+            ],
             "leave_balances": _serialize_leave_balances(dashboard.get("leave_balances") or []),
             "today_shift": today_shift,
             "upcoming_shifts": upcoming_shifts,

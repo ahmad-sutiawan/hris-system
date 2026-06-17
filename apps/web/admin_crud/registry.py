@@ -34,13 +34,13 @@ REGISTRY: dict[str, AdminResource] = {}
 _BOOTSTRAPPED = False
 
 APP_SECTION_ORDER = [
-    "Core",
-    "Organization",
     "Employees",
-    "Shifts",
+    "Organization",
     "Attendance",
+    "Shifts",
     "Leave",
     "Payroll",
+    "Core",
 ]
 
 
@@ -64,9 +64,38 @@ def resources_by_section() -> dict[str, list[AdminResource]]:
 
 MASTER_GROUP_ORDER = [
     "Struktur Organisasi",
+    "Absensi",
     "Operasional",
     "Keuangan",
+    "Workflow",
 ]
+
+MASTER_SLUG_ORDER = [
+    "plants",
+    "departments",
+    "job-positions",
+    "job-levels",
+    "punch-locations",
+    "holidays",
+    "shifts",
+    "attendance-codes",
+    "overtime-types",
+    "leave-types",
+    "salary-components",
+    "shift-allowance-rates",
+    "pph21-ter-categories",
+    "pph21-ter-brackets",
+    "pph21-ter-ptkp",
+    "approval-lines",
+]
+
+
+def _master_sort_key(resource: AdminResource) -> tuple[int, str]:
+    try:
+        idx = MASTER_SLUG_ORDER.index(resource.slug)
+    except ValueError:
+        idx = len(MASTER_SLUG_ORDER)
+    return (idx, resource.title)
 
 
 def resources_master_data() -> list[tuple[str, list[AdminResource]]]:
@@ -79,10 +108,10 @@ def resources_master_data() -> list[tuple[str, list[AdminResource]]]:
     for group in MASTER_GROUP_ORDER:
         if group in grouped:
             items = grouped.pop(group)
-            items.sort(key=lambda r: r.title)
+            items.sort(key=_master_sort_key)
             ordered.append((group, items))
     for group, items in sorted(grouped.items()):
-        items.sort(key=lambda r: r.title)
+        items.sort(key=_master_sort_key)
         ordered.append((group, items))
     return ordered
 

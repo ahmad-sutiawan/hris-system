@@ -1,0 +1,308 @@
+{% load hris_ui %}
+<div class="hx-cockpit" data-hx-cockpit>
+
+  <svg class="hx-defs" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="hx-grad-cyan" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#6366f1"/>
+      </linearGradient>
+      <linearGradient id="hx-grad-magenta" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#c026d3"/>
+      </linearGradient>
+      <linearGradient id="hx-grad-gold" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f97316"/>
+      </linearGradient>
+      <linearGradient id="hx-grad-purple" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/>
+      </linearGradient>
+      <linearGradient id="hx-grad-green" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/>
+      </linearGradient>
+      <linearGradient id="hx-grad-brand" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#22d3ee"/><stop offset="35%" stop-color="#6366f1"/>
+        <stop offset="65%" stop-color="#c026d3"/><stop offset="100%" stop-color="#fbbf24"/>
+      </linearGradient>
+      <pattern id="hx-grid" width="16" height="16" patternUnits="userSpaceOnUse">
+        <path d="M 16 0 L 0 0 0 16" fill="none" stroke="rgba(52,40,168,0.07)" stroke-width="0.5"/>
+      </pattern>
+      <filter id="hx-glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+  </svg>
+
+  <header class="hx-hero">
+    <div class="hx-hero-main">
+      <span class="hx-eyebrow">Command Center</span>
+      <h1 class="hx-hero-title">Ringkasan Operasional</h1>
+      <p class="hx-hero-sub">{{ today|local_date:"l, d F Y" }} · data tenant real-time</p>
+    </div>
+
+    <div class="hx-hero-ring" data-hx-ring>
+      <div class="hx-ring-visual" style="background: conic-gradient({% for seg in analytics.attendance_segments %}{{ seg.color }} {{ seg.start }}% {{ seg.end }}%{% if not forloop.last %}, {% endif %}{% empty %}rgba(20,11,110,0.08) 0 100%{% endfor %});">
+        <div class="hx-ring-core">
+          <strong data-hx-count="{{ analytics.neo.attendance_rate|num:1 }}">{{ analytics.neo.attendance_rate|num:1 }}</strong>
+          <span>% kehadiran</span>
+        </div>
+      </div>
+      <ul class="hx-ring-legend">
+        {% for seg in analytics.attendance_segments %}
+        <li data-hx-seg data-label="{{ seg.label }}" data-value="{{ seg.value|num:0 }}">
+          <i style="background:{{ seg.color }}"></i>{{ seg.label }} · {{ seg.value|num:0 }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="hx-hero-meta">
+      <div class="hx-live-clock">
+        <span class="hx-live-label">Live</span>
+        <time class="hx-live-time" data-hx-clock datetime="">--:--</time>
+      </div>
+      <div class="hx-hero-stat">
+        <strong data-hx-count="{{ analytics.neo.headline_total|num:0 }}">{{ analytics.neo.headline_total|num:0 }}</strong>
+        <span>Workforce aktif</span>
+      </div>
+      {% if profile %}
+      <div class="hx-punch-actions">
+        <button type="button" class="hx-btn hx-btn--in hris-punch-trigger" data-action="in" data-label="Clock In">Clock In</button>
+        <button type="button" class="hx-btn hx-btn--out hris-punch-trigger" data-action="out" data-label="Clock Out">Clock Out</button>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  {% if profile %}
+  <section class="hx-punch-strip">
+    <div class="hx-punch-user">
+      <span class="hx-punch-avatar">{{ profile.full_name|initials }}</span>
+      <div>
+        <strong>{{ profile.full_name }}</strong>
+        <span>{{ profile.employee_id }}</span>
+      </div>
+    </div>
+    <div class="hx-punch-cells">
+      <div class="hx-punch-cell hx-punch-cell--in">
+        <span>Clock In</span>
+        {% if today_record and today_record.check_in %}
+        <strong>{{ today_record.check_in|local_datetime:"H:i" }}</strong>
+        {% else %}<strong class="is-empty">—</strong>{% endif %}
+      </div>
+      <div class="hx-punch-cell hx-punch-cell--out">
+        <span>Clock Out</span>
+        {% if today_record and today_record.check_out %}
+        <strong>{{ today_record.check_out|local_datetime:"H:i" }}</strong>
+        {% else %}<strong class="is-empty">—</strong>{% endif %}
+      </div>
+      <div class="hx-punch-cell">
+        <span>Status</span>
+        {% if punch_ui.status == 'in' %}
+        <strong class="hx-status hx-status--active">Sedang bekerja</strong>
+        {% elif punch_ui.status == 'out' %}
+        <strong class="hx-status hx-status--done">Sudah pulang</strong>
+        {% else %}
+        <strong class="hx-status hx-status--idle">Belum masuk</strong>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <div class="hx-matrix">
+
+    <section class="hx-panel hx-panel--kpi">
+      <header class="hx-panel-head"><span class="hx-tag">KPI</span><h2>Indikator Operasional</h2></header>
+      <div class="hx-kpi-grid">
+        {% for tile in analytics.neo.kpi_tiles %}
+        <article class="hx-kpi hx-kpi--{{ tile.tone }}" tabindex="0" data-hx-kpi data-label="{{ tile.label }}" data-value="{{ tile.value }}">
+          <div class="hx-kpi-head">
+            <span class="hx-kpi-code">{{ tile.icon }}</span>
+            <svg viewBox="0 0 48 14" class="hx-kpi-spark" aria-hidden="true"><polyline points="{{ tile.spark_points }}" fill="none"/></svg>
+          </div>
+          <strong class="hx-kpi-val" data-hx-count="{{ tile.value|num:0 }}">{{ tile.value|num:0 }}</strong>
+          <span class="hx-kpi-label">{{ tile.label }}</span>
+          <div class="hx-kpi-track"><span style="--w: {{ tile.pct }}%;"></span></div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--green">Gauge</span><h2>Distribusi Kehadiran</h2></header>
+      <div class="hx-gauge-row">
+        {% for gauge in analytics.neo.gauges %}
+        <div class="hx-gauge" data-hx-gauge data-label="{{ gauge.label }}" data-value="{{ gauge.value|num:0 }}">
+          <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" class="hx-gauge-track"/>
+            <circle cx="50" cy="50" r="40" class="hx-gauge-arc hx-gauge-arc--{{ gauge.tone }}" stroke-dasharray="251.33" stroke-dashoffset="{{ gauge.offset }}" transform="rotate(-90 50 50)"/></svg>
+          <strong>{{ gauge.pct|num:0 }}<small>%</small></strong>
+          <span>{{ gauge.label }}</span>
+          <em>{{ gauge.value|num:0 }}</em>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-8">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--cyan">Pulse</span><h2>Tren Timesheet 7 Hari</h2></header>
+      <div class="hx-trend" data-hx-trend>
+        <svg viewBox="0 0 300 88" class="hx-trend-svg">
+          <rect width="300" height="88" fill="url(#hx-grid)" opacity="0.45"/>
+          <rect x="{{ analytics.neo.trend_highlight.x|add:-10 }}" y="6" width="20" height="76" class="hx-trend-zone" data-hx-trend-zone/>
+          {% for line in analytics.neo.trend_lines %}
+          <polyline points="{{ line.points }}" class="hx-trend-line hx-trend-line--{{ line.tone }}" fill="none"/>
+          {% endfor %}
+          {% for pt in analytics.neo.trend_points %}
+          <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="3" class="hx-trend-dot{% if pt.is_today %} is-today{% endif %}"/>
+          <circle cx="{{ pt.x }}" cy="{{ pt.y }}" r="11" class="hx-trend-hit" data-hx-trend-pt data-label="{{ pt.label }}" data-value="{{ pt.value|num:0 }}" data-x="{{ pt.x }}"/>
+          {% endfor %}
+        </svg>
+        <div class="hx-trend-tip" data-hx-trend-tip style="left:{% widthratio analytics.neo.trend_highlight.x 300 100 %}%;">
+          <span>{{ analytics.neo.trend_highlight.label }}</span><strong>{{ analytics.neo.trend_highlight.value|num:0 }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--gold">Heat</span><h2>Intensitas Mingguan</h2></header>
+      <div class="hx-heat">
+        {% for cell in analytics.heatmap_week %}
+        <button type="button" class="hx-heat-cell{% if cell.is_today %} is-today{% endif %}" style="--i:{{ cell.intensity }};" data-hx-heat data-label="{{ cell.label }}" data-date="{{ cell.date }}" data-value="{{ cell.value|num:0 }}">
+          <i></i><strong>{{ cell.value|num:0 }}</strong><span>{{ cell.label }}</span>
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Spectrum</span><h2>Karyawan per Cabang</h2></header>
+      <div class="hx-bars">
+        {% for row in analytics.neo.diverging_plants %}
+        <div class="hx-bar-row" data-hx-bar style="--w:{{ row.bar_pct }}%;" data-label="{{ row.label }}" data-value="{{ row.value|num:0 }}">
+          <span>{{ row.label }}</span><div class="hx-bar-track"><i></i></div><strong>{{ row.value|num:0 }}</strong>
+        </div>
+        {% empty %}<p class="hx-empty">Belum ada data cabang.</p>{% endfor %}
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag">Rank</span><h2>Top Organization</h2></header>
+      <div class="hx-bars hx-bars--rank">
+        {% for row in analytics.neo.diverging_depts %}
+        <div class="hx-bar-row" data-hx-bar style="--w:{{ row.left_pct }}%;" data-label="{{ row.label }}" data-value="{{ row.value|num:0 }}">
+          <span>{{ row.label }}</span><div class="hx-bar-track hx-bar-track--rank"><i></i></div><strong>{{ row.value|num:0 }}</strong>
+        </div>
+        {% empty %}<p class="hx-empty">Belum ada data organization.</p>{% endfor %}
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--gold">Arc</span><h2>Status Employee</h2></header>
+      <div class="hx-arc-wrap">
+        <svg viewBox="0 0 120 120" class="hx-arc-svg">
+          {% for arc in analytics.neo.radial_arcs %}
+          <circle cx="60" cy="60" r="{{ arc.r }}" class="hx-arc-track"/>
+          <circle cx="60" cy="60" r="{{ arc.r }}" class="hx-arc hx-arc--{{ arc.tone }}" stroke-dasharray="{{ arc.dash }} {{ arc.circ }}" transform="rotate(-120 60 60)"/>
+          {% endfor %}
+          <text x="60" y="64" text-anchor="middle" class="hx-arc-label">HR</text>
+        </svg>
+        <ul class="hx-arc-legend">
+          {% for arc in analytics.neo.radial_arcs %}<li><i class="hx-dot hx-dot--{{ arc.tone }}"></i>{{ arc.label }} · {{ arc.value|num:0 }}</li>{% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Flow</span><h2>Antrian Approval</h2></header>
+      <div class="hx-flow">
+        {% for node in analytics.neo.diamonds %}
+        <div class="hx-flow-node hx-flow-node--{{ node.tone }}" data-hx-flow data-label="{{ node.label }}" data-value="{{ node.value|num:0 }}">
+          <div class="hx-flow-diamond"><span>{{ node.code }}</span></div>
+          <strong data-hx-count="{{ node.value|num:0 }}">{{ node.value|num:0 }}</strong>
+          <small>{{ node.label }}</small>
+        </div>
+        {% if not forloop.last %}<div class="hx-flow-link"></div>{% endif %}
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--cyan">Radar</span><h2>Ops Snapshot</h2></header>
+      <div class="hx-radar-wrap">
+        <svg viewBox="0 0 120 120" class="hx-radar">
+          <rect width="120" height="120" fill="url(#hx-grid)" opacity="0.35"/>
+          <polygon points="60,18 98,48 82,98 38,98 22,48" class="hx-radar-grid"/>
+          <polygon points="60,30 86,50 76,86 44,86 34,50" class="hx-radar-grid hx-radar-grid--in"/>
+          {% for point in analytics.neo.radar_points %}<line x1="60" y1="60" x2="{{ point.lx }}" y2="{{ point.ly }}" class="hx-radar-axis"/>{% endfor %}
+          <polygon points="{{ analytics.neo.radar_poly }}" class="hx-radar-fill"/>
+          {% for point in analytics.neo.radar_points %}
+          <circle cx="{{ point.x }}" cy="{{ point.y }}" r="3" class="hx-radar-node" data-hx-radar data-label="{{ point.label }}" data-value="{{ point.value|num:0 }}"/>
+          {% endfor %}
+        </svg>
+        <ul class="hx-radar-leg">{% for point in analytics.neo.radar_points %}<li data-hx-radar-leg="{{ point.label }}">{{ point.label }} · {{ point.value|num:0 }}</li>{% endfor %}</ul>
+      </div>
+    </section>
+
+    {% if profile and profile_summary %}
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag">Profil</span><h2>Identitas Saya</h2></header>
+      <dl class="hx-dl">
+        <div><dt>Plant</dt><dd>{{ profile_summary.plant }}</dd></div>
+        <div><dt>Organization</dt><dd>{{ profile_summary.department }}</dd></div>
+        <div><dt>Posisi</dt><dd>{{ profile_summary.position }}</dd></div>
+        <div><dt>Status</dt><dd>{{ profile_summary.status }}</dd></div>
+      </dl>
+      {% if today_shift %}
+      <div class="hx-shift"><span>Shift hari ini</span><strong>{{ today_shift.shift.name }}</strong></div>
+      {% endif %}
+      {% if leave_balances %}
+      <ul class="hx-balance">{% for bal in leave_balances %}<li><span>{{ bal.leave_type.name }}</span><strong>{{ bal.remaining|num:1 }}</strong></li>{% endfor %}</ul>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Cuti</span><h2>Sedang Cuti Hari Ini</h2></header>
+      {% if on_leave_today_items %}
+      <ul class="hx-people">{% for item in on_leave_today_items %}
+        <li><span class="hx-people-av">{{ item.employee.full_name|initials }}</span><div><strong>{{ item.employee.full_name }}</strong><span>{% if item.leave_request.leave_type %}{{ item.leave_request.leave_type.name }}{% endif %}{% if item.employee.department %} · {{ item.employee.department.name }}{% endif %}</span></div></li>
+      {% endfor %}</ul>
+      {% else %}<p class="hx-empty">Tidak ada karyawan cuti hari ini.</p>{% endif %}
+    </section>
+
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag">Feed</span><h2>Notifikasi Terbaru</h2><a href="{% url 'web:notification_list' %}" class="hx-link">Semua</a></header>
+      {% if recent_notifications %}
+      <ul class="hx-feed">{% for item in recent_notifications %}
+        <li class="{% if not item.is_read %}is-unread{% endif %}"><a href="{% if item.link %}{{ item.link }}{% else %}{% url 'web:notification_list' %}{% endif %}"><strong>{{ item.title }}</strong><span>{{ item.message|truncatechars:72 }}</span></a></li>
+      {% endfor %}</ul>
+      {% else %}<p class="hx-empty">Belum ada notifikasi.</p>{% endif %}
+    </section>
+
+    {% if show_ops %}
+    {% if pending_leave_items or pending_overtime_items %}
+    <section class="hx-panel hx-span-4">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--gold">Queue</span><h2>Perlu Persetujuan</h2></header>
+      {% if pending_leave_items %}<h3 class="hx-sub">Cuti</h3><ul class="hx-queue">{% for item in pending_leave_items %}<li><strong>{{ item.employee.full_name }}</strong><span>{{ item.leave_type.name }}</span></li>{% endfor %}</ul>{% endif %}
+      {% if pending_overtime_items %}<h3 class="hx-sub">Lembur</h3><ul class="hx-queue">{% for item in pending_overtime_items %}<li><strong>{{ item.employee.full_name }}</strong><span>{{ item.overtime_type.name }}</span></li>{% endfor %}</ul>{% endif %}
+    </section>
+    {% endif %}
+    {% endif %}
+
+    <section class="hx-panel hx-span-{% if profile and profile_summary %}4{% else %}8{% endif %}">
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--cyan">Actions</span><h2>Quick Actions</h2></header>
+      <div class="hx-actions">
+        <a href="{% url 'web:leave_create' %}" class="hx-action">Ajukan Cuti</a>
+        <a href="{% url 'web:overtime_create' %}" class="hx-action">Ajukan Lembur</a>
+        <a href="{% url 'web:payslip_list' %}" class="hx-action">Slip Gaji</a>
+        <a href="{% url 'web:attendance_list' %}" class="hx-action">Riwayat Absensi</a>
+        {% if user.role == 'admin' or user.role == 'hr' %}
+        <a href="{% url 'web:employee_list' %}" class="hx-action">Daftar Karyawan</a>
+        <a href="{% url 'web:payroll_create' %}" class="hx-action">Buat Payroll</a>
+        {% endif %}
+      </div>
+      {% if latest_payroll %}<p class="hx-footnote">Payroll terakhir: {% if latest_payroll.plant %}{{ latest_payroll.plant.code }}{% else %}—{% endif %} · {{ latest_payroll.period_start|local_date:"M Y" }}</p>{% endif %}
+      {% if latest_payslip %}<p class="hx-footnote">Slip terakhir: {{ latest_payslip.payroll_run.period_start|local_date:"M Y" }}</p>{% endif %}
+    </section>
+
+  </div>
+
+  <div class="hx-tip" data-hx-tip hidden aria-live="polite"></div>
+</div>

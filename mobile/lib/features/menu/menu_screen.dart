@@ -62,6 +62,11 @@ class MenuScreen extends ConsumerWidget {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _MenuTile(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Detail Karyawan',
+                    onTap: () => context.push('/profile'),
+                  ),
+                  _MenuTile(
                     icon: Icons.mail_outline_rounded,
                     label: 'Kotak Masuk',
                     badge: unread > 0 ? '$unread' : null,

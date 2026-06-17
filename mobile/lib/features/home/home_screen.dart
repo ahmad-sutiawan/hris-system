@@ -88,7 +88,11 @@ class HomeScreen extends ConsumerWidget {
           final pendingApprovals = data['pending_approvals'] as Map<String, dynamic>? ?? {};
           final approvalLeave = pendingApprovals['leave'] as int? ?? 0;
           final approvalOvertime = pendingApprovals['overtime'] as int? ?? 0;
-          final leaveBalances = data['leave_balances'] as List? ?? [];
+            final leaveBalances = data['leave_balances'] as List? ?? [];
+          final statsExtra = data['stats_extra'] as Map<String, dynamic>? ?? {};
+          final attendanceRate = data['attendance_rate'];
+          final onLeaveToday =
+              (data['on_leave_today'] as List?)?.cast<Map<String, dynamic>>() ?? [];
           var sectionIndex = 0;
 
           Widget section(Widget child) {
@@ -111,6 +115,15 @@ class HomeScreen extends ConsumerWidget {
               section(
                 Padding(
                   padding: const EdgeInsets.only(top: AppSpacing.section),
+                  child: _OpsStatsStrip(
+                    stats: statsExtra,
+                    attendanceRate: attendanceRate,
+                  ),
+                ),
+              ),
+              section(
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.item),
                   child: ShiftScheduleCard(
                     dateLabel: 'Jadwal shift ${dateFmt.format(DateTime.now())}',
                     location: shiftLocationLabel(shift, employee: employee),
@@ -164,6 +177,51 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
+              if (onLeaveToday.isNotEmpty)
+                section(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const GoldSectionTitle(title: 'Sedang cuti hari ini'),
+                      ...onLeaveToday.map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: HrisCard(
+                            child: ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: CircleAvatar(
+                                backgroundColor: AppColors.chinaRedLight,
+                                child: Text(
+                                  (item['full_name'] as String? ?? '?')
+                                      .split(' ')
+                                      .map((p) => p.isNotEmpty ? p[0] : '')
+                                      .take(2)
+                                      .join()
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.chinaRed,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                item['full_name'] as String? ?? '—',
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              ),
+                              subtitle: Text(
+                                [
+                                  item['leave_type'],
+                                  item['department'],
+                                ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
               if (leaveBalances.isNotEmpty)
                 section(
                   Column(
@@ -298,4 +356,111 @@ class HomeScreen extends ConsumerWidget {
           onTap: () => context.push('/all-apps'),
         ),
       ];
+}
+
+class _OpsStatsStrip extends StatelessWidget {
+  const _OpsStatsStrip({
+    required this.stats,
+    required this.attendanceRate,
+  });
+
+  final Map<String, dynamic> stats;
+  final dynamic attendanceRate;
+
+  @override
+  Widget build(BuildContext context) {
+    final present = stats['present_today'] ?? 0;
+    final onLeave = stats['on_leave_today'] ?? 0;
+    final absent = stats['absent_today'] ?? 0;
+    final rate = attendanceRate is num
+        ? attendanceRate.toStringAsFixed(1)
+        : '$attendanceRate';
+
+    return GoldPanel(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Ringkasan operasional',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.success.withValues(alpha: 0.25)),
+                ),
+                child: Text(
+                  '$rate% kehadiran',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.success,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(child: _OpsStatChip(label: 'Hadir', value: '$present', color: AppColors.success)),
+              const SizedBox(width: 8),
+              Expanded(child: _OpsStatChip(label: 'Cuti', value: '$onLeave', color: AppColors.info)),
+              const SizedBox(width: 8),
+              Expanded(child: _OpsStatChip(label: 'Belum', value: '$absent', color: AppColors.warning)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OpsStatChip extends StatelessWidget {
+  const _OpsStatChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              color: color,
+              letterSpacing: 0.04,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
 }
