@@ -21,7 +21,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/cron.sh /app/scripts/rqworker.sh \
-    && mkdir -p /app/data /app/media /app/audit_archive /app/backups
+    && mkdir -p /app/data /app/media /app/audit_archive /app/backups /app/staticfiles
+
+# Collect static saat build (bukan runtime) — gagal deploy ketahuan di build, startup lebih cepat
+ENV DEBUG=False \
+    SECRET_KEY=build-only-secret-key-for-collectstatic-minimum-50-chars \
+    HRIS_FIELD_ENCRYPTION_KEY=build-only-encryption-key-32-chars!!
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 

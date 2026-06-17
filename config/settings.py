@@ -159,6 +159,9 @@ STORAGES = {
     },
 }
 
+# Jangan gagalkan collectstatic/deploy jika vendor JS mereferensikan source map yang tidak ada
+WHITENOISE_MANIFEST_STRICT = False
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
