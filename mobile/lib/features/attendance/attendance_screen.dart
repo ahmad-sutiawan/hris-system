@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_interactions.dart';
+import '../../core/widgets/auth_media_image.dart';
 import '../../core/widgets/hris_widgets.dart';
 
 enum AttendanceRangePreset {
@@ -694,37 +695,23 @@ class _PhotoThumb extends ConsumerWidget {
                     ? const Center(
                         child: Icon(Icons.no_photography_outlined, color: AppColors.textDim, size: 28),
                       )
-                    : FutureBuilder<String>(
-                        future: ref.read(apiClientProvider).resolveMediaUrl(photoUrl),
-                        builder: (context, snap) {
-                          if (!snap.hasData || snap.data!.isEmpty) {
-                            return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-                          }
-                          return Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Image.network(
-                                snap.data!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(
-                                  child: Icon(Icons.broken_image_outlined, color: AppColors.textDim),
-                                ),
+                    : Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          AuthMediaImage(url: photoUrl),
+                          Positioned(
+                            right: 6,
+                            bottom: 6,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              Positioned(
-                                right: 6,
-                                bottom: 6,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.45),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.zoom_in, color: Colors.white, size: 14),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
+                              child: const Icon(Icons.zoom_in, color: Colors.white, size: 14),
+                            ),
+                          ),
+                        ],
                       ),
               ),
             ),
@@ -740,8 +727,7 @@ class _PhotoThumb extends ConsumerWidget {
     String title,
     String url,
   ) async {
-    final resolved = await ref.read(apiClientProvider).resolveMediaUrl(url);
-    if (!context.mounted || resolved.isEmpty) return;
+    if (!context.mounted) return;
     await showDialog<void>(
       context: context,
       builder: (ctx) => Dialog(
@@ -763,7 +749,22 @@ class _PhotoThumb extends ConsumerWidget {
               child: InteractiveViewer(
                 minScale: 0.8,
                 maxScale: 4,
-                child: Image.network(resolved, fit: BoxFit.contain),
+                child: AuthMediaImage(
+                  url: url,
+                  fit: BoxFit.contain,
+                  loading: const SizedBox(
+                    width: 280,
+                    height: 280,
+                    child: Center(child: CircularProgressIndicator(color: Colors.white)),
+                  ),
+                  error: const SizedBox(
+                    width: 280,
+                    height: 200,
+                    child: Center(
+                      child: Icon(Icons.broken_image_outlined, color: Colors.white70, size: 48),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 12),

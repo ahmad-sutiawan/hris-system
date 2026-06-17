@@ -247,31 +247,102 @@ class ApiClient {
     return merged;
   }
 
-  /// Resolve media URL — selalu pakai origin server app (dengan port benar).
-  /// API kadang mengembalikan http://host/media/... tanpa :8080.
+  /// Resolve media URL — pakai proxy API (/api/v1/media/...) agar CORS + JWT jalan di web.
   Future<String> resolveMediaUrl(String? urlOrPath) async {
     if (urlOrPath == null || urlOrPath.isEmpty) return '';
     if (urlOrPath.startsWith('data:image')) return urlOrPath;
 
     final apiBase = await loadBaseUrl();
-    final origin = apiBase.replaceAll(AppConfig.apiPathSuffix, '');
-    final originUri = Uri.parse(origin);
+    final mediaPath = _mediaRelativePath(urlOrPath);
+    if (mediaPath.isEmpty) return '';
 
-    final String path;
-    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
-      path = Uri.parse(urlOrPath).path;
-    } else if (urlOrPath.startsWith('/')) {
-      path = urlOrPath;
-    } else {
-      path = '/$urlOrPath';
+    final uri = Uri.parse('$apiBase/media/$mediaPath');
+    return uri.toString();
+  }
+
+  /// Unduh bytes media dengan token auth (untuk Image.memory di web & native).
+  Future<Uint8List?> fetchMediaBytes(String? urlOrPath) async {
+    if (urlOrPath == null || urlOrPath.isEmpty) return null;
+    if (urlOrPath.startsWith('data:image')) {
+      final comma = urlOrPath.indexOf(',');
+      if (comma < 0) return null;
+      return base64Decode(urlOrPath.substring(comma + 1));
     }
 
-    return Uri(
-      scheme: originUri.scheme,
-      host: originUri.host,
-      port: originUri.hasPort ? originUri.port : null,
-      path: path,
-    ).toString();
+    final mediaPath = _mediaRelativePath(urlOrPath);
+    if (mediaPath.isEmpty) return null;
+
+    final query = _mediaQuery(urlOrPath);
+    final requestPath = query == null ? '/media/$mediaPath' : '/media/$mediaPath?$query';
+
+    try {
+      final res = await _dio.get<List<int>>(
+        requestPath,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final data = res.data;
+      if (data == null || data.isEmpty) return null;
+      return Uint8List.fromList(data);
+    } on DioException {
+      return _fetchMediaBytesDirect(mediaPath, query);
+    }
+  }
+
+  Future<Uint8List?> _fetchMediaBytesDirect(String mediaPath, String? query) async {
+    try {
+      final apiBase = await loadBaseUrl();
+      final origin = apiBase.replaceAll(AppConfig.apiPathSuffix, '');
+      final suffix = query == null ? '' : '?$query';
+      final url = '$origin/media/$mediaPath$suffix';
+      final token = await _readStorage(_accessKey);
+      final client = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 20),
+          receiveTimeout: const Duration(seconds: 30),
+          headers: {
+            if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+          },
+        ),
+      );
+      final res = await client.get<List<int>>(
+        url,
+        options: Options(responseType: ResponseType.bytes),
+      );
+      final data = res.data;
+      if (data == null || data.isEmpty) return null;
+      return Uint8List.fromList(data);
+    } on DioException {
+      return null;
+    }
+  }
+
+  String _mediaRelativePath(String urlOrPath) {
+    late Uri parsed;
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      parsed = Uri.parse(urlOrPath);
+    } else {
+      parsed = Uri.parse(urlOrPath.startsWith('/') ? urlOrPath : '/$urlOrPath');
+    }
+
+    var path = parsed.path;
+    if (path.startsWith('/api/v1/media/')) {
+      return path.substring('/api/v1/media/'.length);
+    }
+    if (path.startsWith('/media/')) {
+      return path.substring('/media/'.length);
+    }
+    if (path.startsWith('/')) {
+      path = path.substring(1);
+    }
+    return path;
+  }
+
+  String? _mediaQuery(String urlOrPath) {
+    if (!urlOrPath.startsWith('http://') && !urlOrPath.startsWith('https://')) {
+      return null;
+    }
+    final query = Uri.parse(urlOrPath).query;
+    return query.isEmpty ? null : query;
   }
 
   Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? query}) {

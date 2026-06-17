@@ -6,6 +6,7 @@ from apps.attendance.api_overtime import OvertimeRequestViewSet, OvertimeTypeVie
 from apps.core.api_announcements import AnnouncementViewSet
 from apps.core.api_auth import AuthMeView, ThrottledTokenObtainPairView, ThrottledTokenRefreshView
 from apps.core.api_mobile import MobileDashboardView, MobileProfileView
+from apps.core.api_media import MediaFileView
 from apps.core.api_views import AuditLogViewSet, NotificationViewSet
 from apps.core.views import HealthCheckView
 from apps.employees.api import EmployeeViewSet
@@ -39,4 +40,5 @@ urlpatterns = [
     path("auth/token/refresh/", ThrottledTokenRefreshView.as_view(), name="token_refresh"),
     path("mobile/dashboard/", MobileDashboardView.as_view(), name="mobile_dashboard"),
     path("mobile/profile/", MobileProfileView.as_view(), name="mobile_profile"),
+    path("media/<path:path>", MediaFileView.as_view(), name="api_media"),
 ]
