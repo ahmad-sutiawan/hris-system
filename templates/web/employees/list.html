@@ -6,17 +6,17 @@
 {% block content %}
 <div class="hris-page-header">
   <div>
-    <h1>Master Karyawan</h1>
-    <p>Data personal & organisasi — total {{ result_count|num:0 }} baris · kompensasi di menu <strong>Data Gaji Karyawan</strong></p>
+    <h1>Database Karyawan</h1>
+    <p>Struktur kolom mengikuti export Talenta — total {{ result_count|num:0 }} baris · kompensasi di menu <strong>Data Gaji Karyawan</strong></p>
   </div>
   <div class="hris-actions">
     <a href="{% url 'web:employee_compensation_list' %}" class="hris-btn hris-btn-secondary">Data Gaji</a>
-    <a href="{% url 'web:employee_import' %}" class="hris-btn hris-btn-secondary">Import CSV</a>
+    <a href="{% url 'web:employee_import' %}" class="hris-btn hris-btn-secondary">Import Excel</a>
     <a href="{% url 'web:employee_create' %}" class="hris-btn hris-btn-primary">+ Tambah Karyawan</a>
   </div>
 </div>
 
-{% include "components/list_toolbar.html" with search_placeholder="Cari ID, nama, NIK, email, plant, dept, jabatan…" show_date_range=True show_export=True search_reset_url=request.path %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari Employee ID, Full Name, Organization, Job Position, Branch Name…" show_date_range=True show_export=True search_reset_url=request.path show_employee_filters=True %}
 
 <div class="hris-table-wrap" style="margin-top:1rem">
   <div class="hris-table-scroll">
@@ -25,19 +25,20 @@
         <tr>
           <th class="hris-col-no">No</th>
           <th>Employee ID</th>
-          <th>Nama</th>
-          <th>NIK</th>
-          <th>Email</th>
-          <th>Telepon</th>
-          <th>Plant</th>
-          <th>Branch</th>
-          <th>Department</th>
-          <th>Jabatan</th>
+          <th>Full Name</th>
+          <th>Organization</th>
+          <th>Job Position</th>
           <th>Job Level</th>
-          <th>Atasan</th>
+          <th>Branch Name</th>
+          <th>Status Employee</th>
+          <th>Join Date</th>
+          <th>End Date</th>
+          <th>Email</th>
+          <th>Mobile Phone</th>
           <th>Gender</th>
-          <th>Status</th>
-          <th>Bergabung</th>
+          <th>Marital Status</th>
+          <th>PTKP Status</th>
+          <th>Manager</th>
           <th>Aksi</th>
         </tr>
       </thead>
@@ -47,18 +48,19 @@
           <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
           <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
           <td class="hris-strong">{{ employee.full_name }}</td>
-          <td><span class="hris-mono">{{ employee.nik|default:"—" }}</span></td>
-          <td>{{ employee.email|default:"—" }}</td>
-          <td>{{ employee.phone|default:"—" }}</td>
-          <td>{{ employee.plant.code }}</td>
-          <td>{{ employee.plant.get_branch_type_display|default:"—" }}</td>
-          <td>{{ employee.department.name|default:"—" }}</td>
+          <td>{{ employee.organization_name|default:"—" }}</td>
           <td>{{ employee.job_position.title|default:"—" }}</td>
           <td>{{ employee.job_level.name|default:"—" }}</td>
-          <td>{{ employee.manager.full_name|default:"—" }}</td>
-          <td>{{ employee.get_gender_display|default:"—" }}</td>
-          <td>{% status_badge employee.status employee.get_status_display %}</td>
+          <td>{{ employee.branch_name|default:"—" }}</td>
+          <td>{{ employee.get_status_employee_display|default:"—" }}</td>
           <td>{{ employee.join_date|local_date|default:"—" }}</td>
+          <td>{{ employee.contract_end_date|local_date|default:"—" }}</td>
+          <td>{{ employee.email|default:"—" }}</td>
+          <td>{{ employee.phone|default:"—" }}</td>
+          <td>{{ employee.get_gender_excel_display|default:"—" }}</td>
+          <td>{{ employee.get_marital_status_excel_display|default:"—" }}</td>
+          <td>{{ employee.tax_status|default:"—" }}</td>
+          <td>{{ employee.manager.full_name|default:"—" }}</td>
           <td>
             <div class="hris-inline-actions">
               <a href="{% url 'web:employee_edit' employee.pk %}" class="hris-link">Edit</a>
@@ -72,7 +74,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="16"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan.{% endif %}</div></td></tr>
+        <tr><td colspan="17"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan. Import file Excel Talenta di folder media.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -1526,6 +1526,12 @@ input.hris-input[type="file"] {
   min-width: 10rem;
 }
 
+.hris-list-toolbar-fields .hris-select {
+  flex: 0 1 14rem;
+  min-width: 12rem;
+  width: auto;
+}
+
 .hris-list-toolbar-actions {
   display: flex;
   flex-wrap: wrap;

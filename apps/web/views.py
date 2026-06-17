@@ -4,6 +4,8 @@ from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -45,7 +47,9 @@ from apps.employees.services.profile import build_employee_profile_context
 from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.employees.services.import_csv import import_employees_csv, template_csv
+from apps.employees.services.import_dispatch import import_employees_file
 from apps.employees.services.onboarding import provision_new_employee, sync_employee_default_shift
+from apps.organization.models import Department, JobLevel, JobPosition
 from apps.attendance.services.import_punches import (
     PunchImportError,
     import_attendance_csv,
@@ -255,6 +259,17 @@ def employee_list(request):
 
     filters = parse_list_filters(request)
     qs = employee_list_queryset(request.user, filters)
+    role_options = (
+        JobPosition.objects.filter(tenant=request.user.tenant)
+        .select_related("department", "plant")
+        .order_by("title", "department__name")
+    )
+    department_options = (
+        Department.objects.filter(tenant=request.user.tenant)
+        .select_related("plant")
+        .order_by("name")
+    )
+    job_level_options = JobLevel.objects.filter(tenant=request.user.tenant).order_by("rank", "code")
     response, ctx = resolve_list(
         request,
         qs,
@@ -266,7 +281,16 @@ def employee_list(request):
     return render(
         request,
         "web/employees/list.html",
-        {**ctx, "employees": list(ctx["page_obj"].object_list)},
+        {
+            **ctx,
+            "employees": list(ctx["page_obj"].object_list),
+            "role_options": role_options,
+            "department_options": department_options,
+            "job_level_options": job_level_options,
+            "selected_job_position": filters.job_position,
+            "selected_department": filters.department,
+            "selected_job_level": filters.job_level,
+        },
     )
 
 
@@ -285,15 +309,35 @@ def employee_import(request):
     if request.method == "POST":
         upload = request.FILES.get("file")
         if not upload:
-            messages.error(request, "Pilih file CSV terlebih dahulu.")
+            messages.error(request, "Pilih file CSV atau Excel terlebih dahulu.")
             return redirect("web:employee_import")
-        content = upload.read().decode("utf-8-sig")
         try:
-            result = import_employees_csv(request.user.tenant, content)
+            result = import_employees_file(
+                request.user.tenant,
+                filename=upload.name,
+                content=upload.read(),
+            )
             messages.success(
                 request,
                 f"Import selesai: {result['created']} baru, {result['updated']} diupdate.",
             )
+            org_created = (
+                result.get("plants_created", 0)
+                + result.get("departments_created", 0)
+                + result.get("job_positions_created", 0)
+                + result.get("job_levels_created", 0)
+            )
+            if org_created:
+                messages.info(
+                    request,
+                    "Master organisasi dibuat otomatis: "
+                    f"{result.get('plants_created', 0)} plant, "
+                    f"{result.get('departments_created', 0)} departemen, "
+                    f"{result.get('job_positions_created', 0)} role, "
+                    f"{result.get('job_levels_created', 0)} job level.",
+                )
+            if result.get("managers_linked"):
+                messages.info(request, f"{result['managers_linked']} atasan langsung terhubung.")
             if result["errors"]:
                 messages.warning(request, f"{len(result['errors'])} baris gagal.")
                 for err in result["errors"][:5]:

@@ -5,7 +5,9 @@
     <input type="date" name="date_from" value="{{ date_from|default:'' }}" class="hris-input hris-input--date" title="Dari tanggal" aria-label="Dari tanggal">
     <input type="date" name="date_to" value="{{ date_to|default:'' }}" class="hris-input hris-input--date" title="Sampai tanggal" aria-label="Sampai tanggal">
     {% endif %}
-    {% if extra_filter_field %}
+    {% if show_employee_filters %}
+    {% include "web/employees/list_filters.html" %}
+    {% elif extra_filter_field %}
     {{ extra_filter_field }}
     {% endif %}
   </div>

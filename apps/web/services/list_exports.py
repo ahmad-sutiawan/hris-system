@@ -2,29 +2,10 @@
 
 from apps.attendance.services.export import export_timesheets_csv
 from apps.core.listing import format_date, format_dt, queryset_to_csv
+from apps.employees.talenta_vocabulary import TALENTA_COLUMNS
 
 
-EMPLOYEE_EXPORT_HEADERS = [
-    "Employee ID",
-    "Full Name",
-    "NIK",
-    "Email",
-    "Phone",
-    "Plant",
-    "Branch",
-    "Department",
-    "Job Position",
-    "Job Level",
-    "Manager",
-    "Gender",
-    "Marital Status",
-    "Birth Place",
-    "Birth Date",
-    "Address",
-    "Mother Name",
-    "Status",
-    "Join Date",
-]
+EMPLOYEE_EXPORT_HEADERS = list(TALENTA_COLUMNS)
 
 
 COMPENSATION_EXPORT_HEADERS = [
@@ -74,23 +55,58 @@ def export_employees_csv(qs) -> str:
         return [
             emp.employee_id,
             emp.full_name,
-            emp.nik or "N/A",
-            emp.email or "N/A",
-            emp.phone or "N/A",
-            emp.plant.code if emp.plant_id else "",
-            emp.plant.get_branch_type_display() if emp.plant_id else "",
-            emp.department.name if emp.department_id else "",
+            "",  # Barcode
+            emp.organization_name,
             emp.job_position.title if emp.job_position_id else "",
             emp.job_level.name if emp.job_level_id else "",
+            format_date(emp.join_date) if emp.join_date else "",
+            format_date(emp.resign_date) if emp.resign_date else "",
+            emp.get_status_employee_display(),
+            format_date(emp.contract_end_date) if emp.contract_end_date else "",
+            "",  # Sign Date
+            emp.email or "",
+            format_date(emp.birth_date) if emp.birth_date else "",
+            "",  # Age
+            emp.birth_place or "",
+            "",  # Citizen ID Address
+            (emp.address or "").replace("\n", " "),
+            emp.npwp or "",
+            emp.tax_status or "",
+            "",  # Employee Tax Status
+            "",  # Tax Config
+            emp.bank_name or "",
+            emp.bank_account_number or "",
+            emp.bank_account_name or "",
+            emp.bpjs_ketenagakerjaan_number or "",
+            emp.bpjs_kesehatan_number or "",
+            emp.nik or "",
+            emp.phone or "",
+            "",  # Phone
+            emp.branch_name,
+            emp.parent_branch_name,
+            "",  # Religion
+            emp.get_gender_excel_display(),
+            emp.get_marital_status_excel_display(),
+            "",  # Blood Type
+            "",  # Nationality Code
+            "",  # Currency
+            "",  # Length Of Service
+            "",  # Payment Schedule
+            "",  # Approval Line
             emp.manager.full_name if emp.manager_id else "",
-            emp.get_gender_display() if emp.gender else "N/A",
-            emp.get_marital_status_display() if emp.marital_status else "N/A",
-            emp.birth_place or "N/A",
-            format_date(emp.birth_date) if emp.birth_date else "N/A",
-            (emp.address or "N/A").replace("\n", " "),
-            emp.mother_name or "N/A",
-            emp.get_status_display(),
-            format_date(emp.join_date),
+            "",  # Grade
+            "",  # Class
+            "",  # Profile Picture
+            "",  # Cost Center
+            "",  # Cost Center Category
+            "",  # SBU
+            emp.nik or "",
+            "",  # Passport
+            "",  # Passport Expiration Date
+            "",  # Jenis Dok. Referensi Bukti Potong
+            "",  # Nomor Dok. Referensi Bukti Potong
+            "",  # Tanggal Dok. Referensi Bukti Potong
+            "",  # TIN
         ]
 
     return queryset_to_csv(qs, EMPLOYEE_EXPORT_HEADERS, row)

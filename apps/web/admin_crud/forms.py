@@ -159,7 +159,8 @@ class DepartmentForm(forms.ModelForm):
         model = Department
         fields = ["plant", "name", "is_active"]
         labels = {
-            "name": "Nama departemen",
+            "name": "Organization",
+            "plant": "Branch Name",
             "is_active": "Aktif",
         }
 
@@ -188,12 +189,18 @@ class JobPositionForm(forms.ModelForm):
     class Meta:
         model = JobPosition
         fields = ["plant", "department", "code", "title", "is_active"]
+        labels = {
+            "title": "Job Position",
+            "department": "Organization",
+            "plant": "Branch Name",
+        }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _base_init(self, tenant, user)
         if tenant:
             self.fields["department"].queryset = Department.objects.filter(tenant=tenant)
+            self.fields["department"].label = "Organization"
             self.fields["department"].label_from_instance = lambda obj: obj.name
 
 
@@ -249,6 +256,7 @@ class AdminEmployeeForm(forms.ModelForm):
             "join_date",
             "contract_end_date",
             "resign_date",
+            "status_employee",
             "status",
             "salary_scheme",
             "base_salary",

@@ -1,0 +1,19 @@
+{% load hris_ui %}
+<select name="job_position" class="hris-input hris-select" aria-label="Job Position" title="Job Position">
+  <option value="">Semua Job Position</option>
+  {% for role in role_options %}
+  <option value="{{ role.pk }}"{% if selected_job_position == role.pk|stringformat:"s" %} selected{% endif %}>{{ role.title }}</option>
+  {% endfor %}
+</select>
+<select name="department" class="hris-input hris-select" aria-label="Organization" title="Organization">
+  <option value="">Semua Organization</option>
+  {% for dept in department_options %}
+  <option value="{{ dept.pk }}"{% if selected_department == dept.pk|stringformat:"s" %} selected{% endif %}>{{ dept.name }}</option>
+  {% endfor %}
+</select>
+<select name="job_level" class="hris-input hris-select" aria-label="Job Level" title="Job Level">
+  <option value="">Semua Job Level</option>
+  {% for level in job_level_options %}
+  <option value="{{ level.pk }}"{% if selected_job_level == level.pk|stringformat:"s" %} selected{% endif %}>{{ level.name }}</option>
+  {% endfor %}
+</select>

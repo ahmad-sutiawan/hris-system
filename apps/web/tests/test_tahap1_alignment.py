@@ -76,7 +76,8 @@ class Tahap1PolicyTests(TestCase):
         self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
         body = response.content.decode()
         self.assertIn("Budi Santoso", body)
-        self.assertIn("Overtime Duration After", body)
+        self.assertIn("Overtime Duration After Hourly Time Off Label", body)
+        self.assertIn("Effective Working Hour", body)
 
     def test_attendance_correction_logs_audit(self):
         work_date = date(2024, 6, 10)

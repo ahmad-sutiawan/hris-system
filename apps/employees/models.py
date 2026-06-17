@@ -114,6 +114,11 @@ class Employee(TenantScopedModel):
     join_date = models.DateField(null=True, blank=True)
     contract_end_date = models.DateField(null=True, blank=True)
     resign_date = models.DateField(null=True, blank=True)
+    status_employee = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Status Employee dari export Talenta (Harian, Contract, Permanent).",
+    )
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
@@ -181,6 +186,43 @@ class Employee(TenantScopedModel):
         if self.pph21_deduct is False:
             return False
         return bool(self.tax_status)
+
+    @property
+    def organization_name(self) -> str:
+        return self.department.name if self.department_id else ""
+
+    @property
+    def branch_name(self) -> str:
+        return self.plant.name if self.plant_id else ""
+
+    @property
+    def parent_branch_name(self) -> str:
+        from apps.employees.talenta_vocabulary import parent_branch_name
+
+        return parent_branch_name(self.branch_name)
+
+    def get_gender_excel_display(self) -> str:
+        from apps.employees.talenta_vocabulary import gender_to_excel
+
+        return gender_to_excel(self.gender)
+
+    def get_marital_status_excel_display(self) -> str:
+        from apps.employees.talenta_vocabulary import marital_to_excel
+
+        return marital_to_excel(self.marital_status)
+
+    def get_status_employee_display(self) -> str:
+        if self.status_employee:
+            return self.status_employee
+        if self.status == self.Status.RESIGNED:
+            return "Resigned"
+        if self.status == self.Status.CONTRACT:
+            return "Contract"
+        if self.status == self.Status.PERMANENT and self.salary_scheme == self.SalaryScheme.DAILY:
+            return "Harian"
+        if self.status == self.Status.PERMANENT:
+            return "Permanent"
+        return self.get_status_display()
 
 
 class EmployeeDocument(TenantScopedModel):

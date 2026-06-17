@@ -1,5 +1,8 @@
 import csv
+from decimal import Decimal
 from io import StringIO
+
+from django.utils import timezone
 
 TIMESHEET_EXPORT_HEADERS = [
     "Employee ID",
@@ -15,17 +18,15 @@ TIMESHEET_EXPORT_HEADERS = [
     "Schedule Check Out",
     "Attendance Code",
     "Time Off Code",
-    "Hourly Time Off Breakdown",
+    "Hourly Time Off Start & Finish",
     "Check In",
     "Check Out",
     "Late In",
     "Early Out",
-    "Schedule Working Hour",
+    "Effective Working Hour",
     "Actual Working Hour",
-    "Paid Working Hour",
-    "Overtime Duration Before",
-    "Overtime Duration After",
-    "Hourly Time Off Taken",
+    "Brief Working Hour",
+    "Overtime Duration After Hourly Time Off Label",
 ]
 
 
@@ -33,15 +34,57 @@ def _fmt_time(value):
     return value.strftime("%H:%M") if value else ""
 
 
-def _fmt_dt(value):
-    return value.strftime("%Y-%m-%d %H:%M") if value else ""
+def _fmt_punch_time(value):
+    if not value:
+        return ""
+    if timezone.is_aware(value):
+        value = timezone.localtime(value)
+    return value.strftime("%H:%M")
+
+
+def _fmt_duration_minutes(minutes) -> str:
+    total = int(minutes or 0)
+    hours, mins = divmod(total, 60)
+    return f"{hours:02d}:{mins:02d}"
+
+
+def _fmt_duration_hours(hours) -> str:
+    if hours is None:
+        return "00:00"
+    total_minutes = int(Decimal(str(hours)) * 60)
+    hours_part, mins = divmod(total_minutes, 60)
+    return f"{hours_part:02d}:{mins:02d}"
+
+
+def _fmt_hourly_time_off_breakdown(breakdown) -> str:
+    if not breakdown:
+        return ""
+    parts = []
+    for item in breakdown:
+        if isinstance(item, dict):
+            start = (
+                item.get("start")
+                or item.get("start_time")
+                or item.get("from")
+                or ""
+            )
+            finish = (
+                item.get("finish")
+                or item.get("end")
+                or item.get("end_time")
+                or item.get("to")
+                or ""
+            )
+            if start or finish:
+                parts.append(f"{start} - {finish}".strip(" -"))
+        elif isinstance(item, str):
+            parts.append(item)
+    return "; ".join(parts)
 
 
 def timesheet_to_row(ts):
     emp = ts.employee
-    branch = ""
-    if ts.plant_id:
-        branch = ts.plant.get_branch_type_display() or ts.plant.code
+    branch = ts.plant.name if ts.plant_id else ""
     return [
         emp.employee_id,
         emp.full_name,
@@ -56,17 +99,15 @@ def timesheet_to_row(ts):
         _fmt_time(ts.scheduled_check_out),
         ts.attendance_code.code if ts.attendance_code_id else "",
         ts.time_off_code,
-        str(ts.hourly_time_off_breakdown or ""),
-        _fmt_dt(ts.check_in),
-        _fmt_dt(ts.check_out),
-        ts.late_in_minutes,
-        ts.early_out_minutes,
-        ts.schedule_working_hours,
-        ts.actual_working_hours,
-        ts.paid_working_hours,
-        ts.ot_before_minutes,
-        ts.ot_after_minutes,
-        ts.hourly_time_off_taken,
+        _fmt_hourly_time_off_breakdown(ts.hourly_time_off_breakdown),
+        _fmt_punch_time(ts.check_in),
+        _fmt_punch_time(ts.check_out),
+        _fmt_duration_minutes(ts.late_in_minutes),
+        _fmt_duration_minutes(ts.early_out_minutes),
+        _fmt_duration_hours(ts.schedule_working_hours),
+        _fmt_duration_hours(ts.actual_working_hours),
+        _fmt_duration_hours(ts.paid_working_hours),
+        _fmt_duration_minutes(ts.ot_after_minutes),
     ]
 
 

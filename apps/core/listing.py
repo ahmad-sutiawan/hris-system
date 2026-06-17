@@ -24,12 +24,22 @@ class ListFilters:
     q: str = ""
     date_from: str = ""
     date_to: str = ""
+    job_position: str = ""
+    department: str = ""
+    job_level: str = ""
     page: int = 1
     per_page: int = DEFAULT_PAGE_SIZE
 
     @property
     def has_filters(self) -> bool:
-        return bool(self.q or self.date_from or self.date_to)
+        return bool(
+            self.q
+            or self.date_from
+            or self.date_to
+            or self.job_position
+            or self.department
+            or self.job_level
+        )
 
 
 def parse_list_filters(request, *, per_page: int = DEFAULT_PAGE_SIZE) -> ListFilters:
@@ -42,6 +52,12 @@ def parse_list_filters(request, *, per_page: int = DEFAULT_PAGE_SIZE) -> ListFil
         q=request.GET.get("q", "").strip(),
         date_from=request.GET.get("date_from", "").strip(),
         date_to=request.GET.get("date_to", "").strip(),
+        job_position=(
+            request.GET.get("job_position", "").strip()
+            or request.GET.get("role", "").strip()
+        ),
+        department=request.GET.get("department", "").strip(),
+        job_level=request.GET.get("job_level", "").strip(),
         page=page,
         per_page=per_page,
     )

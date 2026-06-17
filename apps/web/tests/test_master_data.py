@@ -34,7 +34,9 @@ class MasterDataTests(TestCase):
         response = self.client.get(reverse("web:master_hub"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Master Data")
-        self.assertContains(response, "Department")
+        self.assertContains(response, "Organization")
+        self.assertContains(response, "Job Position")
+        self.assertContains(response, "Branch Name")
 
     def test_master_sidebar_flat_submenu(self):
         self.client.login(username="hr-master", password="TestPassword123!")
@@ -42,7 +44,9 @@ class MasterDataTests(TestCase):
         self.assertEqual(response.status_code, 200)
         content = response.content.decode()
         self.assertEqual(content.count("Master Data"), 1)
-        self.assertIn("Department", content)
+        self.assertIn("Organization", content)
+        self.assertIn("Job Position", content)
+        self.assertIn("Branch Name", content)
         self.assertIn("Master Shift", content)
         self.assertIn("Komponen Gaji", content)
         self.assertIn("Penjadwalan Shift", content)

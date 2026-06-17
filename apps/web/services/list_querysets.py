@@ -31,6 +31,12 @@ def _plant_scope(user, qs, *, plant_path: str = "plant"):
 def employee_list_queryset(user: User, filters: ListFilters):
     qs = employee_list_qs(Employee.objects.filter(tenant=user.tenant))
     qs = _plant_scope(user, qs)
+    if filters.job_position:
+        qs = qs.filter(job_position_id=filters.job_position)
+    if filters.department:
+        qs = qs.filter(department_id=filters.department)
+    if filters.job_level:
+        qs = qs.filter(job_level_id=filters.job_level)
     if filters.q:
         text = filters.q
         search = (

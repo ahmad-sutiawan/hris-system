@@ -7,7 +7,8 @@ from apps.core.querysets import employee_list_qs
 from apps.core.viewsets import TenantScopedViewSet
 from apps.employees.models import Employee
 from apps.employees.serializers import EmployeeSelfSerializer, EmployeeSerializer
-from apps.employees.services.import_csv import import_employees_csv, template_csv
+from apps.employees.services.import_csv import template_csv
+from apps.employees.services.import_dispatch import import_employees_file
 
 
 class EmployeeViewSet(TenantScopedViewSet):
@@ -62,9 +63,12 @@ class EmployeeViewSet(TenantScopedViewSet):
         upload = request.FILES.get("file")
         if not upload:
             return Response({"detail": "file required."}, status=400)
-        content = upload.read().decode("utf-8-sig")
         try:
-            result = import_employees_csv(request.user.tenant, content)
+            result = import_employees_file(
+                request.user.tenant,
+                filename=upload.name,
+                content=upload.read(),
+            )
             return Response(result)
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=400)

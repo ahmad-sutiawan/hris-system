@@ -11,6 +11,7 @@ from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
 
 
+from apps.employees.talenta_vocabulary import STATUS_EMPLOYEE_VALUES
 from apps.web.widgets import apply_date_fields
 
 
@@ -76,13 +77,15 @@ def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=
         shift_qs = shift_qs.filter(plant_id=plant_id)
 
     form.fields["department"].queryset = dept_qs
-    form.fields["department"].label = "Departemen"
+    form.fields["department"].label = "Organization"
     form.fields["department"].label_from_instance = lambda obj: obj.name
     form.fields["job_position"].queryset = job_qs
+    form.fields["job_position"].label = "Job Position"
     if "job_level" in form.fields:
         form.fields["job_level"].queryset = level_qs
         form.fields["job_level"].required = False
-        form.fields["job_level"].empty_label = "— Pilih level —"
+        form.fields["job_level"].empty_label = "— Pilih Job Level —"
+        form.fields["job_level"].label = "Job Level"
     form.fields["default_shift"].queryset = shift_qs
     form.fields["default_shift"].required = False
     form.fields["default_shift"].empty_label = "— Pilih shift —"
@@ -152,30 +155,43 @@ class EmployeeForm(forms.ModelForm):
             "join_date",
             "contract_end_date",
             "resign_date",
+            "status_employee",
             "status",
         ]
         labels = {
-            "employee_id": "ID Karyawan",
-            "full_name": "Nama lengkap",
-            "photo": "Foto profil",
-            "nik": "NIK / KTP",
-            "address": "Alamat",
+            "employee_id": "Employee ID",
+            "full_name": "Full Name",
+            "photo": "Profile Picture",
+            "nik": "NIK (NPWP 16 Digit)",
+            "email": "Email",
+            "phone": "Mobile Phone",
+            "address": "Residential Address",
             "mother_name": "Nama ibu kandung",
-            "birth_place": "Tempat lahir",
-            "birth_date": "Tanggal lahir",
-            "gender": "Jenis kelamin",
-            "marital_status": "Status pernikahan",
-            "join_date": "Tanggal bergabung",
-            "contract_end_date": "Akhir kontrak",
-            "resign_date": "Tanggal resign",
+            "birth_place": "Birth Place",
+            "birth_date": "Birth Date",
+            "gender": "Gender",
+            "marital_status": "Marital Status",
+            "plant": "Branch Name",
+            "department": "Organization",
+            "job_position": "Job Position",
+            "join_date": "Join Date",
+            "contract_end_date": "End Date",
+            "resign_date": "Resign Date",
+            "status_employee": "Status Employee",
             "default_shift": "Shift default",
-            "job_level": "Job level",
+            "job_level": "Job Level",
         }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style_fields(self)
         apply_date_fields(self, "join_date", "contract_end_date", "resign_date", "birth_date")
+        if "status_employee" in self.fields:
+            self.fields["status_employee"].required = False
+            self.fields["status_employee"].widget = forms.Select(
+                choices=[("", "— Pilih Status Employee —")]
+                + [(value, value) for value in STATUS_EMPLOYEE_VALUES]
+            )
         self.fields["photo"].required = False
         self.fields["address"].widget = forms.Textarea(attrs={"rows": 3, "class": HRIS_TEXTAREA_CLASS})
         for name in (
