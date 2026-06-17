@@ -25,6 +25,9 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-}
       DEBUG: ${DEBUG:-False}
       HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
+      REDIS_URL: ${REDIS_URL:-}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-}
     volumes:
       - app_data:/app/data
       - media_data:/app/media
@@ -32,6 +35,9 @@ services:
       - backups:/app/backups
     depends_on:
       mysql:
+        condition: service_healthy
+        required: false
+      redis:
         condition: service_healthy
         required: false
     expose:
@@ -70,7 +76,9 @@ services:
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
-      - --innodb-buffer-pool-size=67108864
+      - --innodb-buffer-pool-size=536870912
+      - --max-connections=300
+      - --innodb-log-buffer-size=16777216
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
@@ -102,6 +110,53 @@ services:
       web:
         condition: service_started
     entrypoint: ["/bin/sh", "/app/scripts/cron.sh"]
+
+  redis:
+    profiles: ["mysql"]
+    image: redis:7-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --maxmemory
+      - 256mb
+      - --maxmemory-policy
+      - allkeys-lru
+      - --save
+      - ""
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  worker:
+    profiles: ["mysql"]
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DB_ENGINE: ${DB_ENGINE:-django.db.backends.mysql}
+      DB_NAME: ${DB_NAME:-hris_system}
+      DB_HOST: mysql
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: hris
+      DB_PASSWORD: ${DB_PASSWORD:-hris_secret}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      HRIS_PUNCH_ASYNC_RECALC: ${HRIS_PUNCH_ASYNC_RECALC:-True}
+      HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
+    volumes:
+      - media_data:/app/media
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    command: ["python", "manage.py", "rqworker", "punch", "default", "--verbosity", "1"]
 
 volumes:
   app_data:

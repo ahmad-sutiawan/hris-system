@@ -94,6 +94,7 @@ class AttendanceRecord(TenantScopedModel):
         unique_together = [["employee", "work_date"]]
         indexes = [
             models.Index(fields=["tenant", "plant", "work_date"]),
+            models.Index(fields=["employee", "check_out"], name="attendance_emp_open_co_idx"),
         ]
 
     def __str__(self):

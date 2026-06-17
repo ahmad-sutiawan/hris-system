@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
+    "django_rq",
     "apps.core",
     "apps.organization",
     "apps.employees",
@@ -99,6 +100,37 @@ if "mysql" in _db_engine:
     if config("DB_SSL_CA", default=""):
         DATABASES["default"]["OPTIONS"]["ssl"] = {"ca": config("DB_SSL_CA")}
 
+REDIS_URL = config("REDIS_URL", default="")
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+            "KEY_PREFIX": "hris",
+        }
+    }
+    HRIS_PUNCH_ASYNC_RECALC = config("HRIS_PUNCH_ASYNC_RECALC", default=True, cast=bool)
+    RQ_QUEUES = {
+        "default": {"URL": REDIS_URL, "DEFAULT_TIMEOUT": 360},
+        "punch": {"URL": REDIS_URL, "DEFAULT_TIMEOUT": 120},
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "hris-default",
+        }
+    }
+    HRIS_PUNCH_ASYNC_RECALC = config("HRIS_PUNCH_ASYNC_RECALC", default=False, cast=bool)
+    RQ_QUEUES = {
+        "default": {"URL": "redis://127.0.0.1:6379/0", "DEFAULT_TIMEOUT": 360},
+        "punch": {"URL": "redis://127.0.0.1:6379/0", "DEFAULT_TIMEOUT": 120},
+    }
+
+HRIS_GEO_CACHE_TTL = config("HRIS_GEO_CACHE_TTL", default=300, cast=int)
+HRIS_TIMESHEET_CACHE_TTL = config("HRIS_TIMESHEET_CACHE_TTL", default=600, cast=int)
+
 AUTH_USER_MODEL = "core.User"
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -153,6 +185,7 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "auth": config("DRF_AUTH_THROTTLE", default="10/minute"),
         "user": config("DRF_USER_THROTTLE", default="1000/hour"),
+        "punch": config("DRF_PUNCH_THROTTLE", default="30/minute"),
     },
 }
 

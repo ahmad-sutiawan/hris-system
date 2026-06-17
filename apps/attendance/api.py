@@ -16,6 +16,8 @@ from apps.core.api_scoping import employee_scoped_queryset
 from apps.core.permissions import IsAdminOrHR
 from apps.core.viewsets import TenantScopedViewSet
 from apps.attendance.serializers import AttendanceRecordSerializer, DailyTimesheetSerializer
+from apps.attendance.throttles import PunchRateThrottle
+from apps.employees.models import Employee
 
 
 def _parse_punch_photo(request):
@@ -85,9 +87,13 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         except PunchImportError as exc:
             return Response({"detail": str(exc)}, status=400)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], throttle_classes=[PunchRateThrottle])
     def clock_in(self, request):
-        profile = getattr(request.user, "employee_profile", None)
+        profile = (
+            Employee.objects.select_related("tenant", "plant")
+            .filter(user=request.user)
+            .first()
+        )
         if not profile:
             return Response({"detail": "No employee profile."}, status=400)
         try:
@@ -104,9 +110,13 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], throttle_classes=[PunchRateThrottle])
     def clock_out(self, request):
-        profile = getattr(request.user, "employee_profile", None)
+        profile = (
+            Employee.objects.select_related("tenant", "plant")
+            .filter(user=request.user)
+            .first()
+        )
         if not profile:
             return Response({"detail": "No employee profile."}, status=400)
         try:
@@ -170,7 +180,6 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
         work_date = request.data.get("work_date")
         if not employee_id or not work_date:
             return Response({"detail": "employee_id and work_date required."}, status=400)
-        from apps.employees.models import Employee
 
         employee = Employee.objects.get(pk=employee_id, tenant=request.user.tenant)
         ts = recalculate_daily_timesheet(employee, work_date)

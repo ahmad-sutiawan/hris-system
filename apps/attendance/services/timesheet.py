@@ -1,6 +1,8 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
@@ -16,18 +18,75 @@ class TimesheetLockedError(Exception):
     pass
 
 
+def _attendance_code_cache_key(tenant_id: int) -> str:
+    return f"hris:attendance_codes:{tenant_id}"
+
+
+def _holiday_cache_key(tenant_id: int, plant_id: int | None, work_date: date) -> str:
+    return f"hris:holiday:{tenant_id}:{plant_id or 0}:{work_date.isoformat()}"
+
+
+def _attendance_codes_for_tenant(tenant_id: int) -> dict[str, AttendanceCode]:
+    cache_key = _attendance_code_cache_key(tenant_id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        if cached:
+            sample = next(iter(cached.values()))
+            if AttendanceCode.objects.filter(pk=sample.pk, tenant_id=tenant_id).exists():
+                return cached
+        elif not AttendanceCode.objects.filter(tenant_id=tenant_id).exists():
+            return cached
+        cache.delete(cache_key)
+
+    codes = {
+        row.code: row
+        for row in AttendanceCode.objects.filter(tenant_id=tenant_id).only(
+            "id", "tenant_id", "code", "label", "payroll_impact"
+        )
+    }
+    ttl = int(getattr(settings, "HRIS_TIMESHEET_CACHE_TTL", 600))
+    cache.set(cache_key, codes, ttl)
+    return codes
+
+
 def _is_holiday(employee, work_date: date) -> bool:
     from django.db.models import Q
 
-    return HolidayCalendar.objects.filter(
-        tenant=employee.tenant,
+    tenant_id = employee.tenant_id
+    plant_id = employee.plant_id
+    cache_key = _holiday_cache_key(tenant_id, plant_id, work_date)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        if cached:
+            still_holiday = HolidayCalendar.objects.filter(
+                tenant_id=tenant_id,
+                holiday_date=work_date,
+                is_active=True,
+            ).exists()
+            if still_holiday:
+                return True
+            cache.delete(cache_key)
+        elif not HolidayCalendar.objects.filter(
+            tenant_id=tenant_id,
+            holiday_date=work_date,
+            is_active=True,
+        ).exists():
+            return False
+        cache.delete(cache_key)
+
+    is_holiday = HolidayCalendar.objects.filter(
+        tenant_id=tenant_id,
         holiday_date=work_date,
         is_active=True,
     ).filter(
         Q(holiday_type=HolidayCalendar.HolidayType.NATIONAL)
         | Q(holiday_type=HolidayCalendar.HolidayType.COMPANY)
-        | Q(holiday_type=HolidayCalendar.HolidayType.PLANT, plant=employee.plant)
+        | Q(holiday_type=HolidayCalendar.HolidayType.PLANT, plant_id=plant_id)
     ).exists()
+
+    ttl = int(getattr(settings, "HRIS_TIMESHEET_CACHE_TTL", 600))
+    cache.set(cache_key, is_holiday, ttl)
+    return is_holiday
 
 
 def _leave_for_date(employee, work_date):
@@ -79,10 +138,8 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
     _sync_attendance_assignment(record, assignment)
 
     leave = _leave_for_date(employee, work_date)
-    hadir_code = AttendanceCode.objects.filter(
-        tenant=employee.tenant,
-        code="H",
-    ).first()
+    codes = _attendance_codes_for_tenant(employee.tenant_id)
+    hadir_code = codes.get("H")
 
     shift = assignment.shift if assignment else None
     scheduled_in = assignment.scheduled_check_in if assignment else None
@@ -101,20 +158,13 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
 
     if leave and not check_in:
         time_off_code = leave.leave_type.code
-        cuti_code = AttendanceCode.objects.filter(
-            tenant=employee.tenant,
-            code="C",
-        ).first()
+        cuti_code = codes.get("C")
         attendance_code = cuti_code or attendance_code
     elif not record and not leave:
         if _is_holiday(employee, work_date):
             attendance_code = None
         else:
-            alpha_code = AttendanceCode.objects.filter(
-                tenant=employee.tenant,
-                code="A",
-            ).first()
-            attendance_code = alpha_code
+            attendance_code = codes.get("A")
     elif record and not attendance_code:
         attendance_code = hadir_code
 

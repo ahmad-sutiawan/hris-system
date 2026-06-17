@@ -4,11 +4,22 @@ from __future__ import annotations
 
 import math
 
+from django.conf import settings
+from django.core.cache import cache
+
 from apps.core.models import PunchLocation
 
 
 class GeoFenceError(Exception):
     pass
+
+
+def _geo_cache_key(tenant_id: int, plant_id: int | None) -> str:
+    return f"hris:geo_points:{tenant_id}:{plant_id or 0}"
+
+
+def invalidate_geo_cache(*, tenant_id: int, plant_id: int | None) -> None:
+    cache.delete(_geo_cache_key(tenant_id, plant_id))
 
 
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
@@ -21,19 +32,28 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
 
 
 def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
-    points: list[tuple[float, float, int, str]] = []
     plant = employee.plant
+    tenant_id = employee.tenant_id
+    plant_id = plant.pk if plant else None
+    cache_key = _geo_cache_key(tenant_id, plant_id)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    points: list[tuple[float, float, int, str]] = []
     if plant and plant.latitude is not None and plant.longitude is not None:
         radius = plant.geo_fence_radius_m or 150
         points.append((float(plant.latitude), float(plant.longitude), radius, plant.name))
 
     for loc in PunchLocation.objects.filter(
-        tenant=employee.tenant,
+        tenant_id=tenant_id,
         plant=plant,
         is_active=True,
-    ):
+    ).only("latitude", "longitude", "radius_m", "name"):
         points.append((float(loc.latitude), float(loc.longitude), loc.radius_m, loc.name))
 
+    ttl = int(getattr(settings, "HRIS_GEO_CACHE_TTL", 300))
+    cache.set(cache_key, points, ttl)
     return points
 
 

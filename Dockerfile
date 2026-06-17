@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/cron.sh \
+RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/cron.sh /app/scripts/rqworker.sh \
     && mkdir -p /app/data /app/media /app/audit_archive /app/backups
 
 EXPOSE 8000
