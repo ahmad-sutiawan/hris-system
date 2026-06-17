@@ -20,13 +20,18 @@
       <thead>
         <tr>
           <th class="hris-col-no">No</th>
-          <th>Karyawan</th>
+          {% if user.is_hr or user.role == 'manager' %}<th>Karyawan</th>{% endif %}
           <th>Jenis Lembur</th>
           <th>Tanggal</th>
           <th>Sebelum (m)</th>
           <th>Sesudah (m)</th>
           <th>Kompensasi</th>
+          <th>Alasan</th>
           <th>Status</th>
+          <th>Diajukan</th>
+          <th>Diproses</th>
+          <th>Oleh</th>
+          <th>Catatan</th>
           <th>Aksi</th>
         </tr>
       </thead>
@@ -34,9 +39,16 @@
         {% for req in overtime_requests %}
         <tr>
           <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
+          {% if user.is_hr or user.role == 'manager' %}
           <td class="hris-strong">{{ req.employee.full_name }}</td>
-          <td>{{ req.overtime_type.name|default:"—" }}</td>
-          <td>{{ req.work_date }}</td>
+          {% endif %}
+          <td>
+            {% if req.overtime_type %}
+            <span class="hris-mono">{{ req.overtime_type.code }}</span>
+            <span class="hris-text-dim">— {{ req.overtime_type.name }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ req.work_date|local_date }}</td>
           <td>{{ req.ot_before_minutes|num:0 }}</td>
           <td>{{ req.ot_after_minutes|num:0 }}</td>
           <td>
@@ -45,9 +57,16 @@
             <span class="hris-text-dim">(+{{ req.leave_days_credited|num:2 }} hari)</span>
             {% endif %}
           </td>
+          <td>{{ req.reason|default:"—"|truncatechars:80 }}</td>
           <td>{% status_badge req.status req.get_status_display %}</td>
+          <td>{{ req.created_at|local_datetime:"d M Y H:i" }}</td>
+          <td>{% if req.approved_at %}{{ req.approved_at|local_datetime:"d M Y H:i" }}{% else %}—{% endif %}</td>
+          <td>{% if req.approver %}{{ req.approver.get_full_name|default:req.approver.username }}{% else %}—{% endif %}</td>
+          <td>{{ req.rejection_reason|default:"—"|truncatechars:60 }}</td>
           <td>
-            {% if can_approve and req.status == 'pending' %}
+            {% if req.status == 'pending' %}
+            {% can_approve_employee_tag user req.employee as user_can_approve %}
+            {% if user_can_approve %}
             <div class="hris-inline-actions">
               <form method="post" action="{% url 'web:overtime_approve' req.pk %}">{% csrf_token %}
                 <button class="hris-btn hris-btn-success hris-btn-sm">Approve</button>
@@ -56,19 +75,20 @@
                 <button class="hris-link-danger">Reject</button>
               </form>
             </div>
-            {% elif req.status == 'pending' and profile and profile.pk == req.employee_id %}
+            {% elif profile and profile.pk == req.employee_id %}
             <form method="post" action="{% url 'web:overtime_cancel' req.pk %}" onsubmit="return confirm('Batalkan pengajuan lembur?')">{% csrf_token %}
               <button class="hris-btn hris-btn-ghost hris-btn-sm">Batalkan</button>
             </form>
-            {% elif req.status == 'pending' and user.is_hr %}
+            {% elif user.is_hr %}
             <form method="post" action="{% url 'web:overtime_cancel' req.pk %}" onsubmit="return confirm('Batalkan pengajuan lembur?')">{% csrf_token %}
               <button class="hris-btn hris-btn-ghost hris-btn-sm">Batalkan</button>
             </form>
             {% else %}—{% endif %}
+            {% else %}—{% endif %}
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="9"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan lembur yang cocok dengan pencarian.{% else %}Belum ada pengajuan lembur.{% endif %}</div></td></tr>
+        <tr><td colspan="{% if user.is_hr or user.role == 'manager' %}14{% else %}13{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan lembur yang cocok dengan pencarian.{% else %}Belum ada pengajuan lembur.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

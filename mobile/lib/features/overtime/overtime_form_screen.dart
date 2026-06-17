@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
+import '../shared/request_history_widgets.dart';
 import 'overtime_screen.dart';
 
 final overtimeTypesProvider = FutureProvider<List<dynamic>>((ref) async {
@@ -249,6 +250,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
             onPressed: _submit,
             icon: Icons.send,
           ),
+          const OvertimeRequestHistorySection(),
         ],
       ),
     );

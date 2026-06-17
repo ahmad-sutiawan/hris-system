@@ -1,6 +1,7 @@
 from django import template
 from django.utils.safestring import mark_safe
 
+from apps.core.approval import can_approve_employee
 from apps.web.formatting import format_number, format_rupiah
 from apps.web.nav_icons import resolve_nav_icon
 
@@ -28,6 +29,11 @@ STATUS_BADGE_MAP = {
     "access": "default",
     "cancelled": "default",
 }
+
+
+@register.simple_tag
+def can_approve_employee_tag(approver, employee):
+    return can_approve_employee(approver, employee)
 
 
 @register.simple_tag

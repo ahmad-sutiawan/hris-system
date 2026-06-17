@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
@@ -26,6 +27,7 @@ class LeaveScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final requests = ref.watch(leaveRequestsProvider);
     final balances = ref.watch(leaveBalancesProvider);
+    final myEmployeeId = ref.watch(authProvider).employee?['id'] as int?;
     final fmt = DateFormat('dd MMM yyyy');
 
     return Scaffold(
@@ -104,6 +106,9 @@ class LeaveScreen extends ConsumerWidget {
                   children: items.map((item) {
                     final req = item as Map<String, dynamic>;
                     final status = req['status'] as String? ?? '';
+                    final canApprove = req['can_approve'] == true;
+                    final employeeName = req['employee_name'] as String?;
+                    final isOwn = myEmployeeId != null && req['employee'] == myEmployeeId;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: HrisCard(
@@ -114,13 +119,22 @@ class LeaveScreen extends ConsumerWidget {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    '${req['leave_type_code']} · ${req['days']} hari',
+                                    employeeName != null && !isOwn
+                                        ? '$employeeName · ${req['leave_type_code']}'
+                                        : '${req['leave_type_code']} · ${req['days']} hari',
                                     style: const TextStyle(fontWeight: FontWeight.w700),
                                   ),
                                 ),
                                 StatusBadge(status: status),
                               ],
                             ),
+                            if (employeeName != null && !isOwn) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                '${req['days']} hari',
+                                style: const TextStyle(color: AppColors.textSecondary),
+                              ),
+                            ],
                             const SizedBox(height: 6),
                             Text(
                               '${fmt.format(DateTime.parse(req['start_date'] as String))} — '
@@ -131,7 +145,23 @@ class LeaveScreen extends ConsumerWidget {
                               const SizedBox(height: 6),
                               Text(req['reason'] as String),
                             ],
-                            if (status == 'pending') ...[
+                            if (status == 'pending' && canApprove) ...[
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () => _reject(context, ref, req['id'] as int),
+                                    child: const Text('Tolak'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  FilledButton(
+                                    onPressed: () => _approve(context, ref, req['id'] as int),
+                                    child: const Text('Setujui'),
+                                  ),
+                                ],
+                              ),
+                            ] else if (status == 'pending' && isOwn) ...[
                               const SizedBox(height: 12),
                               Align(
                                 alignment: Alignment.centerRight,
@@ -153,6 +183,44 @@ class LeaveScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _approve(BuildContext context, WidgetRef ref, int id) async {
+    try {
+      await ref.read(apiClientProvider).postEmpty('/leave-requests/$id/approve/');
+      ref.invalidate(leaveRequestsProvider);
+      ref.invalidate(leaveBalancesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengajuan cuti disetujui.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
+    try {
+      await ref.read(apiClientProvider).post('/leave-requests/$id/reject/', body: {});
+      ref.invalidate(leaveRequestsProvider);
+      ref.invalidate(leaveBalancesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengajuan cuti ditolak.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e')),
+        );
+      }
+    }
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref, int id) async {

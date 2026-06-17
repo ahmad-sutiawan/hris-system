@@ -1,0 +1,79 @@
+{% load hris_ui %}
+<div class="hris-card" style="margin-top:1.5rem">
+  <div class="hris-card-body">
+    <h2 class="hris-card-title" style="margin:0 0 0.75rem;font-size:0.95rem">
+      Riwayat Pengajuan Lembur
+      {% if overtime_history %}
+      <span class="hris-text-dim">({{ overtime_history|length }} baris)</span>
+      {% endif %}
+    </h2>
+    <div class="hris-table-wrap">
+      <div class="hris-table-scroll">
+        <table class="hris-table hris-table--compact">
+          <thead>
+            <tr>
+              <th class="hris-col-no">No</th>
+              {% if show_history_employee %}<th>Karyawan</th>{% endif %}
+              <th>Jenis</th>
+              <th>Tanggal</th>
+              <th>Sebelum</th>
+              <th>Sesudah</th>
+              <th>Kompensasi</th>
+              <th>Alasan</th>
+              <th>Status</th>
+              <th>Diajukan</th>
+              <th>Diproses</th>
+              <th>Oleh</th>
+              <th>Catatan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in overtime_history %}
+            <tr>
+              <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+              {% if show_history_employee %}
+              <td class="hris-strong">{{ req.employee.full_name }}</td>
+              {% endif %}
+              <td>
+                {% if req.overtime_type %}
+                <span class="hris-mono">{{ req.overtime_type.code }}</span>
+                <span class="hris-text-dim">— {{ req.overtime_type.name }}</span>
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ req.work_date|local_date }}</td>
+              <td>{{ req.ot_before_minutes|num:0 }} m</td>
+              <td>{{ req.ot_after_minutes|num:0 }} m</td>
+              <td>
+                {{ req.get_compensation_mode_display }}
+                {% if req.compensation_mode == 'leave' and req.leave_days_credited %}
+                <span class="hris-text-dim">(+{{ req.leave_days_credited|num:2 }} hari)</span>
+                {% endif %}
+              </td>
+              <td>{{ req.reason|default:"—"|truncatechars:80 }}</td>
+              <td>{% status_badge req.status req.get_status_display %}</td>
+              <td>{{ req.created_at|local_datetime:"d M Y H:i" }}</td>
+              <td>
+                {% if req.approved_at %}
+                {{ req.approved_at|local_datetime:"d M Y H:i" }}
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                {% if req.approver %}
+                {{ req.approver.get_full_name|default:req.approver.username }}
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ req.rejection_reason|default:"—"|truncatechars:60 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="{% if show_history_employee %}13{% else %}12{% endif %}">
+                <div class="hris-empty">Belum ada riwayat pengajuan lembur.</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

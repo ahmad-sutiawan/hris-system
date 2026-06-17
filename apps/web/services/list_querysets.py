@@ -102,9 +102,18 @@ def attendance_list_queryset(user: User, filters: ListFilters):
 
 
 def leave_list_queryset(user: User, filters: ListFilters):
-    qs = LeaveRequest.objects.filter(tenant=user.tenant).select_related("employee", "leave_type")
+    qs = LeaveRequest.objects.filter(tenant=user.tenant).select_related(
+        "employee",
+        "employee__manager",
+        "leave_type",
+        "approver",
+    )
     profile = _employee_profile(user)
-    if profile and not user.is_hr:
+    if user.is_hr or user.is_admin:
+        pass
+    elif user.role == User.Role.MANAGER and profile:
+        qs = qs.filter(Q(employee=profile) | Q(employee__manager=profile))
+    elif profile:
         qs = qs.filter(employee=profile)
     elif user.plant_id and not user.is_admin:
         qs = qs.filter(employee__plant=user.plant)
@@ -129,10 +138,17 @@ def leave_list_queryset(user: User, filters: ListFilters):
 
 def overtime_list_queryset(user: User, filters: ListFilters):
     qs = OvertimeRequest.objects.filter(tenant=user.tenant).select_related(
-        "employee", "approver", "overtime_type"
+        "employee",
+        "employee__manager",
+        "approver",
+        "overtime_type",
     )
     profile = _employee_profile(user)
-    if profile and not user.is_hr:
+    if user.is_hr or user.is_admin:
+        pass
+    elif user.role == User.Role.MANAGER and profile:
+        qs = qs.filter(Q(employee=profile) | Q(employee__manager=profile))
+    elif profile:
         qs = qs.filter(employee=profile)
     elif user.plant_id and not user.is_admin:
         qs = qs.filter(employee__plant=user.plant)
@@ -147,6 +163,14 @@ def overtime_list_queryset(user: User, filters: ListFilters):
         qs, date_from=filters.date_from, date_to=filters.date_to, field_name="work_date"
     )
     return qs.order_by("-created_at")
+
+
+def leave_history_queryset(user: User, *, limit: int = 100):
+    return list(leave_list_queryset(user, ListFilters())[:limit])
+
+
+def overtime_history_queryset(user: User, *, limit: int = 100):
+    return list(overtime_list_queryset(user, ListFilters())[:limit])
 
 
 def payroll_list_queryset(user: User, filters: ListFilters):

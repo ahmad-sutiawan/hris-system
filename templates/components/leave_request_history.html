@@ -1,0 +1,70 @@
+{% load hris_ui %}
+<div class="hris-card" style="margin-top:1.5rem">
+  <div class="hris-card-body">
+    <h2 class="hris-card-title" style="margin:0 0 0.75rem;font-size:0.95rem">
+      Riwayat Pengajuan Cuti
+      {% if leave_history %}
+      <span class="hris-text-dim">({{ leave_history|length }} baris)</span>
+      {% endif %}
+    </h2>
+    <div class="hris-table-wrap">
+      <div class="hris-table-scroll">
+        <table class="hris-table hris-table--compact">
+          <thead>
+            <tr>
+              <th class="hris-col-no">No</th>
+              {% if show_history_employee %}<th>Karyawan</th>{% endif %}
+              <th>Jenis</th>
+              <th>Periode</th>
+              <th>Hari</th>
+              <th>1/2 Hari</th>
+              <th>Alasan</th>
+              <th>Status</th>
+              <th>Diajukan</th>
+              <th>Diproses</th>
+              <th>Oleh</th>
+              <th>Catatan</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in leave_history %}
+            <tr>
+              <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+              {% if show_history_employee %}
+              <td class="hris-strong">{{ req.employee.full_name }}</td>
+              {% endif %}
+              <td>
+                <span class="hris-mono">{{ req.leave_type.code }}</span>
+                <span class="hris-text-dim">— {{ req.leave_type.name }}</span>
+              </td>
+              <td>{{ req.start_date|local_date }} — {{ req.end_date|local_date }}</td>
+              <td>{{ req.days|num:1 }}</td>
+              <td>{% if req.is_half_day %}Ya{% else %}—{% endif %}</td>
+              <td>{{ req.reason|default:"—"|truncatechars:80 }}</td>
+              <td>{% status_badge req.status req.get_status_display %}</td>
+              <td>{{ req.created_at|local_datetime:"d M Y H:i" }}</td>
+              <td>
+                {% if req.approved_at %}
+                {{ req.approved_at|local_datetime:"d M Y H:i" }}
+                {% else %}—{% endif %}
+              </td>
+              <td>
+                {% if req.approver %}
+                {{ req.approver.get_full_name|default:req.approver.username }}
+                {% else %}—{% endif %}
+              </td>
+              <td>{{ req.rejection_reason|default:"—"|truncatechars:60 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="{% if show_history_employee %}12{% else %}11{% endif %}">
+                <div class="hris-empty">Belum ada riwayat pengajuan cuti.</div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

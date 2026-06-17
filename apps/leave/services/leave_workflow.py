@@ -5,8 +5,13 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.services.timesheet import recalculate_timesheet_range
+from apps.core.approval import can_approve_employee
 from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
+from apps.core.services.request_notifications import (
+    dismiss_leave_request_notifications,
+    leave_request_link,
+)
 from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
 
 
@@ -40,7 +45,7 @@ def _notify_manager_pending(leave_request):
                 f"{leave_request.employee.full_name} mengajukan cuti "
                 f"{leave_request.leave_type.code} ({leave_request.start_date} — {leave_request.end_date})"
             ),
-            link=f"{settings.HRIS_SITE_URL}/leave/",
+            link=leave_request_link(leave_request),
         )
 
 
@@ -133,6 +138,8 @@ def submit_leave_request(
 def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
     if request.status != LeaveRequest.Status.PENDING:
         raise LeaveError("Pengajuan sudah diproses.")
+    if not can_approve_employee(approver, request.employee):
+        raise LeaveError("Anda tidak berwenang menyetujui pengajuan cuti ini.")
 
     request.status = LeaveRequest.Status.APPROVED
     request.approver = approver
@@ -151,6 +158,7 @@ def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
         request.end_date,
     )
     _notify_employee_status(request, approved=True)
+    dismiss_leave_request_notifications(request)
     return request
 
 
@@ -158,6 +166,8 @@ def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
 def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveRequest:
     if request.status != LeaveRequest.Status.PENDING:
         raise LeaveError("Pengajuan sudah diproses.")
+    if not can_approve_employee(approver, request.employee):
+        raise LeaveError("Anda tidak berwenang menolak pengajuan cuti ini.")
 
     request.status = LeaveRequest.Status.REJECTED
     request.approver = approver
@@ -174,6 +184,7 @@ def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveReq
         balance.save(update_fields=["pending", "remaining", "updated_at"])
 
     _notify_employee_status(request, approved=False)
+    dismiss_leave_request_notifications(request)
     return request
 
 
@@ -193,4 +204,5 @@ def cancel_leave_request(request: LeaveRequest, actor) -> LeaveRequest:
         balance.remaining += request.days
         balance.save(update_fields=["pending", "remaining", "updated_at"])
 
+    dismiss_leave_request_notifications(request)
     return request

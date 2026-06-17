@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
+import '../shared/request_history_widgets.dart';
 import 'leave_screen.dart';
 
 final leaveTypesProvider = FutureProvider<List<dynamic>>((ref) async {
@@ -44,9 +45,10 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
       setState(() {
         if (isStart) {
           _start = picked;
-          if (_end.isBefore(_start)) _end = _start;
+          if (_end.isBefore(_start) || _halfDay) _end = _start;
         } else {
           _end = picked;
+          if (_halfDay) _start = _end;
         }
       });
     }
@@ -133,7 +135,8 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
                   title: const Text('Tanggal Selesai'),
                   subtitle: Text(fmt.format(_end)),
                   trailing: const Icon(Icons.calendar_today),
-                  onTap: () => _pickDate(false),
+                  enabled: !_halfDay,
+                  onTap: _halfDay ? null : () => _pickDate(false),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -145,7 +148,10 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
                         ? AppColors.accent
                         : AppColors.textMuted,
                   ),
-                  onChanged: (v) => setState(() => _halfDay = v),
+                  onChanged: (v) => setState(() {
+                    _halfDay = v;
+                    if (v) _end = _start;
+                  }),
                 ),
               ],
             ),
@@ -168,6 +174,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
             onPressed: _submit,
             icon: Icons.send,
           ),
+          const LeaveRequestHistorySection(),
         ],
       ),
     );

@@ -31,6 +31,7 @@ class OvertimeTypeViewSet(TenantScopedViewSet):
 class OvertimeRequestViewSet(TenantScopedViewSet):
     queryset = OvertimeRequest.objects.select_related(
         "employee",
+        "employee__manager",
         "overtime_type",
         "approver",
     )
@@ -45,7 +46,9 @@ class OvertimeRequestViewSet(TenantScopedViewSet):
     def perform_create(self, serializer):
         profile = getattr(self.request.user, "employee_profile", None)
         if not profile:
-            raise OvertimeError("No employee profile linked.")
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError("Akun belum terhubung ke data karyawan.")
         try:
             req = submit_overtime_request(
                 employee=profile,
@@ -118,7 +121,11 @@ class OvertimeRequestViewSet(TenantScopedViewSet):
         overtime_req = self.get_object()
         try:
             approve_overtime_request(overtime_req, request.user)
-            return Response(OvertimeRequestSerializer(overtime_req).data)
+            return Response(
+                OvertimeRequestSerializer(
+                    overtime_req, context=self.get_serializer_context()
+                ).data
+            )
         except OvertimeError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -131,7 +138,11 @@ class OvertimeRequestViewSet(TenantScopedViewSet):
                 request.user,
                 reason=request.data.get("reason", ""),
             )
-            return Response(OvertimeRequestSerializer(overtime_req).data)
+            return Response(
+                OvertimeRequestSerializer(
+                    overtime_req, context=self.get_serializer_context()
+                ).data
+            )
         except OvertimeError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -146,6 +157,10 @@ class OvertimeRequestViewSet(TenantScopedViewSet):
             return Response({"detail": "Forbidden."}, status=403)
         try:
             cancel_overtime_request(overtime_req, request.user)
-            return Response(OvertimeRequestSerializer(overtime_req).data)
+            return Response(
+                OvertimeRequestSerializer(
+                    overtime_req, context=self.get_serializer_context()
+                ).data
+            )
         except OvertimeError as exc:
             return Response({"detail": str(exc)}, status=400)

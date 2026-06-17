@@ -18,6 +18,26 @@ from apps.shifts.models import Shift, ShiftAssignment
 class Command(BaseCommand):
     help = "Seed demo tenant, plant, master codes, and admin user"
 
+    DEMO_PASSWORDS = {
+        "admin": "Admin123456!",
+        "manager": "Manager123!",
+        "budi": "Employee123!",
+        "ayub": "Employee123!",
+    }
+
+    def _ensure_demo_user(self, username, *, defaults):
+        user, created = User.objects.get_or_create(username=username, defaults=defaults)
+        password = self.DEMO_PASSWORDS[username]
+        user.set_password(password)
+        for field, value in defaults.items():
+            setattr(user, field, value)
+        user.save()
+        if created:
+            self.stdout.write(
+                self.style.SUCCESS(f"Created demo user ({username} / {password})")
+            )
+        return user
+
     def handle(self, *args, **options):
         tenant, _ = Tenant.objects.get_or_create(
             slug=os.environ.get("HRIS_DEFAULT_TENANT_SLUG", "default"),
@@ -144,8 +164,8 @@ class Command(BaseCommand):
                 defaults={"name": name, "component_type": ctype},
             )
 
-        admin_user, created = User.objects.get_or_create(
-            username="admin",
+        admin_user = self._ensure_demo_user(
+            "admin",
             defaults={
                 "email": "admin@hris.local",
                 "is_staff": True,
@@ -155,13 +175,9 @@ class Command(BaseCommand):
                 "role": User.Role.ADMIN,
             },
         )
-        if created:
-            admin_user.set_password("Admin123456!")
-            admin_user.save()
-            self.stdout.write(self.style.SUCCESS("Created admin user (admin / Admin123456!)"))
 
-        mgr_user, created = User.objects.get_or_create(
-            username="manager",
+        mgr_user = self._ensure_demo_user(
+            "manager",
             defaults={
                 "email": "manager@demo.local",
                 "tenant": tenant,
@@ -169,10 +185,6 @@ class Command(BaseCommand):
                 "role": User.Role.MANAGER,
             },
         )
-        if created:
-            mgr_user.set_password("Manager123!")
-            mgr_user.save()
-            self.stdout.write(self.style.SUCCESS("Created manager user (manager / Manager123!)"))
 
         manager_employee, _ = Employee.objects.update_or_create(
             tenant=tenant,
@@ -232,8 +244,8 @@ class Command(BaseCommand):
             },
         )
 
-        emp_user, created = User.objects.get_or_create(
-            username="budi",
+        emp_user = self._ensure_demo_user(
+            "budi",
             defaults={
                 "email": "budi@demo.local",
                 "tenant": tenant,
@@ -241,26 +253,18 @@ class Command(BaseCommand):
                 "role": User.Role.EMPLOYEE,
             },
         )
-        if created:
-            emp_user.set_password("Employee123!")
-            emp_user.save()
-            self.stdout.write(self.style.SUCCESS("Created employee user (budi / Employee123!)"))
         if not employee.user_id:
             employee.user = emp_user
             employee.save(update_fields=["user"])
 
-        ayub_user, created = User.objects.get_or_create(
-            username="ayub",
+        ayub_user = self._ensure_demo_user(
+            "ayub",
             defaults={
                 "tenant": tenant,
                 "plant": plant,
                 "role": User.Role.EMPLOYEE,
             },
         )
-        if created:
-            ayub_user.set_password("Employee123!")
-            ayub_user.save()
-            self.stdout.write(self.style.SUCCESS("Created employee user (ayub / Employee123!)"))
 
         ayub_employee, _ = Employee.objects.update_or_create(
             tenant=tenant,

@@ -321,12 +321,14 @@ class ApiClient {
       return ApiException('${body['detail']}', statusCode: status);
     }
     if (body is Map) {
-      final first = body.values.first;
-      if (first is List && first.isNotEmpty) {
-        return ApiException('${first.first}', statusCode: status);
-      }
-      if (first is String && first.isNotEmpty) {
-        return ApiException(first, statusCode: status);
+      for (final entry in body.entries) {
+        final val = entry.value;
+        if (val is List && val.isNotEmpty) {
+          return ApiException('${entry.key}: ${val.first}', statusCode: status);
+        }
+        if (val is String && val.isNotEmpty) {
+          return ApiException('${entry.key}: $val', statusCode: status);
+        }
       }
     }
     if (status == 401) {

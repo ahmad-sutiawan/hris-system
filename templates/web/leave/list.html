@@ -20,11 +20,17 @@
       <thead>
         <tr>
           <th class="hris-col-no">No</th>
-          <th>Karyawan</th>
+          {% if user.is_hr or user.role == 'manager' %}<th>Karyawan</th>{% endif %}
           <th>Jenis</th>
           <th>Periode</th>
           <th>Hari</th>
+          <th>1/2 Hari</th>
+          <th>Alasan</th>
           <th>Status</th>
+          <th>Diajukan</th>
+          <th>Diproses</th>
+          <th>Oleh</th>
+          <th>Catatan</th>
           <th>Aksi</th>
         </tr>
       </thead>
@@ -32,13 +38,26 @@
         {% for req in leave_requests %}
         <tr>
           <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
+          {% if user.is_hr or user.role == 'manager' %}
           <td class="hris-strong">{{ req.employee.full_name }}</td>
-          <td><span class="hris-mono">{{ req.leave_type.code }}</span></td>
-          <td>{{ req.start_date }} — {{ req.end_date }}</td>
-          <td>{{ req.days|num:1 }}</td>
-          <td>{% status_badge req.status req.get_status_display %}</td>
+          {% endif %}
           <td>
-            {% if can_approve and req.status == 'pending' %}
+            <span class="hris-mono">{{ req.leave_type.code }}</span>
+            <span class="hris-text-dim">— {{ req.leave_type.name }}</span>
+          </td>
+          <td>{{ req.start_date|local_date }} — {{ req.end_date|local_date }}</td>
+          <td>{{ req.days|num:1 }}</td>
+          <td>{% if req.is_half_day %}Ya{% else %}—{% endif %}</td>
+          <td>{{ req.reason|default:"—"|truncatechars:80 }}</td>
+          <td>{% status_badge req.status req.get_status_display %}</td>
+          <td>{{ req.created_at|local_datetime:"d M Y H:i" }}</td>
+          <td>{% if req.approved_at %}{{ req.approved_at|local_datetime:"d M Y H:i" }}{% else %}—{% endif %}</td>
+          <td>{% if req.approver %}{{ req.approver.get_full_name|default:req.approver.username }}{% else %}—{% endif %}</td>
+          <td>{{ req.rejection_reason|default:"—"|truncatechars:60 }}</td>
+          <td>
+            {% if req.status == 'pending' %}
+            {% can_approve_employee_tag user req.employee as user_can_approve %}
+            {% if user_can_approve %}
             <div class="hris-inline-actions">
               <form method="post" action="{% url 'web:leave_approve' req.pk %}">{% csrf_token %}
                 <button class="hris-btn hris-btn-success hris-btn-sm">Approve</button>
@@ -47,19 +66,20 @@
                 <button class="hris-link-danger">Reject</button>
               </form>
             </div>
-            {% elif req.status == 'pending' and profile and profile.pk == req.employee_id %}
+            {% elif profile and profile.pk == req.employee_id %}
             <form method="post" action="{% url 'web:leave_cancel' req.pk %}" onsubmit="return confirm('Batalkan pengajuan cuti?')">{% csrf_token %}
               <button class="hris-btn hris-btn-ghost hris-btn-sm">Batalkan</button>
             </form>
-            {% elif req.status == 'pending' and user.is_hr %}
+            {% elif user.is_hr %}
             <form method="post" action="{% url 'web:leave_cancel' req.pk %}" onsubmit="return confirm('Batalkan pengajuan cuti?')">{% csrf_token %}
               <button class="hris-btn hris-btn-ghost hris-btn-sm">Batalkan</button>
             </form>
             {% else %}—{% endif %}
+            {% else %}—{% endif %}
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan cuti yang cocok dengan pencarian.{% else %}Belum ada pengajuan cuti.{% endif %}</div></td></tr>
+        <tr><td colspan="{% if user.is_hr or user.role == 'manager' %}13{% else %}12{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan cuti yang cocok dengan pencarian.{% else %}Belum ada pengajuan cuti.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

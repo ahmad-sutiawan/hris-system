@@ -75,8 +75,10 @@ from apps.web.services.list_querysets import (
     attendance_list_queryset,
     employee_list_queryset,
     leave_list_queryset,
+    leave_history_queryset,
     notification_list_queryset,
     overtime_list_queryset,
+    overtime_history_queryset,
     payroll_detail_payslip_queryset,
     payroll_list_queryset,
     payslip_list_queryset,
@@ -629,6 +631,9 @@ def leave_create(request):
             "profile": profile,
             "show_employee_picker": show_employee_picker,
             "can_submit": can_submit,
+            "leave_history": leave_history_queryset(request.user),
+            "show_history_employee": request.user.is_hr
+            or request.user.role == User.Role.MANAGER,
             **build_leave_balance_context(
                 profile=profile,
                 show_employee_picker=show_employee_picker,
@@ -822,6 +827,9 @@ def overtime_create(request):
             "can_submit": can_submit,
             "suggested_ot": suggested_ot,
             "compensation_preview": compensation_preview,
+            "overtime_history": overtime_history_queryset(request.user),
+            "show_history_employee": request.user.is_hr
+            or request.user.role == User.Role.MANAGER,
         }
     )
     return render(request, "web/overtime/form.html", ctx)

@@ -5,8 +5,13 @@ from django.utils import timezone
 from apps.attendance.models import OvertimeRequest
 from apps.attendance.services.overtime_compensation import credit_overtime_as_leave
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
+from apps.core.approval import can_approve_employee
 from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
+from apps.core.services.request_notifications import (
+    dismiss_overtime_request_notifications,
+    overtime_request_link,
+)
 
 
 class OvertimeError(Exception):
@@ -64,7 +69,7 @@ def _notify_manager_pending(overtime_request: OvertimeRequest):
                 f"(sebelum: {overtime_request.ot_before_minutes} m, "
                 f"sesudah: {overtime_request.ot_after_minutes} m)"
             ),
-            link=f"{settings.HRIS_SITE_URL}/overtime/",
+            link=overtime_request_link(overtime_request),
         )
 
 
@@ -143,6 +148,8 @@ def submit_overtime_request(
 def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequest:
     if request.status != OvertimeRequest.Status.PENDING:
         raise OvertimeError("Pengajuan sudah diproses.")
+    if not can_approve_employee(approver, request.employee):
+        raise OvertimeError("Anda tidak berwenang menyetujui pengajuan lembur ini.")
 
     raw_before, raw_after = get_raw_overtime_minutes(request.employee, request.work_date)
     request.ot_before_minutes = min(request.ot_before_minutes, raw_before)
@@ -167,6 +174,7 @@ def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequ
         credit_overtime_as_leave(request)
 
     _notify_employee_status(request, approved=True)
+    dismiss_overtime_request_notifications(request)
     return request
 
 
@@ -174,6 +182,8 @@ def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequ
 def reject_overtime_request(request: OvertimeRequest, approver, reason="") -> OvertimeRequest:
     if request.status != OvertimeRequest.Status.PENDING:
         raise OvertimeError("Pengajuan sudah diproses.")
+    if not can_approve_employee(approver, request.employee):
+        raise OvertimeError("Anda tidak berwenang menolak pengajuan lembur ini.")
 
     request.status = OvertimeRequest.Status.REJECTED
     request.approver = approver
@@ -183,6 +193,7 @@ def reject_overtime_request(request: OvertimeRequest, approver, reason="") -> Ov
         update_fields=["status", "approver", "approved_at", "rejection_reason", "updated_at"]
     )
     _notify_employee_status(request, approved=False)
+    dismiss_overtime_request_notifications(request)
     return request
 
 
@@ -195,4 +206,5 @@ def cancel_overtime_request(request: OvertimeRequest, actor) -> OvertimeRequest:
     request.approver = actor
     request.approved_at = timezone.now()
     request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
+    dismiss_overtime_request_notifications(request)
     return request

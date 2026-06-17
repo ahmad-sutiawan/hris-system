@@ -8,7 +8,10 @@ from apps.core.models import AuditLog, Notification, Plant, Tenant, User
 from apps.core.services.notifications import create_notification, mark_notifications_read, notify_user
 from apps.employees.models import Employee
 from apps.leave.models import LeaveRequest, LeaveType
-from apps.leave.services.leave_workflow import submit_leave_request
+from apps.leave.services.leave_workflow import (
+    approve_leave_request,
+    submit_leave_request,
+)
 from apps.organization.models import Department, JobPosition
 
 
@@ -127,4 +130,34 @@ class AuditNotificationTests(TestCase):
                 category=Notification.Category.LEAVE,
                 title="Pengajuan cuti baru",
             ).exists()
+        )
+
+    @override_settings(HRIS_SITE_URL="http://testserver")
+    def test_leave_approve_marks_manager_notification_read(self):
+        start = timezone.localdate() + timedelta(days=10)
+        leave_req = submit_leave_request(
+            employee=self.employee,
+            leave_type=self.leave_type,
+            start_date=start,
+            end_date=start,
+            reason="Cuti",
+        )
+        notif = Notification.objects.get(
+            user=self.manager_user,
+            title="Pengajuan cuti baru",
+        )
+        self.assertFalse(notif.is_read)
+        self.assertIn(f"req={leave_req.pk}", notif.link)
+
+        approve_leave_request(leave_req, self.manager_user)
+
+        notif.refresh_from_db()
+        self.assertTrue(notif.is_read)
+        self.assertEqual(
+            Notification.objects.filter(
+                user=self.manager_user,
+                category=Notification.Category.LEAVE,
+                is_read=False,
+            ).count(),
+            0,
         )

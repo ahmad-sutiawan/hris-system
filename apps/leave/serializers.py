@@ -1,11 +1,13 @@
 from rest_framework import serializers
 
+from apps.core.approval import can_approve_employee
 from apps.leave.models import LeaveBalance, LeaveRequest
 
 
 class LeaveRequestSerializer(serializers.ModelSerializer):
     employee_name = serializers.CharField(source="employee.full_name", read_only=True)
     leave_type_code = serializers.CharField(source="leave_type.code", read_only=True)
+    can_approve = serializers.SerializerMethodField()
 
     class Meta:
         model = LeaveRequest
@@ -24,9 +26,26 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
             "approver",
             "approved_at",
             "rejection_reason",
+            "can_approve",
             "created_at",
         ]
-        read_only_fields = ["status", "approver", "approved_at", "created_at"]
+        read_only_fields = [
+            "employee",
+            "days",
+            "status",
+            "approver",
+            "approved_at",
+            "rejection_reason",
+            "created_at",
+        ]
+
+    def get_can_approve(self, obj) -> bool:
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return False
+        if obj.status != LeaveRequest.Status.PENDING:
+            return False
+        return can_approve_employee(request.user, obj.employee)
 
 
 class LeaveBalanceSerializer(serializers.ModelSerializer):

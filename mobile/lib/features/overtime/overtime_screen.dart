@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
@@ -17,6 +18,7 @@ class OvertimeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requests = ref.watch(overtimeRequestsProvider);
+    final myEmployeeId = ref.watch(authProvider).employee?['id'] as int?;
     final fmt = DateFormat('dd MMM yyyy');
 
     return Scaffold(
@@ -65,6 +67,9 @@ class OvertimeScreen extends ConsumerWidget {
               itemBuilder: (context, i) {
                 final req = items[i] as Map<String, dynamic>;
                 final status = req['status'] as String? ?? '';
+                final canApprove = req['can_approve'] == true;
+                final employeeName = req['employee_name'] as String?;
+                final isOwn = myEmployeeId != null && req['employee'] == myEmployeeId;
                 return HrisCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,7 +78,9 @@ class OvertimeScreen extends ConsumerWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              fmt.format(DateTime.parse(req['work_date'] as String)),
+                              employeeName != null && !isOwn
+                                  ? '$employeeName · ${fmt.format(DateTime.parse(req['work_date'] as String))}'
+                                  : fmt.format(DateTime.parse(req['work_date'] as String)),
                               style: const TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -95,7 +102,23 @@ class OvertimeScreen extends ConsumerWidget {
                         const SizedBox(height: 6),
                         Text(req['reason'] as String),
                       ],
-                      if (status == 'pending') ...[
+                      if (status == 'pending' && canApprove) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed: () => _reject(context, ref, req['id'] as int),
+                              child: const Text('Tolak'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: () => _approve(context, ref, req['id'] as int),
+                              child: const Text('Setujui'),
+                            ),
+                          ],
+                        ),
+                      ] else if (status == 'pending' && isOwn) ...[
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
@@ -114,6 +137,38 @@ class OvertimeScreen extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _approve(BuildContext context, WidgetRef ref, int id) async {
+    try {
+      await ref.read(apiClientProvider).postEmpty('/overtime-requests/$id/approve/');
+      ref.invalidate(overtimeRequestsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengajuan lembur disetujui.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
+  Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
+    try {
+      await ref.read(apiClientProvider).post('/overtime-requests/$id/reject/', body: {});
+      ref.invalidate(overtimeRequestsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengajuan lembur ditolak.')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
   }
 
   Future<void> _cancel(BuildContext context, WidgetRef ref, int id) async {

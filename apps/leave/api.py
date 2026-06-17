@@ -16,7 +16,12 @@ from apps.leave.services.leave_workflow import (
 
 
 class LeaveRequestViewSet(TenantScopedViewSet):
-    queryset = LeaveRequest.objects.select_related("employee", "leave_type", "approver")
+    queryset = LeaveRequest.objects.select_related(
+        "employee",
+        "employee__manager",
+        "leave_type",
+        "approver",
+    )
     serializer_class = LeaveRequestSerializer
     filterset_fields = ["employee", "status", "leave_type"]
     http_method_names = ["get", "post", "head", "options"]
@@ -28,7 +33,9 @@ class LeaveRequestViewSet(TenantScopedViewSet):
     def perform_create(self, serializer):
         profile = getattr(self.request.user, "employee_profile", None)
         if not profile:
-            raise LeaveError("No employee profile linked.")
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError("Akun belum terhubung ke data karyawan.")
         try:
             req = submit_leave_request(
                 employee=profile,
@@ -49,7 +56,9 @@ class LeaveRequestViewSet(TenantScopedViewSet):
         leave_req = self.get_object()
         try:
             approve_leave_request(leave_req, request.user)
-            return Response(LeaveRequestSerializer(leave_req).data)
+            return Response(
+                LeaveRequestSerializer(leave_req, context=self.get_serializer_context()).data
+            )
         except LeaveError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -58,7 +67,9 @@ class LeaveRequestViewSet(TenantScopedViewSet):
         leave_req = self.get_object()
         try:
             reject_leave_request(leave_req, request.user, reason=request.data.get("reason", ""))
-            return Response(LeaveRequestSerializer(leave_req).data)
+            return Response(
+                LeaveRequestSerializer(leave_req, context=self.get_serializer_context()).data
+            )
         except LeaveError as exc:
             return Response({"detail": str(exc)}, status=400)
 
@@ -73,7 +84,9 @@ class LeaveRequestViewSet(TenantScopedViewSet):
             return Response({"detail": "Forbidden."}, status=403)
         try:
             cancel_leave_request(leave_req, request.user)
-            return Response(LeaveRequestSerializer(leave_req).data)
+            return Response(
+                LeaveRequestSerializer(leave_req, context=self.get_serializer_context()).data
+            )
         except LeaveError as exc:
             return Response({"detail": str(exc)}, status=400)
 
