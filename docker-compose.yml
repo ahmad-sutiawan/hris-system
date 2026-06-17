@@ -26,8 +26,6 @@ services:
       DEBUG: ${DEBUG:-False}
       HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
       REDIS_URL: ${REDIS_URL:-}
-      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-}
-      GUNICORN_THREADS: ${GUNICORN_THREADS:-}
     volumes:
       - app_data:/app/data
       - media_data:/app/media
