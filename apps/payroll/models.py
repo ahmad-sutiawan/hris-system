@@ -77,6 +77,73 @@ class Payslip(TenantScopedModel):
         return f"{self.employee.employee_id} — {self.payroll_run_id}"
 
 
+class Pph21TerCategory(TenantScopedModel):
+    """Kategori TER bulanan PP 58/2023 (A, B, C)."""
+
+    code = models.CharField(max_length=1)
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+        unique_together = [["tenant", "code"]]
+        verbose_name = "Kategori TER PPh 21"
+        verbose_name_plural = "Kategori TER PPh 21"
+
+    def __str__(self):
+        return f"TER {self.code} — {self.name}"
+
+
+class Pph21TerPtkpMapping(TenantScopedModel):
+    """Pemetaan status PTKP ke kategori TER."""
+
+    category = models.ForeignKey(
+        Pph21TerCategory,
+        on_delete=models.CASCADE,
+        related_name="ptkp_mappings",
+    )
+    ptkp_code = models.CharField(max_length=16)
+
+    class Meta:
+        ordering = ["ptkp_code"]
+        unique_together = [["tenant", "ptkp_code"]]
+        verbose_name = "PTKP → TER"
+        verbose_name_plural = "PTKP → TER"
+
+    def __str__(self):
+        return f"{self.ptkp_code} → TER {self.category.code}"
+
+
+class Pph21TerBracket(TenantScopedModel):
+    """Lapisan tarif efektif bulanan per kategori TER."""
+
+    category = models.ForeignKey(
+        Pph21TerCategory,
+        on_delete=models.CASCADE,
+        related_name="brackets",
+    )
+    bracket_no = models.PositiveSmallIntegerField()
+    income_from = models.DecimalField(max_digits=16, decimal_places=2, default=Decimal("0"))
+    income_to = models.DecimalField(
+        max_digits=16,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    rate = models.DecimalField(max_digits=8, decimal_places=6)
+
+    class Meta:
+        ordering = ["category", "bracket_no"]
+        unique_together = [["tenant", "category", "bracket_no"]]
+        verbose_name = "Lapisan TER PPh 21"
+        verbose_name_plural = "Lapisan TER PPh 21"
+
+    def __str__(self):
+        upper = f"{self.income_to}" if self.income_to is not None else "∞"
+        return f"TER {self.category.code} #{self.bracket_no}: {self.income_from}–{upper}"
+
+
 class THRRun(TenantScopedModel):
     class Status(models.TextChoices):
         DRAFT = "draft", "Draft"

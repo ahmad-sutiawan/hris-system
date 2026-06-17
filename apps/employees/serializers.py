@@ -8,14 +8,6 @@ class EmployeeSerializer(serializers.ModelSerializer):
     plant_code = serializers.CharField(source="plant.code", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
     job_title = serializers.CharField(source="job_position.title", read_only=True)
-    grade_code = serializers.CharField(source="employee_grade.code", read_only=True)
-    grade_name = serializers.CharField(source="employee_grade.name", read_only=True)
-    grade_daily_wage = serializers.DecimalField(
-        source="employee_grade.daily_wage",
-        max_digits=14,
-        decimal_places=2,
-        read_only=True,
-    )
     effective_daily_wage = serializers.SerializerMethodField()
     effective_hourly_wage = serializers.SerializerMethodField()
     manager_name = serializers.CharField(source="manager.full_name", read_only=True)
@@ -41,13 +33,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "department_name",
             "job_position",
             "job_title",
-            "employee_grade",
             "default_shift",
             "default_shift_code",
             "default_shift_name",
-            "grade_code",
-            "grade_name",
-            "grade_daily_wage",
             "effective_daily_wage",
             "effective_hourly_wage",
             "manager",
@@ -66,6 +54,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "bank_account_name",
             "npwp",
             "tax_status",
+            "pph21_deduct",
             "bpjs_kesehatan_number",
             "bpjs_ketenagakerjaan_number",
             "created_at",

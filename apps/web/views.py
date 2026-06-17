@@ -84,6 +84,8 @@ from apps.web.services.list_querysets import (
     payslip_list_queryset,
     shift_assignment_queryset,
 )
+from apps.payroll.services.salary_preview import build_salary_preview
+from apps.payroll.services.ter import seed_ter_master
 from apps.web.services.listing import resolve_list
 from apps.web.forms import (
     EmployeeForm,
@@ -348,12 +350,14 @@ def employee_edit(request, pk):
     else:
         form = EmployeeForm(instance=employee, tenant=request.user.tenant, user=request.user)
 
+    seed_ter_master(request.user.tenant)
     ctx = _form_context(
         form,
         f"Edit — {employee.full_name}",
         cancel_url="/employees/",
         subtitle=employee.employee_id,
     )
+    ctx["salary_preview"] = build_salary_preview(employee, tenant=request.user.tenant)
     return render(request, "web/employees/form.html", ctx)
 
 
@@ -786,7 +790,7 @@ def overtime_create(request):
         if not preview_employee:
             raw_employee = form.data.get("employee")
             preview_employee = (
-                Employee.objects.select_related("employee_grade").filter(pk=raw_employee).first()
+                Employee.objects.select_related("default_shift").filter(pk=raw_employee).first()
                 if raw_employee
                 else profile
             )

@@ -1,9 +1,16 @@
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
 from apps.core.models import Announcement, AuditLog, FeatureFlag, Notification, Plant, User
 from apps.employees.models import Employee, EmployeeDocument
-from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
-from apps.organization.models import Department, EmployeeGrade, JobPosition
-from apps.payroll.models import PayrollRun, Payslip, SalaryComponent, THRRun
+from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
+from apps.organization.models import Department, JobPosition
+from apps.payroll.models import (
+    PayrollRun,
+    Payslip,
+    Pph21TerBracket,
+    Pph21TerCategory,
+    Pph21TerPtkpMapping,
+    SalaryComponent,
+)
 from apps.shifts.models import Shift, ShiftAssignment
 from apps.web.admin_crud.forms import (
     AdminEmployeeForm,
@@ -17,19 +24,19 @@ from apps.web.admin_crud.forms import (
     DailyTimesheetForm,
     DepartmentForm,
     EmployeeDocumentForm,
-    EmployeeGradeForm,
     FeatureFlagForm,
     JobPositionForm,
     LeaveBalanceForm,
-    LeaveHourlySegmentForm,
     LeaveTypeForm,
     AnnouncementForm,
     NotificationAdminForm,
     PayslipForm,
     PlantForm,
+    Pph21TerBracketForm,
+    Pph21TerCategoryForm,
+    Pph21TerPtkpMappingForm,
     SalaryComponentForm,
     ShiftForm,
-    THRRunForm,
 )
 from apps.web.admin_crud.registry import AdminResource, Column, register
 
@@ -145,25 +152,65 @@ def bootstrap_registry():
     )
     register(
         AdminResource(
-            slug="employee-grades",
-            model=EmployeeGrade,
-            form_class=EmployeeGradeForm,
-            section="Organization",
-            title="Grade Karyawan",
-            title_plural="Grade Karyawan",
+            slug="pph21-ter-categories",
+            model=Pph21TerCategory,
+            form_class=Pph21TerCategoryForm,
+            section="Payroll",
+            title="Kategori TER PPh 21",
+            title_plural="Kategori TER PPh 21",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
-                Column("Gaji Harian", "daily_wage"),
-                Column("Plant", "plant"),
                 Column("Aktif", "is_active"),
             ],
             search_fields=["code", "name"],
-            select_related=["plant"],
             order_by=["code"],
             master_data=True,
             master_group="Keuangan",
+            list_limit=10,
+        )
+    )
+    register(
+        AdminResource(
+            slug="pph21-ter-brackets",
+            model=Pph21TerBracket,
+            form_class=Pph21TerBracketForm,
+            section="Payroll",
+            title="Lapisan TER PPh 21",
+            title_plural="Lapisan TER PPh 21",
+            columns=[
+                Column("Kategori", "category"),
+                Column("No", "bracket_no"),
+                Column("Dari", "income_from"),
+                Column("Sampai", "income_to"),
+                Column("Tarif", "rate"),
+            ],
+            search_fields=["category__code"],
+            select_related=["category"],
+            order_by=["category__code", "bracket_no"],
+            master_data=True,
+            master_group="Keuangan",
             list_limit=500,
+        )
+    )
+    register(
+        AdminResource(
+            slug="pph21-ter-ptkp",
+            model=Pph21TerPtkpMapping,
+            form_class=Pph21TerPtkpMappingForm,
+            section="Payroll",
+            title="PTKP → TER",
+            title_plural="PTKP → TER",
+            columns=[
+                Column("PTKP", "ptkp_code"),
+                Column("Kategori TER", "category"),
+            ],
+            search_fields=["ptkp_code", "category__code"],
+            select_related=["category"],
+            order_by=["ptkp_code"],
+            master_data=True,
+            master_group="Keuangan",
+            list_limit=20,
         )
     )
     register(
@@ -177,13 +224,13 @@ def bootstrap_registry():
             columns=[
                 Column("ID", "employee_id"),
                 Column("Nama", "full_name"),
-                Column("Grade", "employee_grade"),
                 Column("Skema Gaji", "salary_scheme"),
+                Column("PTKP", "tax_status"),
                 Column("Plant", "plant"),
                 Column("Status", "status"),
             ],
-            search_fields=["employee_id", "full_name", "nik", "email", "employee_grade__code"],
-            select_related=["plant", "department", "employee_grade"],
+            search_fields=["employee_id", "full_name", "nik", "email", "tax_status"],
+            select_related=["plant", "department"],
             order_by=["full_name"],
             hide_from_admin_nav=True,
         )
@@ -392,23 +439,6 @@ def bootstrap_registry():
     )
     register(
         AdminResource(
-            slug="leave-segments",
-            model=LeaveHourlySegment,
-            form_class=LeaveHourlySegmentForm,
-            section="Leave",
-            title="Segment Cuti (Jam)",
-            title_plural="Segment Cuti (Jam)",
-            columns=[
-                Column("Pengajuan", "leave_request"),
-                Column("Mulai", "start_time"),
-                Column("Jam", "hours"),
-            ],
-            select_related=["leave_request"],
-            order_by=["-pk"],
-        )
-    )
-    register(
-        AdminResource(
             slug="salary-components",
             model=SalaryComponent,
             form_class=SalaryComponentForm,
@@ -464,23 +494,6 @@ def bootstrap_registry():
             select_related=["employee", "payroll_run"],
             order_by=["-pk"],
             hide_from_admin_nav=True,
-        )
-    )
-    register(
-        AdminResource(
-            slug="thr-runs",
-            model=THRRun,
-            form_class=THRRunForm,
-            section="Payroll",
-            title="THR Run",
-            title_plural="THR Run",
-            columns=[
-                Column("Plant", "plant"),
-                Column("Tahun", "year"),
-                Column("Status", "status"),
-            ],
-            select_related=["plant"],
-            order_by=["-year"],
         )
     )
     register(

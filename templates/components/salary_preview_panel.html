@@ -1,0 +1,73 @@
+{% load hris_ui %}
+<aside class="hris-salary-preview" aria-label="Simulasi perhitungan gaji">
+  <div class="hris-salary-preview__header">
+    <h2 class="hris-card-title">Simulasi Perhitungan Gaji</h2>
+    <p class="hris-salary-preview__scenario">{{ salary_preview.scenario }}</p>
+  </div>
+
+  <dl class="hris-salary-preview__meta">
+    <div><dt>Skema</dt><dd>{{ salary_preview.salary_scheme }}</dd></div>
+    {% if salary_preview.is_daily %}
+    <div><dt>Gaji harian</dt><dd class="hris-num">{{ salary_preview.daily_rate|rupiah }}</dd></div>
+    {% endif %}
+    <div><dt>Dasar BPJS</dt><dd class="hris-num">{{ salary_preview.bpjs_base|rupiah }}</dd></div>
+  </dl>
+
+  <section class="hris-salary-preview__section">
+    <h3>Pendapatan</h3>
+    <ul class="hris-salary-preview__lines">
+      {% for line in salary_preview.earnings %}
+      <li class="hris-salary-preview__line">
+        <div class="hris-salary-preview__line-main">
+          <span>{{ line.label }}</span>
+          <strong class="hris-num">{{ line.amount|rupiah }}</strong>
+        </div>
+        {% if line.note %}<p class="hris-salary-preview__note">{{ line.note }}</p>{% endif %}
+      </li>
+      {% empty %}
+      <li class="hris-salary-preview__line hris-salary-preview__line--empty">Belum ada komponen gaji.</li>
+      {% endfor %}
+    </ul>
+    <div class="hris-salary-preview__subtotal hris-salary-preview__subtotal--plus">
+      <span>Bruto estimasi</span>
+      <strong class="hris-num">{{ salary_preview.gross|rupiah }}</strong>
+    </div>
+  </section>
+
+  <section class="hris-salary-preview__section">
+    <h3>Potongan</h3>
+    <ul class="hris-salary-preview__lines">
+      {% for line in salary_preview.deductions %}
+      <li class="hris-salary-preview__line">
+        <div class="hris-salary-preview__line-main">
+          <span>{{ line.label }}</span>
+          <strong class="hris-num hris-salary-preview__deduct">− {{ line.amount|rupiah }}</strong>
+        </div>
+        {% if line.note %}<p class="hris-salary-preview__note">{{ line.note }}</p>{% endif %}
+      </li>
+      {% endfor %}
+      {% if salary_preview.pph21_detail.skipped and salary_preview.pph21_detail.reason %}
+      <li class="hris-salary-preview__line hris-salary-preview__line--muted">
+        <p class="hris-salary-preview__note">PPh 21: {{ salary_preview.pph21_detail.reason }}</p>
+      </li>
+      {% elif salary_preview.pph21_detail.skipped %}
+      <li class="hris-salary-preview__line hris-salary-preview__line--muted">
+        <p class="hris-salary-preview__note">PPh 21 tidak dipotong (opsi mati atau PTKP kosong)</p>
+      </li>
+      {% endif %}
+    </ul>
+    <div class="hris-salary-preview__subtotal hris-salary-preview__subtotal--minus">
+      <span>Total potongan</span>
+      <strong class="hris-num hris-salary-preview__deduct">− {{ salary_preview.deductions_total|rupiah }}</strong>
+    </div>
+  </section>
+
+  <div class="hris-salary-preview__net">
+    <span>Take-home pay estimasi</span>
+    <strong class="hris-num">{{ salary_preview.net|rupiah }}</strong>
+  </div>
+
+  <footer class="hris-salary-preview__footer">
+    <p>Logika sama dengan proses payroll: bruto periode + TER PP 58/2023 + BPJS karyawan (Kes 1%, JHT 2%, JP 1%). Lembur & alpha mengikuti absensi aktual saat payroll dijalankan.</p>
+  </footer>
+</aside>

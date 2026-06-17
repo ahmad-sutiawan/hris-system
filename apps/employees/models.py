@@ -54,14 +54,6 @@ class Employee(TenantScopedModel):
         blank=True,
         related_name="employees",
     )
-    employee_grade = models.ForeignKey(
-        "organization.EmployeeGrade",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="employees",
-        verbose_name="Grade karyawan",
-    )
     default_shift = models.ForeignKey(
         "shifts.Shift",
         on_delete=models.SET_NULL,
@@ -119,7 +111,12 @@ class Employee(TenantScopedModel):
     bank_account_number = EncryptedCharField(max_length=512, blank=True)
     bank_account_name = EncryptedCharField(max_length=512, blank=True)
     npwp = EncryptedCharField(max_length=512, blank=True)
-    tax_status = models.CharField(max_length=16, blank=True)
+    tax_status = models.CharField(max_length=16, blank=True, default="")
+    pph21_deduct = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="Null = otomatis potong jika PTKP diisi. False = tidak dipotong.",
+    )
     bpjs_kesehatan_number = EncryptedCharField(max_length=512, blank=True)
     bpjs_ketenagakerjaan_number = EncryptedCharField(max_length=512, blank=True)
 
@@ -136,11 +133,6 @@ class Employee(TenantScopedModel):
 
     def clean(self):
         super().clean()
-        if self.employee_grade_id and self.plant_id:
-            if self.employee_grade.plant_id != self.plant_id:
-                raise ValidationError(
-                    {"employee_grade": "Grade karyawan harus dari plant yang sama."}
-                )
         if self.default_shift_id and self.plant_id:
             if self.default_shift.plant_id != self.plant_id:
                 raise ValidationError(
@@ -148,10 +140,10 @@ class Employee(TenantScopedModel):
                 )
 
     @property
-    def grade_label(self) -> str:
-        if self.employee_grade_id:
-            return f"{self.employee_grade.code} — {self.employee_grade.name}"
-        return ""
+    def uses_pph21(self) -> bool:
+        if self.pph21_deduct is False:
+            return False
+        return bool(self.tax_status)
 
 
 class EmployeeDocument(TenantScopedModel):

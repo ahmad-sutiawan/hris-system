@@ -57,8 +57,6 @@ def employee_list_queryset(user: User, filters: ListFilters):
             | Q(manager__full_name__icontains=text)
             | Q(manager__employee_id__icontains=text)
             | Q(user__username__icontains=text)
-            | Q(employee_grade__code__icontains=text)
-            | Q(employee_grade__name__icontains=text)
         )
         qs = qs.filter(search)
     qs = apply_date_field_range(

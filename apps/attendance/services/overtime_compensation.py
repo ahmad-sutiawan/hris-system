@@ -58,13 +58,16 @@ def build_compensation_preview(
         ot_after_minutes=ot_after_minutes,
         overtime_type=overtime_type,
     )
-    grade = getattr(employee, "employee_grade", None)
     return {
         "total_minutes": total_minutes,
         "leave_days": format_number(leave_days, max_decimals=2),
         "cash_amount": format_number(cash_amount, money=True),
         "hourly_rate": format_number(hourly_rate(employee), money=True),
-        "grade_label": f"{grade.code} — {grade.name}" if grade else "Tanpa grade (pakai gaji pokok)",
+        "grade_label": (
+            "Gaji harian"
+            if employee.salary_scheme == employee.SalaryScheme.DAILY
+            else "Gaji pokok ÷ 22"
+        ),
     }
 
 

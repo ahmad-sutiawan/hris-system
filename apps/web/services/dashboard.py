@@ -209,7 +209,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile):
             "employee_id": profile.employee_id,
             "department": dept.name if dept else "—",
             "position": job.title if job else "—",
-            "grade": profile.grade_label or "—",
+            "ptkp": profile.tax_status or "—",
             "plant": profile.plant.name if profile.plant_id else "—",
             "status": profile.get_status_display(),
         }

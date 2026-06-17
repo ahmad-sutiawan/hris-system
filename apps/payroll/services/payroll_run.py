@@ -39,7 +39,6 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             tenant=payroll_run.tenant,
             plant=payroll_run.plant,
         )
-        .select_related("employee_grade")
         .exclude(status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED])
     )
 
@@ -74,7 +73,7 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         bpjs_kes = calc_bpjs_kes(employee)
         bpjs_jht = calc_bpjs_jht(employee)
         bpjs_jp = calc_bpjs_jp(employee)
-        pph21 = calc_pph21(gross, employee.tax_status)
+        pph21 = calc_pph21(gross, employee)
 
         deductions = bpjs_kes + bpjs_jht + bpjs_jp + pph21 + alpha_deduction
         net = gross - deductions
@@ -94,9 +93,6 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             earnings["ot_by_type"] = {
                 code: str(amount) for code, amount in ot_detail["by_type"].items()
             }
-        if employee.employee_grade_id:
-            earnings["grade_code"] = employee.employee_grade.code
-            earnings["daily_wage"] = str(employee.employee_grade.daily_wage)
         deductions_breakdown = {
             "bpjs_kesehatan": str(bpjs_kes),
             "bpjs_jht": str(bpjs_jht),

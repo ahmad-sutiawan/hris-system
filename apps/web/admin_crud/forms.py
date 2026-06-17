@@ -5,8 +5,16 @@ from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesh
 from apps.core.models import Announcement, FeatureFlag, Notification, Plant, Tenant
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveHourlySegment, LeaveRequest, LeaveType
-from apps.organization.models import Department, EmployeeGrade, JobPosition
-from apps.payroll.models import PayrollRun, Payslip, SalaryComponent, THRRun
+from apps.organization.models import Department, JobPosition
+from apps.payroll.models import (
+    PayrollRun,
+    Payslip,
+    Pph21TerBracket,
+    Pph21TerCategory,
+    Pph21TerPtkpMapping,
+    SalaryComponent,
+    THRRun,
+)
 from apps.shifts.models import Shift, ShiftAssignment
 from apps.web.forms import (
     HRIS_INPUT_CLASS,
@@ -186,19 +194,38 @@ class JobPositionForm(forms.ModelForm):
             self.fields["department"].label_from_instance = lambda obj: obj.name
 
 
-class EmployeeGradeForm(forms.ModelForm):
+class Pph21TerCategoryForm(forms.ModelForm):
     class Meta:
-        model = EmployeeGrade
-        fields = ["plant", "code", "name", "daily_wage", "description", "is_active"]
-        labels = {
-            "daily_wage": "Gaji harian",
-            "code": "Kode grade",
-            "name": "Nama grade",
-        }
+        model = Pph21TerCategory
+        fields = ["code", "name", "description", "is_active"]
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _base_init(self, tenant, user)
+
+
+class Pph21TerPtkpMappingForm(forms.ModelForm):
+    class Meta:
+        model = Pph21TerPtkpMapping
+        fields = ["category", "ptkp_code"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+        if tenant:
+            self.fields["category"].queryset = Pph21TerCategory.objects.filter(tenant=tenant)
+
+
+class Pph21TerBracketForm(forms.ModelForm):
+    class Meta:
+        model = Pph21TerBracket
+        fields = ["category", "bracket_no", "income_from", "income_to", "rate"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+        if tenant:
+            self.fields["category"].queryset = Pph21TerCategory.objects.filter(tenant=tenant)
 
 
 class AdminEmployeeForm(forms.ModelForm):
@@ -213,7 +240,6 @@ class AdminEmployeeForm(forms.ModelForm):
             "plant",
             "department",
             "job_position",
-            "employee_grade",
             "default_shift",
             "manager",
             "user",
@@ -228,6 +254,7 @@ class AdminEmployeeForm(forms.ModelForm):
             "allowance_position",
             "tax_status",
             "npwp",
+            "pph21_deduct",
             "bpjs_kesehatan_number",
             "bpjs_ketenagakerjaan_number",
             "bank_name",
@@ -250,10 +277,6 @@ class AdminEmployeeForm(forms.ModelForm):
                 self, tenant=tenant, user=user, plant_id=plant_id
             )
             self.fields["job_position"].queryset = JobPosition.objects.filter(tenant=tenant)
-            self.fields["employee_grade"].required = False
-            self.fields["employee_grade"].help_text = (
-                "Golongan karyawan menentukan gaji harian untuk perhitungan gaji & lembur."
-            )
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )

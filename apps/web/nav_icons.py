@@ -152,7 +152,6 @@ NAV_ICON_ALIASES: dict[str, str] = {
     "leave-requests": "leave",
     "leave-types": "bookmark",
     "leave-balances": "wallet",
-    "leave-segments": "clock",
     "overtime_list": "overtime",
     "overtime_create": "overtime",
     "payroll_list": "payroll",
@@ -174,7 +173,6 @@ NAV_ICON_ALIASES: dict[str, str] = {
     "feature-flags": "flag",
     "employee-documents": "document",
     "daily-timesheets": "chart",
-    "thr-runs": "gift",
     "admin-notifications": "notifications",
     "announcements": "announcements",
 }

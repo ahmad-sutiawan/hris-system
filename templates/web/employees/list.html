@@ -37,8 +37,6 @@
           <th>Akhir Kontrak</th>
           <th>Resign</th>
           <th>Status</th>
-          <th>Grade</th>
-          <th>Gaji Harian (Grade)</th>
           <th>Skema Gaji</th>
           <th>Gaji Pokok</th>
           <th>Tunj. Transport</th>
@@ -78,15 +76,6 @@
           <td>{{ employee.contract_end_date|local_date|default:"-" }}</td>
           <td>{{ employee.resign_date|local_date|default:"-" }}</td>
           <td>{% status_badge employee.status employee.get_status_display %}</td>
-          <td>
-            {% if employee.employee_grade %}
-            <span class="hris-mono">{{ employee.employee_grade.code }}</span>
-            · {{ employee.employee_grade.name }}
-            {% else %}-{% endif %}
-          </td>
-          <td class="hris-num">
-            {% if employee.employee_grade %}{{ employee.employee_grade.daily_wage|rupiah }}{% else %}-{% endif %}
-          </td>
           <td>{{ employee.get_salary_scheme_display }}</td>
           <td class="hris-num">{{ employee.base_salary|rupiah }}</td>
           <td class="hris-num">{{ employee.allowance_transport|rupiah }}</td>

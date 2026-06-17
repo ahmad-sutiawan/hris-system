@@ -9,18 +9,17 @@ class EmployeeAdmin(admin.ModelAdmin):
         "employee_id",
         "full_name",
         "plant",
-        "employee_grade",
         "salary_scheme",
+        "tax_status",
         "status",
     ]
-    list_filter = ["plant", "status", "salary_scheme", "employee_grade"]
-    search_fields = ["employee_id", "full_name", "nik", "email"]
+    list_filter = ["plant", "status", "salary_scheme"]
+    search_fields = ["employee_id", "full_name", "nik", "email", "tax_status"]
     list_select_related = [
         "plant",
         "legal_entity",
         "department",
         "job_position",
-        "employee_grade",
         "default_shift",
     ]
     raw_id_fields = ["manager", "user", "legal_entity"]

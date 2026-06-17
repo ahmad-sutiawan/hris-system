@@ -19,7 +19,7 @@ from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.models import LeaveBalance, LeaveRequest
 from apps.leave.services.leave_workflow import approve_leave_request, submit_leave_request
-from apps.organization.models import Department, EmployeeGrade
+from apps.organization.models import Department
 from apps.shifts.models import Shift, ShiftAssignment
 
 
@@ -33,13 +33,6 @@ class OvertimeCompensationTests(TestCase):
             code="D1",
             name="Prod",
         )
-        self.grade = EmployeeGrade.objects.create(
-            tenant=self.tenant,
-            plant=self.plant,
-            code="G2",
-            name="Grade 2",
-            daily_wage=Decimal("200000"),
-        )
         self.hr = User.objects.create_user(
             username="hr-otcomp",
             password="TestPassword123!",
@@ -51,10 +44,10 @@ class OvertimeCompensationTests(TestCase):
             tenant=self.tenant,
             plant=self.plant,
             department=self.dept,
-            employee_grade=self.grade,
             employee_id="E-OTC",
             full_name="OT Comp Worker",
-            base_salary=Decimal("5000000"),
+            salary_scheme=Employee.SalaryScheme.DAILY,
+            base_salary=Decimal("200000"),
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
@@ -102,14 +95,14 @@ class OvertimeCompensationTests(TestCase):
             Decimal("1.00"),
         )
 
-    def test_preview_uses_grade_hourly_rate(self):
+    def test_preview_uses_daily_hourly_rate(self):
         preview = build_compensation_preview(
             self.employee,
             ot_before_minutes=0,
             ot_after_minutes=120,
             overtime_type=self.overtime_type,
         )
-        self.assertIn("G2", preview["grade_label"])
+        self.assertIn("Gaji harian", preview["grade_label"])
         self.assertIn("Rp", preview["cash_amount"])
 
     def test_approve_leave_mode_credits_balance(self):

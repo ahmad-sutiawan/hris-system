@@ -14,7 +14,6 @@ def employee_list_qs(qs):
         "legal_entity",
         "department",
         "job_position",
-        "employee_grade",
         "default_shift",
         "manager",
         "user",
@@ -22,7 +21,7 @@ def employee_list_qs(qs):
 
 
 def payslip_list_qs(qs):
-    return qs.select_related("employee", "employee__employee_grade", "payroll_run", "payroll_run__plant")
+    return qs.select_related("employee", "payroll_run", "payroll_run__plant")
 
 
 def timesheet_list_qs(qs):

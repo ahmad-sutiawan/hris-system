@@ -8,7 +8,7 @@ BPJS_JHT_EMPLOYEE_RATE = Decimal("0.02")
 BPJS_JP_EMPLOYEE_RATE = Decimal("0.01")
 BPJS_JP_MAX_SALARY = Decimal("10547400")
 
-# Simplified TER monthly rates by tax status (MVP placeholder)
+# Legacy flat rates — replaced by TER master (PP 58/2023) when seeded.
 TER_RATES = {
     "TK/0": Decimal("0"),
     "TK/1": Decimal("0.0025"),
@@ -33,15 +33,7 @@ def monthly_base(employee) -> Decimal:
 
 
 def effective_daily_wage(employee) -> Decimal:
-    """Gaji harian efektif: dari grade jika ada, else base_salary (daily) atau pokok/22 (monthly)."""
-    grade = getattr(employee, "employee_grade", None)
-    if grade_id := getattr(employee, "employee_grade_id", None):
-        if grade is None:
-            from apps.organization.models import EmployeeGrade
-
-            grade = EmployeeGrade.objects.filter(pk=grade_id).first()
-        if grade:
-            return grade.daily_wage
+    """Gaji harian efektif dari gaji pokok (daily langsung atau monthly/22)."""
     if employee.salary_scheme == employee.SalaryScheme.DAILY:
         return employee.base_salary
     return (employee.base_salary / WORKING_DAYS_PER_MONTH).quantize(Decimal("0.01"))
@@ -69,8 +61,24 @@ def calc_bpjs_jp(employee) -> Decimal:
     return (base * BPJS_JP_EMPLOYEE_RATE).quantize(Decimal("0.01"))
 
 
-def calc_pph21(gross: Decimal, tax_status: str) -> Decimal:
-    rate = TER_RATES.get(tax_status or "TK/0", Decimal("0"))
+def calc_pph21(gross: Decimal, employee) -> Decimal:
+    if getattr(employee, "pph21_deduct", None) is False:
+        return Decimal("0")
+    tax_status = getattr(employee, "tax_status", "") or ""
+    if not tax_status.strip():
+        return Decimal("0")
+
+    from apps.payroll.services.ter import lookup_ter_rate
+
+    tenant = getattr(employee, "tenant", None) or getattr(employee, "tenant_id", None)
+    if tenant is not None and not hasattr(tenant, "pk"):
+        from apps.core.models import Tenant
+
+        tenant = Tenant.objects.filter(pk=tenant).first()
+    if tenant:
+        rate = lookup_ter_rate(tenant=tenant, gross=gross, ptkp_code=tax_status)
+    else:
+        rate = TER_RATES.get(tax_status, Decimal("0"))
     return (gross * rate).quantize(Decimal("0.01"))
 
 

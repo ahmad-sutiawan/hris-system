@@ -10,7 +10,8 @@ from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.models import LeaveType
 from apps.leave.services.leave_workflow import get_or_create_balance
-from apps.organization.models import Department, EmployeeGrade, JobPosition
+from apps.organization.models import Department, JobPosition
+from apps.payroll.services.ter import seed_ter_master
 from apps.payroll.models import SalaryComponent
 from apps.shifts.models import Shift, ShiftAssignment
 
@@ -60,23 +61,6 @@ class Command(BaseCommand):
             code="OPR",
             defaults={"title": "Operator", "department": dept},
         )
-
-        grades = [
-            ("G1", "Operator Junior", Decimal("185000")),
-            ("G2", "Operator", Decimal("200000")),
-            ("G3", "Operator Senior", Decimal("220000")),
-            ("G4", "Foreman", Decimal("250000")),
-            ("G5", "Supervisor Lapangan", Decimal("280000")),
-        ]
-        grade_map = {}
-        for code, name, daily_wage in grades:
-            grade, _ = EmployeeGrade.objects.get_or_create(
-                tenant=tenant,
-                plant=plant,
-                code=code,
-                defaults={"name": name, "daily_wage": daily_wage},
-            )
-            grade_map[code] = grade
 
         shift, _ = Shift.objects.get_or_create(
             tenant=tenant,
@@ -164,6 +148,8 @@ class Command(BaseCommand):
                 defaults={"name": name, "component_type": ctype},
             )
 
+        seed_ter_master(tenant)
+
         admin_user = self._ensure_demo_user(
             "admin",
             defaults={
@@ -212,7 +198,6 @@ class Command(BaseCommand):
                 "plant": plant,
                 "department": dept,
                 "job_position": job,
-                "employee_grade": grade_map["G2"],
                 "manager": manager_employee,
                 "full_name": "Budi Santoso",
                 "nik": "3201010101900001",

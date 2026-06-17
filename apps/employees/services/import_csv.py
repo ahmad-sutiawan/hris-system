@@ -8,7 +8,7 @@ from django.db import transaction
 from apps.core.models import Plant
 from apps.employees.models import Employee
 from apps.employees.services.onboarding import provision_new_employee
-from apps.organization.models import Department, EmployeeGrade, JobPosition
+from apps.organization.models import Department, JobPosition
 
 REQUIRED_HEADERS = [
     "employee_id",
@@ -32,7 +32,6 @@ REQUIRED_HEADERS = [
 
 OPTIONAL_HEADERS = [
     "salary_scheme",
-    "grade_code",
     "allowance_meal",
     "allowance_position",
     "bpjs_kesehatan_number",
@@ -73,7 +72,6 @@ def template_csv():
             "Siti Aminah",
             "",
             "daily",
-            "G2",
             "25000",
             "0",
             "0001234567890",
@@ -121,10 +119,6 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
         (j.plant.code, j.code): j
         for j in JobPosition.objects.filter(tenant=tenant).select_related("plant")
     }
-    grades = {
-        (g.plant.code, g.code): g
-        for g in EmployeeGrade.objects.filter(tenant=tenant, is_active=True).select_related("plant")
-    }
 
     created = 0
     updated = 0
@@ -144,16 +138,6 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
             if not employee_id:
                 raise ImportErrorRow(row_num, "employee_id wajib diisi.")
 
-            grade_code = _row_value(row, "grade_code").strip()
-            employee_grade = None
-            if grade_code:
-                employee_grade = grades.get((plant_code, grade_code))
-                if not employee_grade:
-                    raise ImportErrorRow(
-                        row_num,
-                        f"Grade '{grade_code}' tidak ditemukan di plant '{plant_code}'.",
-                    )
-
             salary_scheme = _row_value(row, "salary_scheme", Employee.SalaryScheme.MONTHLY).strip()
             if salary_scheme and salary_scheme not in Employee.SalaryScheme.values:
                 raise ImportErrorRow(
@@ -169,7 +153,6 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
                 "plant": plant,
                 "department": dept,
                 "job_position": job,
-                "employee_grade": employee_grade,
                 "join_date": _parse_date(row["join_date"]),
                 "status": row["status"].strip() or Employee.Status.PERMANENT,
                 "salary_scheme": salary_scheme or Employee.SalaryScheme.MONTHLY,
