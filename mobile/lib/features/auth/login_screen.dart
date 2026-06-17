@@ -29,18 +29,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _showServer = false;
   String? _validationError;
   String _serverUrl = AppConfig.defaultBaseUrl;
+  bool? _serverReachable;
 
   @override
   void initState() {
     super.initState();
-    _loadServerUrl();
+    _resolveServerUrl();
   }
 
-  Future<void> _loadServerUrl() async {
-    final url = await ref.read(apiClientProvider).loadBaseUrl();
+  Future<void> _resolveServerUrl() async {
+    final client = ref.read(apiClientProvider);
+    final url = await client.resolveBaseUrl();
+    final reachable = await client.probeHealth(url);
     if (!mounted) return;
     setState(() {
       _serverUrl = url;
+      _serverReachable = reachable;
       _serverCtrl.text = url.replaceAll(AppConfig.apiPathSuffix, '');
     });
   }
@@ -50,8 +54,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (raw.isEmpty) return;
     final normalized = AppConfig.normalizeApiBaseUrl(raw);
     await ref.read(apiClientProvider).setBaseUrl(normalized);
+    final reachable = await ref.read(apiClientProvider).probeHealth(normalized);
     if (!mounted) return;
-    setState(() => _serverUrl = normalized);
+    setState(() {
+      _serverUrl = normalized;
+      _serverReachable = reachable;
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Server disimpan: $normalized'),
@@ -62,12 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _resetServerUrl() async {
     await ref.read(apiClientProvider).resetBaseUrl();
-    if (!mounted) return;
-    final url = AppConfig.defaultBaseUrl;
-    setState(() {
-      _serverUrl = url;
-      _serverCtrl.text = url.replaceAll(AppConfig.apiPathSuffix, '');
-    });
+    await _resolveServerUrl();
   }
 
   @override
@@ -91,6 +94,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() => _submitting = true);
     try {
+      await ref.read(apiClientProvider).resolveBaseUrl();
       await ref
           .read(authProvider.notifier)
           .login(username, password)
@@ -334,8 +338,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   if (_showServer) ...[
                                     const SizedBox(height: 10),
                                     Text(
-                                      'Aktif: $_serverUrl',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textDim),
+                                      _serverReachable == true
+                                          ? 'Terhubung: $_serverUrl'
+                                          : _serverReachable == false
+                                              ? 'Server tidak terjangkau. Periksa koneksi ke 148.230.98.125:8080'
+                                              : 'Mencari backend…',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: _serverReachable == true
+                                            ? AppColors.success
+                                            : AppColors.textDim,
+                                      ),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 8),
@@ -343,7 +356,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       controller: _serverCtrl,
                                       decoration: const InputDecoration(
                                         labelText: 'URL server',
-                                        hintText: 'http://127.0.0.1:8080',
+                                        hintText: 'http://148.230.98.125:8080',
                                         prefixIcon: Icon(Icons.dns_outlined),
                                       ),
                                       autocorrect: false,
@@ -361,7 +374,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     const Padding(
                                       padding: EdgeInsets.only(top: 8),
                                       child: Text(
-                                        'Docker: :8080 · runserver: :8000',
+                                        'Production: 148.230.98.125:8080 · lokal: :8000',
                                         style: TextStyle(fontSize: 11, color: AppColors.textDim),
                                         textAlign: TextAlign.center,
                                       ),

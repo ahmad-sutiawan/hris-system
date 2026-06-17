@@ -91,15 +91,50 @@ class ApiClient {
     } catch (_) {}
   }
 
-  Future<void> init() async {
+  Future<bool> probeHealth(String baseUrl) => _probeHealth(baseUrl);
+
+  Future<bool> _probeHealth(String baseUrl) async {
+    try {
+      final probe = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 3),
+          receiveTimeout: const Duration(seconds: 3),
+        ),
+      );
+      final res = await probe.get('/health/');
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<String> resolveBaseUrl() async {
     if (kReleaseMode) {
       _dio.options.baseUrl = AppConfig.defaultBaseUrl;
-      return;
+      return _dio.options.baseUrl;
     }
+
     final stored = await _readStorage(_baseUrlKey);
-    if (stored != null && stored.isNotEmpty) {
+    if (stored != null && stored.isNotEmpty && await _probeHealth(stored)) {
       _dio.options.baseUrl = stored;
+      return stored;
     }
+
+    for (final candidate in AppConfig.devProbeUrls) {
+      if (await _probeHealth(candidate)) {
+        _dio.options.baseUrl = candidate;
+        await _writeStorage(_baseUrlKey, candidate);
+        return candidate;
+      }
+    }
+
+    _dio.options.baseUrl = stored ?? AppConfig.defaultBaseUrl;
+    return _dio.options.baseUrl;
+  }
+
+  Future<void> init() async {
+    await resolveBaseUrl();
   }
 
   Future<void> setBaseUrl(String url) async {
@@ -359,8 +394,8 @@ class ApiClient {
         e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
       final hint = kIsWeb
-          ? ' Pastikan backend jalan (Docker: port 8080, runserver: port 8000). '
-              'Jika backend sudah jalan, periksa CORS di server.'
+          ? ' Periksa koneksi internet dan pastikan server '
+              'http://148.230.98.125:8080 bisa diakses.'
           : ' Periksa koneksi internet HP dan pastikan server bisa diakses.';
       return ApiException(
         'Tidak bisa terhubung ke $server.$hint',
