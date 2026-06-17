@@ -207,17 +207,17 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",
-    default="http://127.0.0.1:8000,http://localhost:8000",
+    default="http://127.0.0.1:8080,http://localhost:8080,http://127.0.0.1:8000,http://localhost:8000",
     cast=Csv(),
 )
 # Flutter web dev server (port acak per sesi, mis. localhost:63896)
-if DEBUG:
+CORS_ALLOW_FLUTTER_DEV = config("CORS_ALLOW_FLUTTER_DEV", default=DEBUG, cast=bool)
+CORS_ALLOWED_ORIGIN_REGEXES = []
+if CORS_ALLOW_FLUTTER_DEV:
     CORS_ALLOWED_ORIGIN_REGEXES = [
         r"^http://localhost:\d+$",
         r"^http://127\.0\.0\.1:\d+$",
     ]
-else:
-    CORS_ALLOWED_ORIGIN_REGEXES = []
 # Hanya untuk development; production set False di .env
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=DEBUG, cast=bool)
 

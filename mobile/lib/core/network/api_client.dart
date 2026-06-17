@@ -108,6 +108,11 @@ class ApiClient {
     _dio.options.baseUrl = normalized;
   }
 
+  Future<void> resetBaseUrl() async {
+    await _deleteStorage(_baseUrlKey);
+    _dio.options.baseUrl = AppConfig.defaultBaseUrl;
+  }
+
   Future<String> loadBaseUrl() async {
     await init();
     return _dio.options.baseUrl;
@@ -354,7 +359,8 @@ class ApiClient {
         e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
       final hint = kIsWeb
-          ? ' Browser memblokir koneksi (CORS). Gunakan backend lokal atau update CORS server.'
+          ? ' Pastikan backend jalan (Docker: port 8080, runserver: port 8000). '
+              'Jika backend sudah jalan, periksa CORS di server.'
           : ' Periksa koneksi internet HP dan pastikan server bisa diakses.';
       return ApiException(
         'Tidak bisa terhubung ke $server.$hint',

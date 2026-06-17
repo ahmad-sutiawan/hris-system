@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/auth/auth_provider.dart';
+import '../../core/config/app_config.dart';
+import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/brand_logo.dart';
 import '../../core/widgets/hris_widgets.dart';
@@ -20,14 +23,58 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
+  final _serverCtrl = TextEditingController();
   bool _obscure = true;
   bool _submitting = false;
+  bool _showServer = false;
   String? _validationError;
+  String _serverUrl = AppConfig.defaultBaseUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerUrl();
+  }
+
+  Future<void> _loadServerUrl() async {
+    final url = await ref.read(apiClientProvider).loadBaseUrl();
+    if (!mounted) return;
+    setState(() {
+      _serverUrl = url;
+      _serverCtrl.text = url.replaceAll(AppConfig.apiPathSuffix, '');
+    });
+  }
+
+  Future<void> _saveServerUrl() async {
+    final raw = _serverCtrl.text.trim();
+    if (raw.isEmpty) return;
+    final normalized = AppConfig.normalizeApiBaseUrl(raw);
+    await ref.read(apiClientProvider).setBaseUrl(normalized);
+    if (!mounted) return;
+    setState(() => _serverUrl = normalized);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Server disimpan: $normalized'),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Future<void> _resetServerUrl() async {
+    await ref.read(apiClientProvider).resetBaseUrl();
+    if (!mounted) return;
+    final url = AppConfig.defaultBaseUrl;
+    setState(() {
+      _serverUrl = url;
+      _serverCtrl.text = url.replaceAll(AppConfig.apiPathSuffix, '');
+    });
+  }
 
   @override
   void dispose() {
     _userCtrl.dispose();
     _passCtrl.dispose();
+    _serverCtrl.dispose();
     super.dispose();
   }
 
@@ -259,13 +306,78 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             decoration: const BoxDecoration(
                               border: Border(top: BorderSide(color: AppColors.border)),
                             ),
-                            child: const Text(
-                              'Lupa akun atau password? Hubungi tim HR plant Anda.',
-                              style: TextStyle(
-                                color: AppColors.textDim,
-                                fontSize: 12,
-                              ),
-                              textAlign: TextAlign.center,
+                            child: Column(
+                              children: [
+                                if (!kReleaseMode) ...[
+                                  InkWell(
+                                    onTap: () => setState(() => _showServer = !_showServer),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _showServer ? Icons.expand_less : Icons.settings_outlined,
+                                          size: 16,
+                                          color: AppColors.textMuted,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Pengaturan server',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (_showServer) ...[
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      'Aktif: $_serverUrl',
+                                      style: const TextStyle(fontSize: 11, color: AppColors.textDim),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextField(
+                                      controller: _serverCtrl,
+                                      decoration: const InputDecoration(
+                                        labelText: 'URL server',
+                                        hintText: 'http://127.0.0.1:8080',
+                                        prefixIcon: Icon(Icons.dns_outlined),
+                                      ),
+                                      autocorrect: false,
+                                      keyboardType: TextInputType.url,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    OutlinedButton(
+                                      onPressed: _saveServerUrl,
+                                      child: const Text('Simpan server'),
+                                    ),
+                                    TextButton(
+                                      onPressed: _resetServerUrl,
+                                      child: const Text('Reset ke default'),
+                                    ),
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 8),
+                                      child: Text(
+                                        'Docker: :8080 · runserver: :8000',
+                                        style: TextStyle(fontSize: 11, color: AppColors.textDim),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 12),
+                                ],
+                                const Text(
+                                  'Lupa akun atau password? Hubungi tim HR plant Anda.',
+                                  style: TextStyle(
+                                    color: AppColors.textDim,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
                           ),
                         ],
