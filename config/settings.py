@@ -308,7 +308,12 @@ if not DEBUG:
             "Set HRIS_FIELD_ENCRYPTION_KEY unik (min. 32 karakter) sebelum DEBUG=False."
         )
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
+    _secure_ssl_raw = config("SECURE_SSL_REDIRECT", default="")
+    if _secure_ssl_raw == "":
+        # HTTP deployment (mis. :8080 tanpa TLS) — jangan redirect healthcheck Docker
+        SECURE_SSL_REDIRECT = HRIS_SITE_URL.lower().startswith("https://")
+    else:
+        SECURE_SSL_REDIRECT = str(_secure_ssl_raw).lower() in ("1", "true", "yes")
     SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=SECURE_SSL_REDIRECT, cast=bool)
     CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=SECURE_SSL_REDIRECT, cast=bool)
     SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000, cast=int)
