@@ -1,5 +1,5 @@
 import os
-from datetime import time, timedelta
+from datetime import date, time, timedelta
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
@@ -49,6 +49,11 @@ class Command(BaseCommand):
             code="PLT01",
             defaults={"name": "Plant Utama"},
         )
+        if plant.latitude is None:
+            plant.latitude = Decimal("-6.2088000")
+            plant.longitude = Decimal("106.8456000")
+            plant.geo_fence_radius_m = 200
+            plant.save(update_fields=["latitude", "longitude", "geo_fence_radius_m"])
         dept, _ = Department.objects.get_or_create(
             tenant=tenant,
             plant=plant,
@@ -76,6 +81,27 @@ class Command(BaseCommand):
                 "schedule_working_hours": Decimal("8"),
             },
         )
+
+        Shift.objects.get_or_create(
+            tenant=tenant,
+            plant=plant,
+            code="MALAM",
+            defaults={
+                "name": "Shift Malam",
+                "label": "MALAM",
+                "scheduled_check_in": time(22, 0),
+                "scheduled_check_out": time(6, 0),
+                "break_minutes": 60,
+                "grace_period_minutes": 15,
+                "schedule_working_hours": Decimal("8"),
+                "cross_day": True,
+                "shift_allowance_code": "MALAM",
+            },
+        )
+        night_shift = Shift.objects.filter(tenant=tenant, plant=plant, code="MALAM").first()
+        if night_shift and night_shift.shift_allowance_code != "MALAM":
+            night_shift.shift_allowance_code = "MALAM"
+            night_shift.save(update_fields=["shift_allowance_code"])
 
         if plant.default_shift_id != shift.pk:
             plant.default_shift = shift
@@ -149,6 +175,92 @@ class Command(BaseCommand):
             )
 
         seed_ter_master(tenant)
+
+        from apps.core.models import ApprovalLine, HolidayCalendar, PunchLocation
+        from apps.organization.models import JobLevel
+        from apps.payroll.models import ShiftAllowanceRate
+
+        PunchLocation.objects.get_or_create(
+            tenant=tenant,
+            plant=plant,
+            name="Kantor Hybrid BSD",
+            defaults={
+                "latitude": Decimal("-6.3014000"),
+                "longitude": Decimal("106.6539000"),
+                "radius_m": 150,
+                "is_active": True,
+            },
+        )
+
+        national_holidays_2026 = [
+            (date(2026, 1, 1), "Tahun Baru"),
+            (date(2026, 1, 29), "Imlek"),
+            (date(2026, 3, 19), "Nyepi"),
+            (date(2026, 4, 3), "Wafat Isa Almasih"),
+            (date(2026, 4, 18), "Idul Fitri"),
+            (date(2026, 5, 1), "Hari Buruh"),
+            (date(2026, 5, 14), "Kenaikan Isa Almasih"),
+            (date(2026, 5, 25), "Idul Adha"),
+            (date(2026, 6, 1), "Pancasila"),
+            (date(2026, 8, 17), "HUT RI"),
+            (date(2026, 12, 25), "Natal"),
+        ]
+        for holiday_date, name in national_holidays_2026:
+            HolidayCalendar.objects.get_or_create(
+                tenant=tenant,
+                holiday_date=holiday_date,
+                name=name,
+                defaults={
+                    "holiday_type": HolidayCalendar.HolidayType.NATIONAL,
+                    "is_active": True,
+                },
+            )
+
+        job_levels = [
+            (1, "LEADER", "Leader"),
+            (2, "ANGGOTA", "Anggota"),
+            (3, "STAFF", "Staff"),
+            (4, "SR_STAFF", "Sr Staff"),
+            (5, "JR_SUP", "Jr Supervisor"),
+            (6, "SUP", "Supervisor"),
+            (7, "ASST_MGR", "Assistant Manager"),
+            (8, "MGR", "Manager"),
+            (9, "HEAD", "Head"),
+            (10, "DIR", "Direktur"),
+        ]
+        for rank, code, name in job_levels:
+            JobLevel.objects.get_or_create(
+                tenant=tenant,
+                code=code,
+                defaults={"name": name, "rank": rank},
+            )
+
+        for request_type in (
+            ApprovalLine.RequestType.LEAVE,
+            ApprovalLine.RequestType.OVERTIME,
+            ApprovalLine.RequestType.ATTENDANCE_CORRECTION,
+        ):
+            ApprovalLine.objects.get_or_create(
+                tenant=tenant,
+                request_type=request_type,
+                step_order=1,
+                defaults={"approver_kind": ApprovalLine.ApproverKind.DIRECT_MANAGER},
+            )
+            ApprovalLine.objects.get_or_create(
+                tenant=tenant,
+                request_type=request_type,
+                step_order=2,
+                defaults={"approver_kind": ApprovalLine.ApproverKind.HR_PLANT},
+            )
+
+        ShiftAllowanceRate.objects.get_or_create(
+            tenant=tenant,
+            code="MALAM",
+            defaults={
+                "name": "Tunjangan Shift Malam",
+                "amount": Decimal("50000"),
+            },
+        )
 
         admin_user = self._ensure_demo_user(
             "admin",
@@ -270,5 +382,9 @@ class Command(BaseCommand):
             ayub_employee.user = ayub_user
             ayub_employee.save(update_fields=["user"])
         get_or_create_balance(ayub_employee, ct)
+
+        from apps.employees.services.mandatory_defaults import backfill_all_employees
+
+        backfill_all_employees(tenant=tenant)
 
         self.stdout.write(self.style.SUCCESS(f"Seed complete for tenant '{tenant.slug}'"))

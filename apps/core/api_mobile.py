@@ -9,7 +9,7 @@ from apps.attendance.models import AttendanceRecord, OvertimeRequest
 from apps.attendance.serializers import AttendanceRecordSerializer
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.models import Notification, User
-from apps.core.approval import can_approve_employee
+from apps.core.approval import can_approve_request
 from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
 from apps.employees.models import Employee
@@ -63,10 +63,14 @@ def _pending_approval_summary(user, profile, tenant) -> dict:
         return {"leave": 0, "overtime": 0}
 
     leave_count = sum(
-        1 for req in leave_qs if can_approve_employee(user, req.employee)
+        1
+        for req in leave_qs
+        if can_approve_request(user, req.employee, "leave", req.approval_step or 1)
     )
     ot_count = sum(
-        1 for req in ot_qs if can_approve_employee(user, req.employee)
+        1
+        for req in ot_qs
+        if can_approve_request(user, req.employee, "overtime", req.approval_step or 1)
     )
     return {"leave": leave_count, "overtime": ot_count}
 

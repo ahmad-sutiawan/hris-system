@@ -59,8 +59,11 @@ class PlantForm(forms.ModelForm):
             "tenant",
             "code",
             "name",
+            "branch_type",
             "timezone",
             "address",
+            "latitude",
+            "longitude",
             "geo_fence_radius_m",
             "default_shift",
             "is_active",
@@ -672,12 +675,68 @@ class AnnouncementForm(forms.ModelForm):
 
             self.initial.setdefault("publish_start", timezone.localtime())
 
-    def save(self, commit=True):
-        instance = super().save(commit=False)
-        instance.target_roles = self.cleaned_data.get("target_roles") or []
-        tags_raw = self.cleaned_data.get("tags_input", "")
-        instance.tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
         if commit:
             instance.save()
             self.save_m2m()
         return instance
+
+
+class JobLevelForm(forms.ModelForm):
+    class Meta:
+        from apps.organization.models import JobLevel
+
+        model = JobLevel
+        fields = ["code", "name", "rank", "is_active"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+
+
+class PunchLocationForm(forms.ModelForm):
+    class Meta:
+        from apps.core.models import PunchLocation
+
+        model = PunchLocation
+        fields = ["plant", "name", "latitude", "longitude", "radius_m", "is_active"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+
+
+class HolidayCalendarForm(forms.ModelForm):
+    class Meta:
+        from apps.core.models import HolidayCalendar
+
+        model = HolidayCalendar
+        fields = ["name", "holiday_date", "holiday_type", "plant", "is_active"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+        apply_date_fields(self, "holiday_date")
+
+
+class ApprovalLineForm(forms.ModelForm):
+    class Meta:
+        from apps.core.models import ApprovalLine
+
+        model = ApprovalLine
+        fields = ["request_type", "step_order", "approver_kind", "is_active"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+
+
+class ShiftAllowanceRateForm(forms.ModelForm):
+    class Meta:
+        from apps.payroll.models import ShiftAllowanceRate
+
+        model = ShiftAllowanceRate
+        fields = ["code", "name", "amount", "is_active"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)

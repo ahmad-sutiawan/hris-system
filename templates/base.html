@@ -72,11 +72,15 @@
             Karyawan
           </a>
           {% endif %}
-          <a href="{% url 'web:attendance_list' %}" class="hris-nav-link{% nav_is_active 'attendance_list' 'attendance_export' %}">
+          <a href="{% url 'web:attendance_list' %}" class="hris-nav-link{% nav_is_active 'attendance_list' 'attendance_export' 'attendance_correct' 'attendance_import' %}">
             {% nav_icon "attendance" %}
             Rekap Absensi
           </a>
           {% if user.role == 'admin' or user.role == 'hr' %}
+          <a href="{% url 'web:attendance_import' %}" class="hris-nav-link{% nav_is_active 'attendance_import' 'attendance_import_template' %}">
+            {% nav_icon "attendance" %}
+            Import Absensi
+          </a>
           <a href="{% url 'web:shift_assignment_list' %}" class="hris-nav-link{% nav_is_active 'shift_assignment_list' 'shift_assign' 'shift_edit' 'shift_delete' %}">
             {% nav_icon "shift-schedule" %}
             Penjadwalan Shift
@@ -98,6 +102,10 @@
           <a href="{% url 'web:payroll_list' %}" class="hris-nav-link{% nav_is_active 'payroll_list' 'payroll_create' 'payroll_detail' 'payroll_edit' 'payroll_cancel' 'payroll_calculate' 'payroll_finalize' 'payroll_bank_export' %}">
             {% nav_icon "payroll" %}
             Payroll
+          </a>
+          <a href="{% url 'web:employee_compensation_list' %}" class="hris-nav-link{% nav_is_active 'employee_compensation_list' 'employee_compensation_edit' %}">
+            {% nav_icon "payroll" %}
+            Data Gaji Karyawan
           </a>
           {% endif %}
           <a href="{% url 'web:payslip_list' %}" class="hris-nav-link{% nav_is_active 'payslip_list' 'payslip_download' %}">

@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.api_scoping import employee_scoped_queryset
+from apps.core.permissions import IsAdminOrHR
 from apps.core.viewsets import TenantScopedViewSet
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.serializers import PayrollRunSerializer, PayslipSerializer
@@ -17,6 +18,7 @@ class PayrollRunViewSet(TenantScopedViewSet):
     queryset = PayrollRun.objects.select_related("plant")
     serializer_class = PayrollRunSerializer
     filterset_fields = ["plant", "status"]
+    permission_classes = [IsAdminOrHR]
 
     def perform_create(self, serializer):
         serializer.save(tenant=self.request.user.tenant)

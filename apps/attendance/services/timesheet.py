@@ -5,18 +5,28 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeRequest
+from apps.attendance.services.policy import ot_before_overtime_enabled
 from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics, reconcile_paid_hours
-from apps.core.models import FeatureFlag
+from apps.core.models import HolidayCalendar
 from apps.leave.models import LeaveRequest
 from apps.shifts.models import ShiftAssignment
 
 
-def _ot_before_enabled(tenant, plant):
-    return FeatureFlag.objects.filter(
-        tenant=tenant,
-        plant=plant,
-        key="ot_before_split",
-        enabled=True,
+class TimesheetLockedError(Exception):
+    pass
+
+
+def _is_holiday(employee, work_date: date) -> bool:
+    from django.db.models import Q
+
+    return HolidayCalendar.objects.filter(
+        tenant=employee.tenant,
+        holiday_date=work_date,
+        is_active=True,
+    ).filter(
+        Q(holiday_type=HolidayCalendar.HolidayType.NATIONAL)
+        | Q(holiday_type=HolidayCalendar.HolidayType.COMPANY)
+        | Q(holiday_type=HolidayCalendar.HolidayType.PLANT, plant=employee.plant)
     ).exists()
 
 
@@ -49,6 +59,13 @@ def _sync_attendance_assignment(record, assignment):
 
 @transaction.atomic
 def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
+    existing = DailyTimesheet.objects.filter(
+        employee=employee,
+        work_date=work_date,
+    ).first()
+    if existing and existing.calculation_status == DailyTimesheet.CalculationStatus.LOCKED:
+        return existing
+
     assignment = ShiftAssignment.objects.filter(
         employee=employee,
         work_date=work_date,
@@ -90,15 +107,21 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
         ).first()
         attendance_code = cuti_code or attendance_code
     elif not record and not leave:
-        alpha_code = AttendanceCode.objects.filter(
-            tenant=employee.tenant,
-            code="A",
-        ).first()
-        attendance_code = alpha_code
+        if _is_holiday(employee, work_date):
+            attendance_code = None
+        else:
+            alpha_code = AttendanceCode.objects.filter(
+                tenant=employee.tenant,
+                code="A",
+            ).first()
+            attendance_code = alpha_code
     elif record and not attendance_code:
         attendance_code = hadir_code
 
-    ot_before_enabled = _ot_before_enabled(employee.tenant, employee.plant)
+    if record and _is_holiday(employee, work_date):
+        time_off_code = "LIBUR"
+
+    ot_before_enabled = ot_before_overtime_enabled(employee.tenant, employee.plant)
     metrics = calculate_timesheet_metrics(
         work_date=work_date,
         scheduled_check_in=scheduled_in,
@@ -119,6 +142,11 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
     if attendance_code and attendance_code.code == "A":
         metrics["paid_working_hours"] = metrics["paid_working_hours"] * 0
 
+    status = (
+        existing.calculation_status
+        if existing
+        else DailyTimesheet.CalculationStatus.DRAFT
+    )
     timesheet, _ = DailyTimesheet.objects.update_or_create(
         employee=employee,
         work_date=work_date,
@@ -136,7 +164,7 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
             "check_out": check_out,
             "hourly_time_off_taken": 0,
             "hourly_time_off_breakdown": [],
-            "calculation_status": DailyTimesheet.CalculationStatus.DRAFT,
+            "calculation_status": status,
             "calculated_at": timezone.now(),
             **metrics,
         },

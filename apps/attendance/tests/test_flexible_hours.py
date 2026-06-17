@@ -121,13 +121,8 @@ class FlexibleHoursTests(TestCase):
         self.assertEqual(ts.ot_after_minutes, 60)
         self.assertGreater(ts.paid_working_hours, Decimal("11.00"))
 
-    def test_ot_before_with_feature_flag(self):
-        FeatureFlag.objects.create(
-            tenant=self.tenant,
-            plant=self.plant,
-            key="ot_before_split",
-            enabled=True,
-        )
+    def test_ot_before_disabled_by_hr_policy(self):
+        """HR policy (Jun 2026): OT after shift only — ot_before ignored."""
         ShiftAssignment.objects.create(
             tenant=self.tenant,
             employee=self.employee,
@@ -136,7 +131,7 @@ class FlexibleHoursTests(TestCase):
             scheduled_check_in=time(7, 0),
             scheduled_check_out=time(15, 0),
         )
-        self._punch(time(6, 0), time(15, 0))
+        self._punch(time(6, 0), time(16, 0))
         ts = recalculate_daily_timesheet(self.employee, self.work_date)
         self.assertEqual(ts.ot_before_minutes, 0)
 
@@ -145,11 +140,14 @@ class FlexibleHoursTests(TestCase):
             work_date=self.work_date,
             overtime_type=self.overtime_type,
             ot_before_minutes=60,
+            ot_after_minutes=30,
             reason="Prep line",
         )
+        self.assertEqual(req.ot_before_minutes, 0)
         approve_overtime_request(req, self.hr)
         ts = recalculate_daily_timesheet(self.employee, self.work_date)
-        self.assertEqual(ts.ot_before_minutes, 60)
+        self.assertEqual(ts.ot_before_minutes, 0)
+        self.assertGreater(ts.ot_after_minutes, 0)
 
     def test_engine_derives_schedule_when_none(self):
         metrics = calculate_timesheet_metrics(

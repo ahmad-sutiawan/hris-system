@@ -3,6 +3,12 @@
 {% block title %}Absensi — BPS HRIS{% endblock %}
 {% block page_title %}Absensi{% endblock %}
 
+{% block extra_head %}
+<style>
+.hris-punch-photo-row[data-hidden="true"] .hris-punch-photo-link { display: none; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="hris-page-header">
   <div>
@@ -11,6 +17,7 @@
   </div>
   <div class="hris-actions">
     {% if user.role == 'admin' or user.role == 'hr' %}
+    <button type="button" id="toggle-attendance-photos" class="hris-btn hris-btn-secondary">Tampilkan foto</button>
     <a href="{% url 'web:shift_assignment_list' %}" class="hris-btn hris-btn-secondary">Kelola Shift</a>
     <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-secondary">Assign Shift</a>
     <a href="{% url 'web:attendance_export' %}" class="hris-btn hris-btn-primary">Export CSV (24 kolom)</a>
@@ -38,8 +45,10 @@
           <th>Shift</th>
           <th>Code</th>
           <th>Late</th>
-          <th>Paid Hrs</th>
+          <th>OT Before</th>
+          <th>OT After</th>
           <th>Foto</th>
+          {% if user.role == 'admin' or user.role == 'hr' %}<th>Aksi</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -66,29 +75,48 @@
           <td>{{ row.shift_code|default:"-" }}</td>
           <td><span class="hris-mono">{{ row.attendance_code.code|default:"-" }}</span></td>
           <td>{{ row.late_in_minutes|num:0 }} m</td>
-          <td class="hris-num">{{ row.paid_working_hours|num:2 }}</td>
+          <td class="hris-num">{{ row.ot_before_minutes|num:0 }} m</td>
+          <td class="hris-num">{{ row.ot_after_minutes|num:0 }} m</td>
           <td>
-            <div class="hris-punch-photo-row">
+            <div class="hris-punch-photo-row" data-hidden="true">
               {% if row.punch_record and row.punch_record.check_in_photo %}
-              <a href="{{ row.punch_record.check_in_photo.url }}" target="_blank" rel="noopener" title="Foto CI">
+              <a href="{{ row.punch_record.check_in_photo.url }}" target="_blank" rel="noopener" title="Foto CI" class="hris-punch-photo-link">
                 <img src="{{ row.punch_record.check_in_photo.url }}" alt="CI" class="hris-punch-photo hris-punch-photo--sm">
               </a>
               {% endif %}
               {% if row.punch_record and row.punch_record.check_out_photo %}
-              <a href="{{ row.punch_record.check_out_photo.url }}" target="_blank" rel="noopener" title="Foto CO">
+              <a href="{{ row.punch_record.check_out_photo.url }}" target="_blank" rel="noopener" title="Foto CO" class="hris-punch-photo-link">
                 <img src="{{ row.punch_record.check_out_photo.url }}" alt="CO" class="hris-punch-photo hris-punch-photo--sm">
               </a>
               {% endif %}
               {% if not row.punch_record or not row.punch_record.check_in_photo and not row.punch_record.check_out_photo %}—{% endif %}
             </div>
           </td>
+          {% if user.role == 'admin' or user.role == 'hr' %}
+          <td><a href="{% url 'web:attendance_correct' row.pk %}" class="hris-link">Koreksi</a></td>
+          {% endif %}
         </tr>
         {% empty %}
-        <tr><td colspan="{% if user.role == 'admin' or user.role == 'hr' %}11{% else %}9{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada timesheet yang cocok dengan pencarian.{% else %}Belum ada timesheet.{% endif %}</div></td></tr>
+        <tr><td colspan="{% if user.role == 'admin' or user.role == 'hr' %}13{% else %}11{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada timesheet yang cocok dengan pencarian.{% else %}Belum ada timesheet.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
 </div>
 {% include "components/pagination.html" %}
+
+<script>
+(function () {
+  var btn = document.getElementById('toggle-attendance-photos');
+  if (!btn) return;
+  var visible = false;
+  btn.addEventListener('click', function () {
+    visible = !visible;
+    document.querySelectorAll('.hris-punch-photo-row').forEach(function (el) {
+      el.setAttribute('data-hidden', visible ? 'false' : 'true');
+    });
+    btn.textContent = visible ? 'Sembunyikan foto' : 'Tampilkan foto';
+  });
+})();
+</script>
 {% endblock %}

@@ -39,10 +39,13 @@ def _fmt_dt(value):
 
 def timesheet_to_row(ts):
     emp = ts.employee
+    branch = ""
+    if ts.plant_id:
+        branch = ts.plant.get_branch_type_display() or ts.plant.code
     return [
         emp.employee_id,
         emp.full_name,
-        ts.plant.code,
+        branch,
         emp.department.name if emp.department_id else "",
         emp.job_position.title if emp.job_position_id else "",
         ts.work_date.isoformat(),

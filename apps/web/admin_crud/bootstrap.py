@@ -1,8 +1,18 @@
 from apps.attendance.models import AttendanceCode, AttendanceRecord, DailyTimesheet, OvertimeType
-from apps.core.models import Announcement, AuditLog, FeatureFlag, Notification, Plant, User
+from apps.core.models import (
+    Announcement,
+    ApprovalLine,
+    AuditLog,
+    FeatureFlag,
+    HolidayCalendar,
+    Notification,
+    Plant,
+    PunchLocation,
+    User,
+)
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
-from apps.organization.models import Department, JobPosition
+from apps.organization.models import Department, JobLevel, JobPosition
 from apps.payroll.models import (
     PayrollRun,
     Payslip,
@@ -10,6 +20,7 @@ from apps.payroll.models import (
     Pph21TerCategory,
     Pph21TerPtkpMapping,
     SalaryComponent,
+    ShiftAllowanceRate,
 )
 from apps.shifts.models import Shift, ShiftAssignment
 from apps.web.admin_crud.forms import (
@@ -29,13 +40,18 @@ from apps.web.admin_crud.forms import (
     LeaveBalanceForm,
     LeaveTypeForm,
     AnnouncementForm,
+    ApprovalLineForm,
+    HolidayCalendarForm,
+    JobLevelForm,
     NotificationAdminForm,
     PayslipForm,
     PlantForm,
+    PunchLocationForm,
     Pph21TerBracketForm,
     Pph21TerCategoryForm,
     Pph21TerPtkpMappingForm,
     SalaryComponentForm,
+    ShiftAllowanceRateForm,
     ShiftForm,
 )
 from apps.web.admin_crud.registry import AdminResource, Column, register
@@ -55,6 +71,10 @@ def bootstrap_registry():
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
+                Column("Branch", "branch_type"),
+                Column("Lat", "latitude"),
+                Column("Lng", "longitude"),
+                Column("Radius (m)", "geo_fence_radius_m"),
                 Column("Timezone", "timezone"),
                 Column("Aktif", "is_active"),
             ],
@@ -460,6 +480,27 @@ def bootstrap_registry():
     )
     register(
         AdminResource(
+            slug="shift-allowance-rates",
+            model=ShiftAllowanceRate,
+            form_class=ShiftAllowanceRateForm,
+            section="Payroll",
+            title="Tunjangan Shift",
+            title_plural="Tunjangan Shift",
+            columns=[
+                Column("Kode", "code"),
+                Column("Nama", "name"),
+                Column("Nominal", "amount"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["code", "name"],
+            order_by=["code"],
+            master_data=True,
+            master_group="Keuangan",
+            tenant_scoped=True,
+        )
+    )
+    register(
+        AdminResource(
             slug="payroll-runs",
             model=PayrollRun,
             form_class=AdminPayrollRunForm,
@@ -565,6 +606,95 @@ def bootstrap_registry():
             select_related=["user"],
             order_by=["-created_at"],
             allow_create=True,
+            tenant_scoped=True,
+        )
+    )
+    register(
+        AdminResource(
+            slug="job-levels",
+            model=JobLevel,
+            form_class=JobLevelForm,
+            section="Organization",
+            title="Job Level",
+            title_plural="Job Level",
+            columns=[
+                Column("Kode", "code"),
+                Column("Nama", "name"),
+                Column("Rank", "rank"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["code", "name"],
+            order_by=["rank", "code"],
+            master_data=True,
+            master_group="Struktur Organisasi",
+            tenant_scoped=True,
+        )
+    )
+    register(
+        AdminResource(
+            slug="punch-locations",
+            model=PunchLocation,
+            form_class=PunchLocationForm,
+            section="Core",
+            title="Lokasi Absen",
+            title_plural="Lokasi Absen",
+            columns=[
+                Column("Plant", "plant"),
+                Column("Nama", "name"),
+                Column("Lat", "latitude"),
+                Column("Lng", "longitude"),
+                Column("Radius (m)", "radius_m"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["name", "plant__code"],
+            select_related=["plant"],
+            order_by=["plant__code", "name"],
+            master_data=True,
+            master_group="Absensi",
+            tenant_scoped=True,
+        )
+    )
+    register(
+        AdminResource(
+            slug="holidays",
+            model=HolidayCalendar,
+            form_class=HolidayCalendarForm,
+            section="Core",
+            title="Kalender Libur",
+            title_plural="Kalender Libur",
+            columns=[
+                Column("Tanggal", "holiday_date"),
+                Column("Nama", "name"),
+                Column("Tipe", "holiday_type"),
+                Column("Plant", "plant"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["name"],
+            select_related=["plant"],
+            order_by=["-holiday_date"],
+            master_data=True,
+            master_group="Absensi",
+            tenant_scoped=True,
+        )
+    )
+    register(
+        AdminResource(
+            slug="approval-lines",
+            model=ApprovalLine,
+            form_class=ApprovalLineForm,
+            section="Core",
+            title="Approval Line",
+            title_plural="Approval Lines",
+            columns=[
+                Column("Jenis", "request_type"),
+                Column("Step", "step_order"),
+                Column("Approver", "approver_kind"),
+                Column("Aktif", "is_active"),
+            ],
+            search_fields=["request_type"],
+            order_by=["request_type", "step_order"],
+            master_data=True,
+            master_group="Workflow",
             tenant_scoped=True,
         )
     )

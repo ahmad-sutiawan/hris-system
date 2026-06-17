@@ -1,7 +1,7 @@
 from rest_framework import serializers
 
 from apps.attendance.models import OvertimeRequest, OvertimeType
-from apps.core.approval import can_approve_employee
+from apps.core.approval import can_approve_request
 
 
 class OvertimeTypeSerializer(serializers.ModelSerializer):
@@ -44,6 +44,7 @@ class OvertimeRequestSerializer(serializers.ModelSerializer):
             "approver",
             "approved_at",
             "rejection_reason",
+            "approval_step",
             "can_approve",
             "created_at",
         ]
@@ -63,4 +64,9 @@ class OvertimeRequestSerializer(serializers.ModelSerializer):
             return False
         if obj.status != OvertimeRequest.Status.PENDING:
             return False
-        return can_approve_employee(request.user, obj.employee)
+        return can_approve_request(
+            request.user,
+            obj.employee,
+            "overtime",
+            obj.approval_step or 1,
+        )

@@ -91,6 +91,7 @@ class AttendanceRecord(TenantScopedModel):
 
     class Meta:
         ordering = ["-work_date", "employee"]
+        unique_together = [["employee", "work_date"]]
         indexes = [
             models.Index(fields=["tenant", "plant", "work_date"]),
         ]
@@ -250,6 +251,7 @@ class OvertimeRequest(TenantScopedModel):
     )
     approved_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
+    approval_step = models.PositiveSmallIntegerField(default=1)
 
     class Meta:
         ordering = ["-created_at"]

@@ -78,6 +78,27 @@ class WebCRUDTests(TestCase):
         self.client.login(username="admincrud", password="TestPassword123!")
         self.today = timezone.localdate()
 
+    def _employee_form_data(self, **overrides):
+        data = {
+            "employee_id": "P1-NEW",
+            "full_name": "Baru",
+            "nik": "3201010101900001",
+            "email": "baru@test.com",
+            "phone": "08123456789",
+            "plant": self.plant.pk,
+            "department": self.dept.pk,
+            "job_position": self.job.pk,
+            "manager": self.manager.pk,
+            "join_date": self.today.isoformat(),
+            "birth_place": "Jakarta",
+            "birth_date": "1990-01-01",
+            "gender": "male",
+            "marital_status": "single",
+            "status": "permanent",
+        }
+        data.update(overrides)
+        return data
+
     def test_form_pages_render(self):
         pages = [
             reverse("web:employee_create"),
@@ -91,31 +112,7 @@ class WebCRUDTests(TestCase):
             self.assertEqual(response.status_code, 200, msg=url)
 
     def test_employee_create_and_edit(self):
-        data = {
-            "employee_id": "P1-NEW",
-            "full_name": "Baru",
-            "nik": "111",
-            "email": "baru@test.com",
-            "phone": "",
-            "plant": self.plant.pk,
-            "department": self.dept.pk,
-            "job_position": self.job.pk,
-            "manager": self.manager.pk,
-            "join_date": self.today.isoformat(),
-            "status": "permanent",
-            "salary_scheme": "monthly",
-            "base_salary": "4500000",
-            "allowance_transport": "0",
-            "allowance_meal": "0",
-            "allowance_position": "0",
-            "tax_status": "TK/0",
-            "npwp": "",
-            "bpjs_kesehatan_number": "",
-            "bpjs_ketenagakerjaan_number": "",
-            "bank_name": "",
-            "bank_account_number": "",
-            "bank_account_name": "",
-        }
+        data = self._employee_form_data()
         response = self.client.post(reverse("web:employee_create"), data)
         self.assertEqual(response.status_code, 302)
         emp = Employee.objects.get(employee_id="P1-NEW")
@@ -136,31 +133,11 @@ class WebCRUDTests(TestCase):
         self.employee.legal_entity = legal
         self.employee.save(update_fields=["legal_entity", "updated_at"])
 
-        data = {
-            "employee_id": self.employee.employee_id,
-            "full_name": "Budi CRUD Updated",
-            "nik": "",
-            "email": "emp@crud.local",
-            "phone": "",
-            "plant": self.plant.pk,
-            "department": self.dept.pk,
-            "job_position": self.job.pk,
-            "manager": self.manager.pk,
-            "join_date": "",
-            "status": "permanent",
-            "salary_scheme": "monthly",
-            "base_salary": "5000000",
-            "allowance_transport": "0",
-            "allowance_meal": "0",
-            "allowance_position": "0",
-            "tax_status": "",
-            "npwp": "",
-            "bpjs_kesehatan_number": "",
-            "bpjs_ketenagakerjaan_number": "",
-            "bank_name": "",
-            "bank_account_number": "",
-            "bank_account_name": "",
-        }
+        data = self._employee_form_data(
+            employee_id=self.employee.employee_id,
+            full_name="Budi CRUD Updated",
+            email="emp@crud.local",
+        )
         response = self.client.post(reverse("web:employee_edit", args=[self.employee.pk]), data)
         self.assertEqual(response.status_code, 302)
         self.employee.refresh_from_db()
@@ -176,32 +153,12 @@ class WebCRUDTests(TestCase):
             scheduled_check_in="15:00",
             scheduled_check_out="23:00",
         )
-        data = {
-            "employee_id": self.employee.employee_id,
-            "full_name": self.employee.full_name,
-            "nik": "",
-            "email": "emp@crud.local",
-            "phone": "",
-            "plant": self.plant.pk,
-            "department": self.dept.pk,
-            "job_position": self.job.pk,
-            "manager": self.manager.pk,
-            "default_shift": evening.pk,
-            "join_date": "",
-            "status": "permanent",
-            "salary_scheme": "monthly",
-            "base_salary": "5000000",
-            "allowance_transport": "0",
-            "allowance_meal": "0",
-            "allowance_position": "0",
-            "tax_status": "",
-            "npwp": "",
-            "bpjs_kesehatan_number": "",
-            "bpjs_ketenagakerjaan_number": "",
-            "bank_name": "",
-            "bank_account_number": "",
-            "bank_account_name": "",
-        }
+        data = self._employee_form_data(
+            employee_id=self.employee.employee_id,
+            full_name=self.employee.full_name,
+            email="emp@crud.local",
+            default_shift=evening.pk,
+        )
         response = self.client.post(reverse("web:employee_edit", args=[self.employee.pk]), data)
         self.assertEqual(response.status_code, 302)
         self.employee.refresh_from_db()

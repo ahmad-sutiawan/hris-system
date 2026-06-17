@@ -7,7 +7,7 @@
   <div class="hris-page-header">
     <div>
       <h1>Ajukan Lembur</h1>
-      <p>Isi durasi lembur sebelum/sesudah shift — harus disetujui HR/Manager</p>
+      <p>Isi durasi lembur sesudah shift — harus disetujui HR/Manager</p>
     </div>
   </div>
 
@@ -32,8 +32,7 @@
 
       {% if suggested_ot %}
       <div class="hris-alert hris-alert--info" style="margin-bottom:1rem">
-        Estimasi dari absensi hari ini: sebelum shift <strong>{{ suggested_ot.0 }}</strong> menit,
-        sesudah shift <strong>{{ suggested_ot.1 }}</strong> menit.
+        Estimasi dari absensi hari ini: sesudah shift <strong>{{ suggested_ot.1 }}</strong> menit.
       </div>
       {% endif %}
 
@@ -86,12 +85,6 @@
           <label for="{{ form.work_date.id_for_label }}">{{ form.work_date.label }}</label>
           <div class="hris-date-input-wrap">{{ form.work_date }}</div>
           {% if form.work_date.errors %}<p class="hris-field-error">{{ form.work_date.errors.0 }}</p>{% endif %}
-        </div>
-
-        <div class="hris-field">
-          <label for="{{ form.ot_before_minutes.id_for_label }}">{{ form.ot_before_minutes.label }}</label>
-          {{ form.ot_before_minutes }}
-          {% if form.ot_before_minutes.errors %}<p class="hris-field-error">{{ form.ot_before_minutes.errors.0 }}</p>{% endif %}
         </div>
 
         <div class="hris-field">

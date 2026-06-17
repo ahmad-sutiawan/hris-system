@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% load hris_ui %}
+{% block title %}Data Gaji Karyawan — BPS HRIS{% endblock %}
+{% block page_title %}Data Gaji Karyawan{% endblock %}
+
+{% block content %}
+<div class="hris-page-header">
+  <div>
+    <h1>Data Gaji Karyawan</h1>
+    <p>Kompensasi, PPh21 TER, BPJS, dan rekening — {{ result_count|num:0 }} baris</p>
+  </div>
+</div>
+
+{% include "components/list_toolbar.html" with search_placeholder="Cari ID, nama, plant, PTKP, bank…" show_date_range=False show_export=True search_reset_url=request.path %}
+
+<div class="hris-table-wrap" style="margin-top:1rem">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th class="hris-col-no">No</th>
+          <th>Employee ID</th>
+          <th>Nama</th>
+          <th>Plant</th>
+          <th>Skema</th>
+          <th>Gaji Pokok</th>
+          <th>PTKP</th>
+          <th>Bank</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for employee in employees %}
+        <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
+          <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
+          <td class="hris-strong">{{ employee.full_name }}</td>
+          <td>{{ employee.plant.code }}</td>
+          <td>{{ employee.get_salary_scheme_display }}</td>
+          <td class="hris-num">{{ employee.base_salary|num:0 }}</td>
+          <td>{{ employee.tax_status|default:"—" }}</td>
+          <td>{{ employee.bank_name|default:"—" }}</td>
+          <td><a href="{% url 'web:employee_compensation_edit' employee.pk %}" class="hris-link">Edit gaji</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9"><div class="hris-empty">Belum ada data karyawan.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include "components/pagination.html" %}
+{% endblock %}

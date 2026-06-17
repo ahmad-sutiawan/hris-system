@@ -5,6 +5,7 @@ from apps.payroll.services.calculator import effective_daily_wage, hourly_rate
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
+    """Full employee record — HR/Admin only."""
     plant_code = serializers.CharField(source="plant.code", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
     job_title = serializers.CharField(source="job_position.title", read_only=True)
@@ -75,3 +76,43 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     def get_effective_hourly_wage(self, obj) -> str:
         return str(hourly_rate(obj))
+
+
+class EmployeeSelfSerializer(serializers.ModelSerializer):
+    """Read-only profile for the logged-in employee (no compensation/PII edits)."""
+
+    plant_code = serializers.CharField(source="plant.code", read_only=True)
+    department_name = serializers.CharField(source="department.name", read_only=True)
+    job_title = serializers.CharField(source="job_position.title", read_only=True)
+    manager_name = serializers.CharField(source="manager.full_name", read_only=True)
+    default_shift_code = serializers.CharField(source="default_shift.code", read_only=True)
+    default_shift_name = serializers.CharField(source="default_shift.name", read_only=True)
+
+    class Meta:
+        model = Employee
+        fields = [
+            "id",
+            "employee_id",
+            "full_name",
+            "email",
+            "phone",
+            "address",
+            "plant",
+            "plant_code",
+            "department",
+            "department_name",
+            "job_position",
+            "job_title",
+            "default_shift_code",
+            "default_shift_name",
+            "manager",
+            "manager_name",
+            "status",
+            "join_date",
+            "gender",
+            "marital_status",
+            "birth_place",
+            "birth_date",
+            "mother_name",
+        ]
+        read_only_fields = fields

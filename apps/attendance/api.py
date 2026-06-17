@@ -113,6 +113,7 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
             photo = _parse_punch_photo(request)
             record = clock_out(
                 profile,
+                source=AttendanceRecord.Source.MOBILE,
                 photo=photo,
                 latitude=request.data.get("latitude"),
                 longitude=request.data.get("longitude"),
@@ -163,7 +164,7 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], permission_classes=[IsAdminOrHR])
     def recalculate(self, request):
         employee_id = request.data.get("employee_id")
         work_date = request.data.get("work_date")

@@ -27,6 +27,7 @@
           <th>1/2 Hari</th>
           <th>Alasan</th>
           <th>Status</th>
+          <th>Step</th>
           <th>Diajukan</th>
           <th>Diproses</th>
           <th>Oleh</th>
@@ -50,13 +51,14 @@
           <td>{% if req.is_half_day %}Ya{% else %}—{% endif %}</td>
           <td>{{ req.reason|default:"—"|truncatechars:80 }}</td>
           <td>{% status_badge req.status req.get_status_display %}</td>
+          <td>{% if req.status == 'pending' %}{{ req.approval_step|num:0 }}{% else %}—{% endif %}</td>
           <td>{{ req.created_at|local_datetime:"d M Y H:i" }}</td>
           <td>{% if req.approved_at %}{{ req.approved_at|local_datetime:"d M Y H:i" }}{% else %}—{% endif %}</td>
           <td>{% if req.approver %}{{ req.approver.get_full_name|default:req.approver.username }}{% else %}—{% endif %}</td>
           <td>{{ req.rejection_reason|default:"—"|truncatechars:60 }}</td>
           <td>
             {% if req.status == 'pending' %}
-            {% can_approve_employee_tag user req.employee as user_can_approve %}
+            {% can_approve_request_tag user req.employee 'leave' req.approval_step as user_can_approve %}
             {% if user_can_approve %}
             <div class="hris-inline-actions">
               <form method="post" action="{% url 'web:leave_approve' req.pk %}">{% csrf_token %}
@@ -79,7 +81,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="{% if user.is_hr or user.role == 'manager' %}13{% else %}12{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan cuti yang cocok dengan pencarian.{% else %}Belum ada pengajuan cuti.{% endif %}</div></td></tr>
+        <tr><td colspan="{% if user.is_hr or user.role == 'manager' %}14{% else %}13{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada pengajuan cuti yang cocok dengan pencarian.{% else %}Belum ada pengajuan cuti.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -4,9 +4,14 @@ from django.utils import timezone
 
 from apps.attendance.models import OvertimeRequest
 from apps.attendance.services.overtime_compensation import credit_overtime_as_leave
+from apps.attendance.services.policy import ot_before_overtime_enabled
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
-from apps.core.approval import can_approve_employee
-from apps.core.models import Notification
+from apps.core.models import ApprovalLine, Notification
+from apps.core.services.approval_chain import (
+    can_user_approve_step,
+    next_step_order,
+    notify_step_approver,
+)
 from apps.core.services.notifications import notify_user
 from apps.core.services.request_notifications import (
     dismiss_overtime_request_notifications,
@@ -22,7 +27,7 @@ def get_raw_overtime_minutes(employee, work_date) -> tuple[int, int]:
     """Return uncapped OT minutes from current punches vs shift schedule."""
     from apps.attendance.services.timesheet_engine import calculate_timesheet_metrics
     from apps.attendance.models import AttendanceRecord
-    from apps.core.models import FeatureFlag
+    from apps.attendance.services.policy import ot_before_overtime_enabled
     from apps.shifts.models import ShiftAssignment
 
     assignment = ShiftAssignment.objects.filter(
@@ -34,12 +39,7 @@ def get_raw_overtime_minutes(employee, work_date) -> tuple[int, int]:
         return 0, 0
 
     shift = assignment.shift
-    ot_before_enabled = FeatureFlag.objects.filter(
-        tenant=employee.tenant,
-        plant=employee.plant,
-        key="ot_before_split",
-        enabled=True,
-    ).exists()
+    ot_before_enabled = ot_before_overtime_enabled(employee.tenant, employee.plant)
     metrics = calculate_timesheet_metrics(
         work_date=work_date,
         scheduled_check_in=assignment.scheduled_check_in,
@@ -55,22 +55,22 @@ def get_raw_overtime_minutes(employee, work_date) -> tuple[int, int]:
 
 
 def _notify_manager_pending(overtime_request: OvertimeRequest):
-    manager = overtime_request.employee.manager
-    if manager and manager.user_id:
-        notify_user(
-            tenant=overtime_request.tenant,
-            user=manager.user,
-            category=Notification.Category.ATTENDANCE,
-            title="Pengajuan lembur baru",
-            message=(
-                f"{overtime_request.employee.full_name} mengajukan lembur "
-                f"{overtime_request.work_date} "
-                f"({overtime_request.overtime_type.name if overtime_request.overtime_type else '—'}) "
-                f"(sebelum: {overtime_request.ot_before_minutes} m, "
-                f"sesudah: {overtime_request.ot_after_minutes} m)"
-            ),
-            link=overtime_request_link(overtime_request),
-        )
+    notify_step_approver(
+        tenant=overtime_request.tenant,
+        employee=overtime_request.employee,
+        request_type=ApprovalLine.RequestType.OVERTIME,
+        step_order=overtime_request.approval_step or 1,
+        category=Notification.Category.ATTENDANCE,
+        title="Pengajuan lembur baru",
+        message=(
+            f"{overtime_request.employee.full_name} mengajukan lembur "
+            f"{overtime_request.work_date} "
+            f"({overtime_request.overtime_type.name if overtime_request.overtime_type else '—'}) "
+            f"(sebelum: {overtime_request.ot_before_minutes} m, "
+            f"sesudah: {overtime_request.ot_after_minutes} m)"
+        ),
+        link=overtime_request_link(overtime_request),
+    )
 
 
 def _notify_employee_status(overtime_request: OvertimeRequest, *, approved=True):
@@ -118,8 +118,10 @@ def submit_overtime_request(
 ) -> OvertimeRequest:
     if not overtime_type:
         raise OvertimeError("Pilih jenis lembur.")
-    if ot_before_minutes <= 0 and ot_after_minutes <= 0:
-        raise OvertimeError("Isi durasi lembur sebelum atau sesudah shift (minimal satu > 0).")
+    if not ot_before_overtime_enabled(employee.tenant, employee.plant):
+        ot_before_minutes = 0
+    if ot_after_minutes <= 0:
+        raise OvertimeError("Isi durasi lembur sesudah shift (minimal 1 menit).")
 
     pending_exists = OvertimeRequest.objects.filter(
         employee=employee,
@@ -145,13 +147,49 @@ def submit_overtime_request(
 
 
 @transaction.atomic
-def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequest:
+def approve_overtime_request(overtime_request: OvertimeRequest, approver) -> OvertimeRequest:
+    request = OvertimeRequest.objects.select_for_update().get(pk=overtime_request.pk)
     if request.status != OvertimeRequest.Status.PENDING:
         raise OvertimeError("Pengajuan sudah diproses.")
-    if not can_approve_employee(approver, request.employee):
+    current_step = request.approval_step or 1
+    if not can_user_approve_step(
+        approver,
+        request.employee,
+        ApprovalLine.RequestType.OVERTIME,
+        current_step,
+    ):
         raise OvertimeError("Anda tidak berwenang menyetujui pengajuan lembur ini.")
 
+    next_step = next_step_order(
+        request.tenant,
+        ApprovalLine.RequestType.OVERTIME,
+        current_step,
+    )
+    if next_step:
+        request.approval_step = next_step
+        request.save(update_fields=["approval_step", "updated_at"])
+        notify_step_approver(
+            tenant=request.tenant,
+            employee=request.employee,
+            request_type=ApprovalLine.RequestType.OVERTIME,
+            step_order=next_step,
+            category=Notification.Category.OVERTIME,
+            title="Persetujuan lembur (layer berikutnya)",
+            message=f"Pengajuan lembur {request.employee.full_name} menunggu persetujuan Anda.",
+            link=overtime_request_link(request),
+        )
+        return request
+
+    if OvertimeRequest.objects.filter(
+        employee=request.employee,
+        work_date=request.work_date,
+        status=OvertimeRequest.Status.APPROVED,
+    ).exclude(pk=request.pk).exists():
+        raise OvertimeError("Sudah ada lembur disetujui untuk tanggal ini.")
+
     raw_before, raw_after = get_raw_overtime_minutes(request.employee, request.work_date)
+    if not ot_before_overtime_enabled(request.tenant, request.employee.plant):
+        raw_before = 0
     request.ot_before_minutes = min(request.ot_before_minutes, raw_before)
     request.ot_after_minutes = min(request.ot_after_minutes, raw_after)
     request.status = OvertimeRequest.Status.APPROVED
@@ -179,10 +217,17 @@ def approve_overtime_request(request: OvertimeRequest, approver) -> OvertimeRequ
 
 
 @transaction.atomic
-def reject_overtime_request(request: OvertimeRequest, approver, reason="") -> OvertimeRequest:
+def reject_overtime_request(overtime_request: OvertimeRequest, approver, reason="") -> OvertimeRequest:
+    request = OvertimeRequest.objects.select_for_update().get(pk=overtime_request.pk)
     if request.status != OvertimeRequest.Status.PENDING:
         raise OvertimeError("Pengajuan sudah diproses.")
-    if not can_approve_employee(approver, request.employee):
+    current_step = request.approval_step or 1
+    if not can_user_approve_step(
+        approver,
+        request.employee,
+        ApprovalLine.RequestType.OVERTIME,
+        current_step,
+    ):
         raise OvertimeError("Anda tidak berwenang menolak pengajuan lembur ini.")
 
     request.status = OvertimeRequest.Status.REJECTED
@@ -198,7 +243,8 @@ def reject_overtime_request(request: OvertimeRequest, approver, reason="") -> Ov
 
 
 @transaction.atomic
-def cancel_overtime_request(request: OvertimeRequest, actor) -> OvertimeRequest:
+def cancel_overtime_request(overtime_request: OvertimeRequest, actor) -> OvertimeRequest:
+    request = OvertimeRequest.objects.select_for_update().get(pk=overtime_request.pk)
     if request.status != OvertimeRequest.Status.PENDING:
         raise OvertimeError("Hanya pengajuan pending yang bisa dibatalkan.")
 

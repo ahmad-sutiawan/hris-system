@@ -1,7 +1,7 @@
 from django import template
 from django.utils.safestring import mark_safe
 
-from apps.core.approval import can_approve_employee
+from apps.core.approval import can_approve_employee, can_approve_request
 from apps.web.formatting import format_number, format_rupiah
 from apps.web.nav_icons import resolve_nav_icon
 
@@ -34,6 +34,11 @@ STATUS_BADGE_MAP = {
 @register.simple_tag
 def can_approve_employee_tag(approver, employee):
     return can_approve_employee(approver, employee)
+
+
+@register.simple_tag
+def can_approve_request_tag(approver, employee, request_type, approval_step=1):
+    return can_approve_request(approver, employee, request_type, approval_step)
 
 
 @register.simple_tag

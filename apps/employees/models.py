@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 from django.db import models
 
 from apps.core.fields import EncryptedCharField, EncryptedDecimalField
@@ -54,6 +55,13 @@ class Employee(TenantScopedModel):
         blank=True,
         related_name="employees",
     )
+    job_level = models.ForeignKey(
+        "organization.JobLevel",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="employees",
+    )
     default_shift = models.ForeignKey(
         "shifts.Shift",
         on_delete=models.SET_NULL,
@@ -71,9 +79,38 @@ class Employee(TenantScopedModel):
     )
     employee_id = models.CharField(max_length=64, db_index=True)
     full_name = models.CharField(max_length=200)
+    photo = models.ImageField(
+        upload_to="employee_photos/%Y/%m/",
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
+    )
     nik = EncryptedCharField(max_length=512, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True)
+    address = models.TextField(blank=True)
+    mother_name = models.CharField(max_length=200, blank=True)
+    birth_place = models.CharField(max_length=120, blank=True)
+    birth_date = models.DateField(null=True, blank=True)
+
+    class Gender(models.TextChoices):
+        MALE = "male", "Laki-laki"
+        FEMALE = "female", "Perempuan"
+        NA = "na", "N/A"
+
+    class MaritalStatus(models.TextChoices):
+        SINGLE = "single", "Belum menikah"
+        MARRIED = "married", "Menikah"
+        DIVORCED = "divorced", "Cerai"
+        WIDOWED = "widowed", "Janda/Duda"
+        NA = "na", "N/A"
+
+    gender = models.CharField(max_length=16, choices=Gender.choices, blank=True)
+    marital_status = models.CharField(
+        max_length=16,
+        choices=MaritalStatus.choices,
+        blank=True,
+    )
     join_date = models.DateField(null=True, blank=True)
     contract_end_date = models.DateField(null=True, blank=True)
     resign_date = models.DateField(null=True, blank=True)
@@ -151,6 +188,7 @@ class EmployeeDocument(TenantScopedModel):
 
     class DocumentType(models.TextChoices):
         KTP = "ktp", "KTP"
+        KK = "kk", "KK"
         NPWP = "npwp", "NPWP"
         CONTRACT = "contract", "Contract"
         DIPLOMA = "diploma", "Diploma"
@@ -172,3 +210,8 @@ class EmployeeDocument(TenantScopedModel):
 
     def __str__(self):
         return f"{self.employee.employee_id} — {self.document_type}"
+
+    def clean(self):
+        super().clean()
+        if self.file and self.file.size > 1024 * 1024:
+            raise ValidationError({"file": "Ukuran file maksimal 1 MB."})

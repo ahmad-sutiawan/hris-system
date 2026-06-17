@@ -5,6 +5,9 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.models import AttendanceRecord
+from apps.attendance.services.face_check import validate_selfie_face
+from apps.attendance.services.geo import GeoFenceError, validate_punch_location
+from apps.attendance.services.punch_work_date import resolve_punch_work_date
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
 from apps.employees.models import Employee
 from apps.shifts.models import ShiftAssignment
@@ -33,6 +36,14 @@ def _save_photo(record: AttendanceRecord, field_name: str, photo: ContentFile):
     record.save(update_fields=[field_name, "updated_at"])
 
 
+def _normalize_photo(photo: ContentFile) -> ContentFile:
+    data = photo.read()
+    if not data:
+        raise PunchError("Foto selfie wajib untuk absensi.")
+    name = getattr(photo, "name", "selfie.jpg")
+    return ContentFile(data, name=name)
+
+
 @transaction.atomic
 def clock_in(
     employee: Employee,
@@ -47,8 +58,18 @@ def clock_in(
     if not photo:
         raise PunchError("Foto selfie wajib untuk clock in.")
 
+    photo = _normalize_photo(photo)
+
+    validate_selfie_face(photo, employee=employee)
+    photo.seek(0)
+    if source == AttendanceRecord.Source.MOBILE:
+        try:
+            validate_punch_location(employee, latitude, longitude)
+        except GeoFenceError as exc:
+            raise PunchError(str(exc)) from exc
+
     when = when or timezone.now()
-    work_date = timezone.localdate(when)
+    work_date = resolve_punch_work_date(employee, when, is_clock_out=False)
 
     record, _created = AttendanceRecord.objects.get_or_create(
         employee=employee,
@@ -85,6 +106,7 @@ def clock_in(
 def clock_out(
     employee: Employee,
     *,
+    source=AttendanceRecord.Source.WEB,
     when=None,
     photo: ContentFile | None = None,
     latitude=None,
@@ -94,21 +116,36 @@ def clock_out(
     if not photo:
         raise PunchError("Foto selfie wajib untuk clock out.")
 
-    when = when or timezone.now()
-    work_date = timezone.localdate(when)
+    photo = _normalize_photo(photo)
 
-    record, created = AttendanceRecord.objects.get_or_create(
+    validate_selfie_face(photo, employee=employee)
+    photo.seek(0)
+    if source == AttendanceRecord.Source.MOBILE:
+        try:
+            validate_punch_location(employee, latitude, longitude)
+        except GeoFenceError as exc:
+            raise PunchError(str(exc)) from exc
+
+    when = when or timezone.now()
+    work_date = resolve_punch_work_date(employee, when, is_clock_out=True)
+
+    record = AttendanceRecord.objects.filter(
         employee=employee,
         work_date=work_date,
-        defaults={
-            "tenant": employee.tenant,
-            "plant": employee.plant,
-            "check_in": when,
-            "source": AttendanceRecord.Source.WEB,
-        },
-    )
+    ).first()
 
-    if not record.check_in:
+    if not record:
+        record, _created = AttendanceRecord.objects.get_or_create(
+            employee=employee,
+            work_date=work_date,
+            defaults={
+                "tenant": employee.tenant,
+                "plant": employee.plant,
+                "check_in": when,
+                "source": AttendanceRecord.Source.WEB,
+            },
+        )
+    elif not record.check_in:
         record.check_in = when
 
     record.check_out = when

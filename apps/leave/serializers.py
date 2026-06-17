@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.core.approval import can_approve_employee
+from apps.core.approval import can_approve_request
 from apps.leave.models import LeaveBalance, LeaveRequest
 
 
@@ -26,6 +26,7 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
             "approver",
             "approved_at",
             "rejection_reason",
+            "approval_step",
             "can_approve",
             "created_at",
         ]
@@ -45,7 +46,12 @@ class LeaveRequestSerializer(serializers.ModelSerializer):
             return False
         if obj.status != LeaveRequest.Status.PENDING:
             return False
-        return can_approve_employee(request.user, obj.employee)
+        return can_approve_request(
+            request.user,
+            obj.employee,
+            "leave",
+            obj.approval_step or 1,
+        )
 
 
 class LeaveBalanceSerializer(serializers.ModelSerializer):

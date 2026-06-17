@@ -4,99 +4,70 @@
 {% block page_title %}{{ title }}{% endblock %}
 
 {% block content %}
-<div class="hris-form-page{% if salary_preview %} hris-form-page--with-preview{% endif %}">
+<div class="hris-form-page">
   <div class="hris-page-header">
     <div>
       <h1>{{ title }}</h1>
       {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
     </div>
+    {% if compensation_url %}
+    <a href="{{ compensation_url }}" class="hris-btn hris-btn-secondary">Data Gaji Karyawan</a>
+    {% endif %}
   </div>
 
-  <div class="hris-form-layout">
-    <div class="hris-card hris-form-layout__main">
-      <div class="hris-card-body">
-        <form method="post" enctype="multipart/form-data" class="hris-form-grid">
-          {% csrf_token %}
-          {% if form.non_field_errors %}
-            <div class="hris-alert hris-alert--error hris-field--full">{{ form.non_field_errors }}</div>
-          {% endif %}
+  <div class="hris-card">
+    <div class="hris-card-body">
+      <form method="post" enctype="multipart/form-data" class="hris-form-grid">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="hris-alert hris-alert--error hris-field--full">{{ form.non_field_errors }}</div>
+        {% endif %}
 
-          <div class="hris-field--full"><h2 class="hris-card-title">Data Karyawan</h2></div>
-          {% for field in form %}
-            {% if field.name not in 'salary_scheme base_salary allowance_transport allowance_meal allowance_position tax_status npwp pph21_deduct bpjs_kesehatan_number bpjs_ketenagakerjaan_number bank_name bank_account_number bank_account_name' %}
-            <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--date{% endif %}{% if field.name == 'full_name' or field.name == 'employee_id' or field.name == 'plant' or field.name == 'department' or field.name == 'user' %} hris-field--full{% endif %}">
-              {% if field.field.widget.input_type == 'checkbox' %}
-                <label class="hris-checkbox-label">{{ field }} {{ field.label }}</label>
-              {% elif field.field.widget.input_type == 'date' %}
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                <div class="hris-date-input-wrap">{{ field }}</div>
-              {% else %}
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-              {% endif %}
-              {% if field.help_text %}<p class="hris-field-help">{{ field.help_text }}</p>{% endif %}
-              {% if field.errors %}<p class="hris-field-error">{{ field.errors.0 }}</p>{% endif %}
-            </div>
-            {% endif %}
-          {% endfor %}
-
-          <div class="hris-field--full" style="margin-top:1rem"><h2 class="hris-card-title">Gaji & Tunjangan</h2></div>
-          {% for field in form %}
-            {% if field.name in 'salary_scheme base_salary allowance_transport allowance_meal allowance_position' %}
-            <div class="hris-field">
+        <div class="hris-field--full"><h2 class="hris-card-title">Data Karyawan</h2></div>
+        {% for field in form %}
+          <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--checkbox{% elif field.name in 'full_name employee_id plant address photo' %} hris-field--full{% endif %}">
+            {% if field.field.widget.input_type == 'checkbox' %}
+              <label class="hris-checkbox-label">{{ field }} {{ field.label }}</label>
+            {% elif field.field.widget.input_type == 'date' %}
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              <div class="hris-date-input-wrap">{{ field }}</div>
+            {% else %}
               <label for="{{ field.id_for_label }}">{{ field.label }}</label>
               {{ field }}
-              {% if field.help_text %}<p class="hris-field-help">{{ field.help_text }}</p>{% endif %}
-              {% if field.errors %}<p class="hris-field-error">{{ field.errors.0 }}</p>{% endif %}
-            </div>
             {% endif %}
-          {% endfor %}
-
-          <div class="hris-field--full" style="margin-top:1rem">
-            <h2 class="hris-card-title">PPh 21 — PP No. 58 Tahun 2023 (TER)</h2>
-            <p class="hris-text-dim" style="margin:0.35rem 0 0.75rem;font-size:0.9rem">
-              Semua field pajak opsional. Isi PTKP untuk menentukan kategori TER (A/B/C). Detail perhitungan ada di panel kanan.
-            </p>
+            {% if field.help_text %}<p class="hris-field-help">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<p class="hris-field-error">{{ field.errors.0 }}</p>{% endif %}
           </div>
-          {% for field in form %}
-            {% if field.name in 'tax_status npwp pph21_deduct' %}
-            <div class="hris-field">
-              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field }}
-              {% if field.help_text %}<p class="hris-field-help">{{ field.help_text }}</p>{% endif %}
-              {% if field.errors %}<p class="hris-field-error">{{ field.errors.0 }}</p>{% endif %}
-            </div>
-            {% endif %}
-          {% endfor %}
+        {% endfor %}
 
-          <div class="hris-field--full" style="margin-top:1rem"><h2 class="hris-card-title">BPJS & Rekening</h2></div>
-          {% for field in form %}
-            {% if field.name in 'bpjs_kesehatan_number bpjs_ketenagakerjaan_number bank_name bank_account_number bank_account_name' %}
-            <div class="hris-field{% if field.name == 'bank_name' or field.name == 'bank_account_name' %} hris-field--full{% endif %}">
-              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-              {{ field }}
-              {% if field.errors %}<p class="hris-field-error">{{ field.errors.0 }}</p>{% endif %}
-            </div>
-            {% endif %}
-          {% endfor %}
-
-          <div class="hris-inline-actions hris-field--full" style="margin-top:0.5rem">
-            <button type="submit" class="hris-btn hris-btn-primary">{{ submit_label|default:"Simpan" }}</button>
-            <a href="{{ cancel_url|default:'javascript:history.back()' }}" class="hris-btn hris-btn-ghost">Batal</a>
+        {% if doc_form %}
+        <div class="hris-field--full" style="margin-top:1rem"><h2 class="hris-card-title">Dokumen (max 1 MB)</h2></div>
+        {% for field in doc_form %}
+          <div class="hris-field hris-field--full">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<p class="hris-field-help">{{ field.help_text }}</p>{% endif %}
+            {% if field.errors %}<p class="hris-field-error">{{ field.errors.0 }}</p>{% endif %}
           </div>
-        </form>
-      </div>
-    </div>
-
-    {% if salary_preview %}
-    <div class="hris-form-layout__aside">
-      <div class="hris-card hris-salary-preview-card">
-        <div class="hris-card-body">
-          {% include "components/salary_preview_panel.html" %}
+        {% endfor %}
+        {% if documents %}
+        <div class="hris-field--full">
+          <p class="hris-text-dim" style="font-size:0.875rem;margin:0">Dokumen tersimpan:</p>
+          <ul style="margin:0.35rem 0 0;padding-left:1.1rem">
+            {% for doc in documents %}
+            <li><a href="{{ doc.file.url }}" target="_blank" rel="noopener">{{ doc.get_document_type_display }}</a></li>
+            {% endfor %}
+          </ul>
         </div>
-      </div>
+        {% endif %}
+        {% endif %}
+
+        <div class="hris-inline-actions hris-field--full" style="margin-top:0.5rem">
+          <button type="submit" class="hris-btn hris-btn-primary">{{ submit_label|default:"Simpan" }}</button>
+          <a href="{{ cancel_url|default:'javascript:history.back()' }}" class="hris-btn hris-btn-ghost">Batal</a>
+        </div>
+      </form>
     </div>
-    {% endif %}
   </div>
 </div>
 {% endblock %}

@@ -22,6 +22,7 @@ from apps.attendance.services.punch import PunchError, clock_in, clock_out
 from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.decorators import require_roles
+from apps.web.redirects import safe_redirect
 from apps.core.models import AuditLog, Notification, User
 from apps.core.services.announcements import (
     announcements_for_user,
@@ -30,7 +31,7 @@ from apps.core.services.announcements import (
     increment_announcement_views,
 )
 from apps.core.services.notifications import mark_notifications_read
-from apps.employees.models import Employee
+from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveRequest
 from apps.leave.services.leave_workflow import (
     LeaveError,
@@ -60,7 +61,9 @@ from apps.shifts.models import ShiftAssignment
 from apps.web.services.dashboard import build_dashboard_context
 from apps.web.services.list_exports import (
     export_attendance_csv,
+    export_attendance_csv_with_default_range,
     export_audit_csv,
+    export_employee_compensation_csv,
     export_employees_csv,
     export_leave_csv,
     export_notifications_csv,
@@ -88,6 +91,9 @@ from apps.payroll.services.salary_preview import build_salary_preview
 from apps.payroll.services.ter import seed_ter_master
 from apps.web.services.listing import resolve_list
 from apps.web.forms import (
+    AttendanceCorrectionForm,
+    EmployeeCompensationForm,
+    EmployeeDocumentUploadForm,
     EmployeeForm,
     LeaveRequestForm,
     OvertimeRequestForm,
@@ -302,18 +308,26 @@ def employee_import(request):
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_create(request):
     if request.method == "POST":
-        form = EmployeeForm(request.POST, tenant=request.user.tenant, user=request.user)
+        form = EmployeeForm(
+            request.POST,
+            request.FILES,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
         if form.is_valid():
             employee = form.save(commit=False)
             employee.tenant = request.user.tenant
+            from apps.employees.services.mandatory_defaults import apply_mandatory_defaults
+
+            apply_mandatory_defaults(employee, fill_fk=False)
             employee.save()
             provision_new_employee(employee, assign_shift=True)
             sync_employee_default_shift(employee)
             messages.success(
                 request,
-                "Karyawan berhasil ditambahkan. Jatah cuti dan shift default telah diinisialisasi.",
+                "Karyawan berhasil ditambahkan. Lengkapi data gaji pada langkah berikutnya.",
             )
-            return redirect("web:employee_list")
+            return redirect(reverse("web:employee_compensation_edit", args=[employee.pk]))
     else:
         form = EmployeeForm(
             initial={"plant": request.user.plant},
@@ -324,6 +338,28 @@ def employee_create(request):
     return render(request, "web/employees/form.html", ctx)
 
 
+def _save_employee_documents(employee, doc_form):
+    for doc_type, field in (
+        (EmployeeDocument.DocumentType.KTP, "ktp_file"),
+        (EmployeeDocument.DocumentType.KK, "kk_file"),
+    ):
+        upload = doc_form.cleaned_data.get(field)
+        if not upload:
+            continue
+        existing = employee.documents.filter(document_type=doc_type).first()
+        if existing:
+            existing.file.delete(save=False)
+            existing.file = upload
+            existing.save()
+        else:
+            EmployeeDocument.objects.create(
+                tenant=employee.tenant,
+                employee=employee,
+                document_type=doc_type,
+                file=upload,
+            )
+
+
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_edit(request, pk):
@@ -332,8 +368,75 @@ def employee_edit(request, pk):
         messages.error(request, "Akses ditolak.")
         return redirect("web:employee_list")
 
+    doc_form = EmployeeDocumentUploadForm()
     if request.method == "POST":
         form = EmployeeForm(
+            request.POST,
+            request.FILES,
+            instance=employee,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+        doc_form = EmployeeDocumentUploadForm(request.POST, request.FILES)
+        if form.is_valid() and doc_form.is_valid():
+            updated = form.save(commit=False)
+            updated.tenant = request.user.tenant
+            from apps.employees.services.mandatory_defaults import apply_mandatory_defaults
+
+            apply_mandatory_defaults(updated, fill_fk=False)
+            updated.save()
+            _save_employee_documents(updated, doc_form)
+            provision_new_employee(updated)
+            sync_employee_default_shift(updated)
+            messages.success(request, "Data karyawan berhasil diperbarui.")
+            return redirect("web:employee_list")
+    else:
+        form = EmployeeForm(instance=employee, tenant=request.user.tenant, user=request.user)
+
+    ctx = _form_context(
+        form,
+        f"Edit — {employee.full_name}",
+        cancel_url="/employees/",
+        subtitle=employee.employee_id,
+    )
+    ctx["doc_form"] = doc_form
+    ctx["documents"] = employee.documents.all()
+    ctx["compensation_url"] = reverse("web:employee_compensation_edit", args=[employee.pk])
+    return render(request, "web/employees/form.html", ctx)
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def employee_compensation_list(request):
+    from apps.core.listing import parse_list_filters
+
+    filters = parse_list_filters(request)
+    qs = employee_list_queryset(request.user, filters)
+    response, ctx = resolve_list(
+        request,
+        qs,
+        export_filename="employee_compensation_export.csv",
+        export_fn=export_employee_compensation_csv,
+    )
+    if response:
+        return response
+    return render(
+        request,
+        "web/payroll/compensation_list.html",
+        {**ctx, "employees": list(ctx["page_obj"].object_list)},
+    )
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def employee_compensation_edit(request, pk):
+    employee = get_object_or_404(Employee, pk=pk, tenant=request.user.tenant)
+    if request.user.plant_id and not request.user.is_admin and employee.plant_id != request.user.plant_id:
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:employee_compensation_list")
+
+    if request.method == "POST":
+        form = EmployeeCompensationForm(
             request.POST,
             instance=employee,
             tenant=request.user.tenant,
@@ -342,23 +445,28 @@ def employee_edit(request, pk):
         if form.is_valid():
             updated = form.save(commit=False)
             updated.tenant = request.user.tenant
+            from apps.employees.services.mandatory_defaults import apply_mandatory_defaults
+
+            apply_mandatory_defaults(updated, fill_fk=False)
             updated.save()
-            provision_new_employee(updated)
-            sync_employee_default_shift(updated)
-            messages.success(request, "Data karyawan berhasil diperbarui.")
-            return redirect("web:employee_list")
+            messages.success(request, "Data gaji karyawan berhasil diperbarui.")
+            return redirect("web:employee_compensation_list")
     else:
-        form = EmployeeForm(instance=employee, tenant=request.user.tenant, user=request.user)
+        form = EmployeeCompensationForm(
+            instance=employee,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
 
     seed_ter_master(request.user.tenant)
     ctx = _form_context(
         form,
-        f"Edit — {employee.full_name}",
-        cancel_url="/employees/",
+        f"Data Gaji — {employee.full_name}",
+        cancel_url=reverse("web:employee_compensation_list"),
         subtitle=employee.employee_id,
     )
     ctx["salary_preview"] = build_salary_preview(employee, tenant=request.user.tenant)
-    return render(request, "web/employees/form.html", ctx)
+    return render(request, "web/payroll/compensation_form.html", ctx)
 
 
 @login_required
@@ -502,7 +610,7 @@ def shift_delete(request, pk):
 
 @login_required
 def attendance_list(request):
-    from apps.core.listing import parse_list_filters
+    from apps.core.listing import build_filter_query, csv_http_response, parse_list_filters
 
     profile = _employee_profile(request.user)
     filters = parse_list_filters(request)
@@ -515,11 +623,31 @@ def attendance_list(request):
         "shift",
         "attendance_code",
     )
+    if request.GET.get("export") == "csv":
+        from apps.web.services.list_exports import AttendanceExportError
+
+        try:
+            content = export_attendance_csv_with_default_range(
+                export_qs,
+                date_from=filters.date_from,
+                date_to=filters.date_to,
+            )
+        except AttendanceExportError as exc:
+            messages.error(request, str(exc))
+            query = build_filter_query(request)
+            suffix = f"?{query}" if query else ""
+            return redirect(f"{reverse('web:attendance_list')}{suffix}")
+        return csv_http_response(content, "timesheet_export.csv")
+
     response, ctx = resolve_list(
         request,
         export_qs,
         export_filename="timesheet_export.csv",
-        export_fn=export_attendance_csv,
+        export_fn=lambda q: export_attendance_csv_with_default_range(
+            q,
+            date_from=filters.date_from,
+            date_to=filters.date_to,
+        ),
     )
     if response:
         return response
@@ -547,6 +675,62 @@ def attendance_export(request):
     query = build_filter_query(request)
     suffix = f"{query}&export=csv" if query else "export=csv"
     return redirect(f"{reverse('web:attendance_list')}?{suffix}")
+
+
+@login_required
+@require_roles(User.Role.ADMIN, User.Role.HR)
+def attendance_correct(request, pk):
+    from apps.attendance.services.correction import CorrectionError, apply_attendance_correction
+
+    timesheet = get_object_or_404(
+        DailyTimesheet.objects.select_related("employee", "employee__plant"),
+        pk=pk,
+        tenant=request.user.tenant,
+    )
+    if (
+        request.user.plant_id
+        and not request.user.is_admin
+        and timesheet.employee.plant_id != request.user.plant_id
+    ):
+        messages.error(request, "Akses ditolak.")
+        return redirect("web:attendance_list")
+
+    if request.method == "POST":
+        form = AttendanceCorrectionForm(
+            request.POST,
+            tenant=request.user.tenant,
+            timesheet=timesheet,
+        )
+        if form.is_valid():
+            try:
+                apply_attendance_correction(
+                    timesheet,
+                    check_in_time=form.cleaned_data.get("check_in_time"),
+                    check_out_time=form.cleaned_data.get("check_out_time"),
+                    shift=form.cleaned_data.get("shift"),
+                    scheduled_check_in=form.cleaned_data.get("scheduled_check_in"),
+                    scheduled_check_out=form.cleaned_data.get("scheduled_check_out"),
+                    attendance_code=form.cleaned_data.get("attendance_code"),
+                    actor=request.user,
+                )
+                messages.success(request, "Koreksi absensi berhasil; timesheet dihitung ulang.")
+                return redirect("web:attendance_list")
+            except CorrectionError as exc:
+                messages.error(request, str(exc))
+    else:
+        form = AttendanceCorrectionForm(
+            tenant=request.user.tenant,
+            timesheet=timesheet,
+        )
+
+    ctx = _form_context(
+        form,
+        f"Koreksi Absensi — {timesheet.employee.full_name}",
+        cancel_url=reverse("web:attendance_list"),
+        subtitle=f"{timesheet.employee.employee_id} · {timesheet.work_date}",
+    )
+    ctx["timesheet"] = timesheet
+    return render(request, "web/attendance/correct.html", ctx)
 
 
 @login_required
@@ -819,7 +1003,7 @@ def overtime_create(request):
     if preview_employee:
         compensation_preview = build_compensation_preview(
             preview_employee,
-            ot_before_minutes=_preview_int("ot_before_minutes", suggested_ot[0] if suggested_ot else 0),
+            ot_before_minutes=0,
             ot_after_minutes=_preview_int("ot_after_minutes", suggested_ot[1] if suggested_ot else 0),
             overtime_type=preview_type,
         )
@@ -1204,7 +1388,7 @@ def notification_list(request):
 def notification_mark_read(request, pk):
     mark_notifications_read(request.user, [pk])
     next_url = request.POST.get("next") or request.META.get("HTTP_REFERER") or "/"
-    return redirect(next_url)
+    return safe_redirect(request, next_url, fallback=reverse("web:dashboard"))
 
 
 @login_required
@@ -1293,8 +1477,16 @@ def announcement_dismiss(request, pk):
     announcement = get_announcement_for_user(request.user, pk)
     if not announcement:
         messages.error(request, "Pengumuman tidak ditemukan.")
-        return redirect(request.META.get("HTTP_REFERER") or reverse("web:dashboard"))
+        return safe_redirect(
+            request,
+            request.META.get("HTTP_REFERER"),
+            fallback=reverse("web:dashboard"),
+        )
 
     dismiss_announcement(request.user, announcement)
     messages.success(request, "Pengumuman ditutup.")
-    return redirect(request.META.get("HTTP_REFERER") or reverse("web:dashboard"))
+    return safe_redirect(
+        request,
+        request.META.get("HTTP_REFERER"),
+        fallback=reverse("web:dashboard"),
+    )

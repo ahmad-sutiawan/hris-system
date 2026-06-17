@@ -2,11 +2,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from apps.core.api_scoping import employee_scoped_queryset
-from apps.core.permissions import IsAdminOrHR
+from apps.core.permissions import IsAdminOrHR, IsTenantUser
 from apps.core.querysets import employee_list_qs
 from apps.core.viewsets import TenantScopedViewSet
 from apps.employees.models import Employee
-from apps.employees.serializers import EmployeeSerializer
+from apps.employees.serializers import EmployeeSelfSerializer, EmployeeSerializer
 from apps.employees.services.import_csv import import_employees_csv, template_csv
 
 
@@ -15,6 +15,17 @@ class EmployeeViewSet(TenantScopedViewSet):
     serializer_class = EmployeeSerializer
     search_fields = ["employee_id", "full_name", "nik", "email"]
     filterset_fields = ["plant", "department", "status"]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve", "me"):
+            return [IsTenantUser()]
+        return [IsAdminOrHR()]
+
+    def get_serializer_class(self):
+        user = self.request.user
+        if user.is_hr or user.is_admin:
+            return EmployeeSerializer
+        return EmployeeSelfSerializer
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -31,7 +42,12 @@ class EmployeeViewSet(TenantScopedViewSet):
         profile = getattr(request.user, "employee_profile", None)
         if not profile:
             return Response({"detail": "No employee profile linked."}, status=400)
-        return Response(EmployeeSerializer(profile).data)
+        serializer_class = (
+            EmployeeSerializer
+            if (request.user.is_hr or request.user.is_admin)
+            else EmployeeSelfSerializer
+        )
+        return Response(serializer_class(profile).data)
 
     @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
     def import_template(self, request):

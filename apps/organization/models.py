@@ -63,3 +63,22 @@ class JobPosition(TenantScopedModel):
 
     def __str__(self):
         return self.title
+
+
+class JobLevel(TenantScopedModel):
+    """Master job level — Leader s/d Direktur."""
+
+    code = models.CharField(max_length=32)
+    name = models.CharField(max_length=100)
+    rank = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Urutan hierarki (1 = terendah).",
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["rank", "code"]
+        unique_together = [["tenant", "code"]]
+
+    def __str__(self):
+        return self.name

@@ -3,20 +3,33 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.utils import timezone
 
 from apps.attendance.models import OvertimeRequest, OvertimeType
+from apps.attendance.models import AttendanceCode, DailyTimesheet
 from apps.core.models import Plant
-from apps.employees.models import Employee
+from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveRequest, LeaveType
 from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
 
 
 from apps.web.widgets import apply_date_fields
-from apps.employees.services.user_link import available_users_for_employee
 
 
 HRIS_INPUT_CLASS = "hris-input"
 HRIS_SELECT_CLASS = "hris-select"
 HRIS_TEXTAREA_CLASS = "hris-textarea"
+
+PTKP_CHOICES = [
+    ("N/A", "N/A — belum diisi"),
+    ("", "— Tidak diisi —"),
+    ("TK/0", "TK/0 — Tidak kawin, 0 tanggungan"),
+    ("TK/1", "TK/1 — Tidak kawin, 1 tanggungan"),
+    ("TK/2", "TK/2 — Tidak kawin, 2 tanggungan"),
+    ("TK/3", "TK/3 — Tidak kawin, 3 tanggungan"),
+    ("K/0", "K/0 — Kawin, 0 tanggungan"),
+    ("K/1", "K/1 — Kawin, 1 tanggungan"),
+    ("K/2", "K/2 — Kawin, 2 tanggungan"),
+    ("K/3", "K/3 — Kawin, 3 tanggungan"),
+]
 
 
 def _style_fields(form):
@@ -43,7 +56,7 @@ def _filter_plant_queryset(form, tenant, user=None):
 
 
 def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=None):
-    from apps.organization.models import Department, JobPosition
+    from apps.organization.models import Department, JobLevel, JobPosition
 
     plant_id = plant_id or (
         form.data.get("plant")
@@ -55,6 +68,7 @@ def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=
 
     dept_qs = Department.objects.filter(tenant=tenant, is_active=True)
     job_qs = JobPosition.objects.filter(tenant=tenant, is_active=True)
+    level_qs = JobLevel.objects.filter(tenant=tenant, is_active=True)
     shift_qs = Shift.objects.filter(tenant=tenant, is_active=True)
     if plant_id:
         dept_qs = dept_qs.filter(plant_id=plant_id)
@@ -65,6 +79,10 @@ def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=
     form.fields["department"].label = "Departemen"
     form.fields["department"].label_from_instance = lambda obj: obj.name
     form.fields["job_position"].queryset = job_qs
+    if "job_level" in form.fields:
+        form.fields["job_level"].queryset = level_qs
+        form.fields["job_level"].required = False
+        form.fields["job_level"].empty_label = "— Pilih level —"
     form.fields["default_shift"].queryset = shift_qs
     form.fields["default_shift"].required = False
     form.fields["default_shift"].empty_label = "— Pilih shift —"
@@ -110,32 +128,57 @@ class HRISLoginForm(AuthenticationForm):
 
 
 class EmployeeForm(forms.ModelForm):
-    PTKP_CHOICES = [
-        ("", "— Tidak diisi —"),
-        ("TK/0", "TK/0 — Tidak kawin, 0 tanggungan"),
-        ("TK/1", "TK/1 — Tidak kawin, 1 tanggungan"),
-        ("TK/2", "TK/2 — Tidak kawin, 2 tanggungan"),
-        ("TK/3", "TK/3 — Tidak kawin, 3 tanggungan"),
-        ("K/0", "K/0 — Kawin, 0 tanggungan"),
-        ("K/1", "K/1 — Kawin, 1 tanggungan"),
-        ("K/2", "K/2 — Kawin, 2 tanggungan"),
-        ("K/3", "K/3 — Kawin, 3 tanggungan"),
-    ]
-
-    tax_status = forms.ChoiceField(
-        choices=PTKP_CHOICES,
-        required=False,
-        label="Status PTKP (PPh 21)",
-    )
-    pph21_deduct = forms.ChoiceField(
-        choices=[("", "Otomatis"), ("1", "Ya"), ("0", "Tidak")],
-        required=False,
-        label="Potong PPh 21",
-    )
-
     class Meta:
         model = Employee
         fields = [
+            "employee_id",
+            "full_name",
+            "photo",
+            "nik",
+            "email",
+            "phone",
+            "address",
+            "mother_name",
+            "birth_place",
+            "birth_date",
+            "gender",
+            "marital_status",
+            "plant",
+            "department",
+            "job_position",
+            "job_level",
+            "default_shift",
+            "manager",
+            "join_date",
+            "contract_end_date",
+            "resign_date",
+            "status",
+        ]
+        labels = {
+            "employee_id": "ID Karyawan",
+            "full_name": "Nama lengkap",
+            "photo": "Foto profil",
+            "nik": "NIK / KTP",
+            "address": "Alamat",
+            "mother_name": "Nama ibu kandung",
+            "birth_place": "Tempat lahir",
+            "birth_date": "Tanggal lahir",
+            "gender": "Jenis kelamin",
+            "marital_status": "Status pernikahan",
+            "join_date": "Tanggal bergabung",
+            "contract_end_date": "Akhir kontrak",
+            "resign_date": "Tanggal resign",
+            "default_shift": "Shift default",
+            "job_level": "Job level",
+        }
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_fields(self)
+        apply_date_fields(self, "join_date", "contract_end_date", "resign_date", "birth_date")
+        self.fields["photo"].required = False
+        self.fields["address"].widget = forms.Textarea(attrs={"rows": 3, "class": HRIS_TEXTAREA_CLASS})
+        for name in (
             "employee_id",
             "full_name",
             "nik",
@@ -144,85 +187,28 @@ class EmployeeForm(forms.ModelForm):
             "plant",
             "department",
             "job_position",
-            "default_shift",
             "manager",
-            "user",
             "join_date",
-            "contract_end_date",
-            "resign_date",
-            "status",
-            "salary_scheme",
-            "base_salary",
-            "allowance_transport",
-            "allowance_meal",
-            "allowance_position",
-            "tax_status",
-            "npwp",
-            "pph21_deduct",
-            "bpjs_kesehatan_number",
-            "bpjs_ketenagakerjaan_number",
-            "bank_name",
-            "bank_account_number",
-            "bank_account_name",
-        ]
-        labels = {
-            "employee_id": "ID Karyawan",
-            "full_name": "Nama lengkap",
-            "join_date": "Tanggal bergabung",
-            "contract_end_date": "Akhir kontrak",
-            "resign_date": "Tanggal resign",
-            "default_shift": "Shift default",
-            "salary_scheme": "Skema gaji",
-            "base_salary": "Gaji pokok",
-            "allowance_transport": "Tunjangan transport",
-            "allowance_meal": "Tunjangan makan",
-            "allowance_position": "Tunjangan jabatan",
-            "npwp": "NPWP",
-            "pph21_deduct": "Potong PPh 21",
-            "bpjs_kesehatan_number": "No. BPJS Kesehatan",
-            "bpjs_ketenagakerjaan_number": "No. BPJS Ketenagakerjaan",
-            "user": "Akun login",
-        }
-
-    def __init__(self, *args, tenant=None, user=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        _style_fields(self)
-        apply_date_fields(self, "join_date", "contract_end_date", "resign_date")
-        self.fields["user"].required = False
-        self.fields["user"].help_text = (
-            "Hubungkan ke akun login agar karyawan bisa clock in, ajukan cuti, dan lihat slip gaji."
-        )
+            "gender",
+            "marital_status",
+            "birth_place",
+            "birth_date",
+        ):
+            if name in self.fields:
+                self.fields[name].required = True
         if tenant:
             _filter_plant_queryset(self, tenant, user)
             plant_id = self._resolve_plant_id(user)
             _configure_employee_department_shift_fields(
                 self, tenant=tenant, user=user, plant_id=plant_id
             )
-            self.fields["salary_scheme"].help_text = (
-                "Daily: gaji pokok × hari hadir + tunjangan harian. "
-                "Monthly: gaji pokok + tunjangan tetap bulanan."
-            )
-            self.fields["tax_status"].help_text = (
-                "Status PTKP menentukan kategori TER (A/B/C) sesuai PP No. 58 Tahun 2023."
-            )
-            self.fields["npwp"].required = False
-            self.fields["pph21_deduct"].help_text = (
-                "Kosong = otomatis potong jika PTKP diisi. Pilih Tidak untuk mengecualikan."
-            )
             self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
                 status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
             )
-            current_user_id = self.instance.user_id if self.instance.pk else None
-            self.fields["user"].queryset = available_users_for_employee(tenant, current_user_id)
             if self.instance.pk:
                 self.fields["manager"].queryset = self.fields["manager"].queryset.exclude(
                     pk=self.instance.pk
                 )
-        if self.instance.pk:
-            if self.instance.pph21_deduct is True:
-                self.fields["pph21_deduct"].initial = "1"
-            elif self.instance.pph21_deduct is False:
-                self.fields["pph21_deduct"].initial = "0"
 
     def _resolve_plant_id(self, user):
         if self.data.get("plant"):
@@ -245,17 +231,67 @@ class EmployeeForm(forms.ModelForm):
             self.add_error("job_position", "Jabatan harus sesuai plant yang dipilih.")
         if default_shift and plant and default_shift.plant_id != plant.pk:
             self.add_error("default_shift", "Shift harus sesuai plant yang dipilih.")
-        linked_user = cleaned.get("user")
-        email = cleaned.get("email")
-        if linked_user and email and not linked_user.email:
-            linked_user.email = email
-            linked_user.save(update_fields=["email"])
-        elif linked_user and email and linked_user.email.lower() != email.lower():
-            self.add_error(
-                "email",
-                f"Email harus sama dengan akun login ({linked_user.email}) atau kosongkan salah satu.",
-            )
         return cleaned
+
+
+class EmployeeCompensationForm(forms.ModelForm):
+    tax_status = forms.ChoiceField(
+        choices=PTKP_CHOICES,
+        required=True,
+        label="Status PTKP (PPh 21)",
+    )
+    pph21_deduct = forms.ChoiceField(
+        choices=[("", "Otomatis"), ("1", "Ya"), ("0", "Tidak")],
+        required=False,
+        label="Potong PPh 21",
+    )
+
+    class Meta:
+        model = Employee
+        fields = [
+            "salary_scheme",
+            "base_salary",
+            "allowance_transport",
+            "allowance_meal",
+            "allowance_position",
+            "tax_status",
+            "npwp",
+            "pph21_deduct",
+            "bpjs_kesehatan_number",
+            "bpjs_ketenagakerjaan_number",
+            "bank_name",
+            "bank_account_number",
+            "bank_account_name",
+        ]
+        labels = {
+            "salary_scheme": "Skema gaji",
+            "base_salary": "Gaji pokok",
+            "allowance_transport": "Tunjangan transport",
+            "allowance_meal": "Tunjangan makan",
+            "allowance_position": "Tunjangan jabatan",
+            "npwp": "NPWP",
+            "bpjs_kesehatan_number": "No. BPJS Kesehatan",
+            "bpjs_ketenagakerjaan_number": "No. BPJS Ketenagakerjaan",
+        }
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _style_fields(self)
+        self.fields["salary_scheme"].help_text = (
+            "Daily: gaji pokok × hari hadir + tunjangan harian. "
+            "Monthly: gaji pokok + tunjangan tetap bulanan."
+        )
+        self.fields["tax_status"].help_text = (
+            "Status PTKP menentukan kategori TER (A/B/C) sesuai PP No. 58 Tahun 2023."
+        )
+        self.fields["pph21_deduct"].help_text = (
+            "Kosong = otomatis potong jika PTKP diisi. Pilih Tidak untuk mengecualikan."
+        )
+        if self.instance.pk:
+            if self.instance.pph21_deduct is True:
+                self.fields["pph21_deduct"].initial = "1"
+            elif self.instance.pph21_deduct is False:
+                self.fields["pph21_deduct"].initial = "0"
 
     def clean_pph21_deduct(self):
         raw = self.cleaned_data.get("pph21_deduct")
@@ -264,7 +300,114 @@ class EmployeeForm(forms.ModelForm):
         return raw == "1"
 
     def clean_tax_status(self):
-        return self.cleaned_data.get("tax_status") or ""
+        value = self.cleaned_data.get("tax_status") or ""
+        if not value:
+            raise forms.ValidationError("Status PTKP wajib diisi.")
+        if value == "N/A":
+            return value
+        return value
+
+
+class EmployeeDocumentUploadForm(forms.Form):
+    ktp_file = forms.FileField(
+        label="Upload KTP",
+        required=False,
+        help_text="Maksimal 1 MB. Format PDF/JPG/PNG.",
+    )
+    kk_file = forms.FileField(
+        label="Upload KK",
+        required=False,
+        help_text="Maksimal 1 MB. Format PDF/JPG/PNG.",
+    )
+
+    def _validate_file(self, field_name):
+        upload = self.cleaned_data.get(field_name)
+        if upload and upload.size > 1024 * 1024:
+            raise forms.ValidationError("Ukuran file maksimal 1 MB.")
+        return upload
+
+    def clean_ktp_file(self):
+        return self._validate_file("ktp_file")
+
+    def clean_kk_file(self):
+        return self._validate_file("kk_file")
+
+
+class AttendanceCorrectionForm(forms.Form):
+    check_in_time = forms.TimeField(
+        label="Jam masuk",
+        required=False,
+        widget=forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
+    )
+    check_out_time = forms.TimeField(
+        label="Jam pulang",
+        required=False,
+        widget=forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
+    )
+    shift = forms.ModelChoiceField(
+        queryset=Shift.objects.none(),
+        required=False,
+        label="Shift",
+        empty_label="— Tanpa perubahan —",
+    )
+    scheduled_check_in = forms.TimeField(
+        label="Schedule in",
+        required=False,
+        widget=forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
+    )
+    scheduled_check_out = forms.TimeField(
+        label="Schedule out",
+        required=False,
+        widget=forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
+    )
+    attendance_code = forms.ModelChoiceField(
+        queryset=AttendanceCode.objects.none(),
+        required=False,
+        label="Kode absensi",
+        empty_label="— Tanpa perubahan —",
+    )
+
+    def __init__(self, *args, tenant=None, timesheet=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.timesheet = timesheet
+        if tenant and timesheet:
+            plant = timesheet.employee.plant
+            self.fields["shift"].queryset = Shift.objects.filter(
+                tenant=tenant, plant=plant, is_active=True
+            )
+            self.fields["attendance_code"].queryset = AttendanceCode.objects.filter(
+                tenant=tenant, is_active=True
+            )
+        if timesheet and not self.is_bound:
+            if timesheet.check_in:
+                self.fields["check_in_time"].initial = timezone.localtime(timesheet.check_in).time()
+            if timesheet.check_out:
+                self.fields["check_out_time"].initial = timezone.localtime(timesheet.check_out).time()
+            if timesheet.scheduled_check_in:
+                self.fields["scheduled_check_in"].initial = timesheet.scheduled_check_in
+            if timesheet.scheduled_check_out:
+                self.fields["scheduled_check_out"].initial = timesheet.scheduled_check_out
+            if timesheet.shift_id:
+                self.fields["shift"].initial = timesheet.shift_id
+            if timesheet.attendance_code_id:
+                self.fields["attendance_code"].initial = timesheet.attendance_code_id
+
+    def clean(self):
+        cleaned = super().clean()
+        has_change = any(
+            cleaned.get(field)
+            for field in (
+                "check_in_time",
+                "check_out_time",
+                "shift",
+                "scheduled_check_in",
+                "scheduled_check_out",
+                "attendance_code",
+            )
+        )
+        if not has_change:
+            raise forms.ValidationError("Isi minimal satu field untuk dikoreksi.")
+        return cleaned
 
 
 class ShiftAssignmentForm(forms.ModelForm):
@@ -438,7 +581,6 @@ class OvertimeRequestForm(forms.ModelForm):
         fields = [
             "overtime_type",
             "work_date",
-            "ot_before_minutes",
             "ot_after_minutes",
             "compensation_mode",
             "reason",
@@ -446,7 +588,6 @@ class OvertimeRequestForm(forms.ModelForm):
         labels = {
             "overtime_type": "Jenis lembur",
             "work_date": "Tanggal lembur",
-            "ot_before_minutes": "Lembur sebelum shift (menit)",
             "ot_after_minutes": "Lembur sesudah shift (menit)",
             "compensation_mode": "Kompensasi lembur",
             "reason": "Alasan / keterangan",
@@ -470,8 +611,7 @@ class OvertimeRequestForm(forms.ModelForm):
         self.show_employee_picker = show_employee_picker
         _style_fields(self)
         apply_date_fields(self, "work_date")
-        self.fields["ot_before_minutes"].widget.attrs.setdefault("min", "0")
-        self.fields["ot_after_minutes"].widget.attrs.setdefault("min", "0")
+        self.fields["ot_after_minutes"].widget.attrs.setdefault("min", "1")
         self.fields["compensation_mode"].help_text = (
             "Diuangkan: masuk slip gaji sesuai gaji harian/pokok dan tarif lembur. "
             "Tambah jatah cuti: 8 jam lembur disetujui = 1 hari cuti (jenis CL)."
@@ -480,9 +620,7 @@ class OvertimeRequestForm(forms.ModelForm):
         self.fields["compensation_mode"].required = False
 
         if suggested_ot and not self.is_bound:
-            before, after = suggested_ot
-            if before:
-                self.fields["ot_before_minutes"].initial = before
+            _before, after = suggested_ot
             if after:
                 self.fields["ot_after_minutes"].initial = after
 
@@ -507,13 +645,13 @@ class OvertimeRequestForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        before = cleaned.get("ot_before_minutes") or 0
         after = cleaned.get("ot_after_minutes") or 0
-        if before <= 0 and after <= 0:
+        if after <= 0:
             self.add_error(
                 "ot_after_minutes",
-                "Isi durasi lembur sebelum atau sesudah shift (minimal satu > 0).",
+                "Isi durasi lembur sesudah shift (minimal 1 menit).",
             )
+        cleaned["ot_before_minutes"] = 0
 
         if self.show_employee_picker:
             employee = cleaned.get("employee") or self.profile

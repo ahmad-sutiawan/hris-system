@@ -13,8 +13,13 @@ from apps.employees.models import Employee
 
 
 def _sample_photo_data_url():
-    raw = b"\xff\xd8\xff" + b"\x00" * 1200
-    encoded = base64.b64encode(raw).decode("ascii")
+    from io import BytesIO
+
+    from PIL import Image
+
+    buf = BytesIO()
+    Image.new("RGB", (400, 400), color=(200, 180, 160)).save(buf, format="JPEG")
+    encoded = base64.b64encode(buf.getvalue()).decode("ascii")
     return f"data:image/jpeg;base64,{encoded}"
 
 

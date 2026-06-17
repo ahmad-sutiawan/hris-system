@@ -136,7 +136,8 @@ def queryset_to_csv(rows, headers: list[str], row_builder) -> str:
 
 
 def csv_http_response(content: str, filename: str) -> HttpResponse:
-    response = HttpResponse(content, content_type="text/csv; charset=utf-8")
+    bom = "\ufeff"
+    response = HttpResponse(bom + content, content_type="text/csv; charset=utf-8")
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
 

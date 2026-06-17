@@ -73,12 +73,12 @@ class OvertimeApprovalGateTests(TestCase):
         clock_in(
             self.employee,
             when=timezone.make_aware(datetime.combine(self.work_date, time(7, 0)), tz),
-            photo=self.photo,
+            photo=decode_selfie(_sample_photo_data_url()),
         )
         clock_out(
             self.employee,
             when=timezone.make_aware(datetime.combine(self.work_date, time(17, 0)), tz),
-            photo=self.photo,
+            photo=decode_selfie(_sample_photo_data_url()),
         )
 
     def test_ot_zero_without_approval(self):

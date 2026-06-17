@@ -5,7 +5,12 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.services.timesheet import recalculate_timesheet_range
-from apps.core.approval import can_approve_employee
+from apps.core.models import ApprovalLine
+from apps.core.services.approval_chain import (
+    can_user_approve_step,
+    next_step_order,
+    notify_step_approver,
+)
 from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
 from apps.core.services.request_notifications import (
@@ -34,19 +39,19 @@ def _business_days(start, end, is_half_day=False) -> Decimal:
 
 
 def _notify_manager_pending(leave_request):
-    manager = leave_request.employee.manager
-    if manager and manager.user_id:
-        notify_user(
-            tenant=leave_request.tenant,
-            user=manager.user,
-            category=Notification.Category.LEAVE,
-            title="Pengajuan cuti baru",
-            message=(
-                f"{leave_request.employee.full_name} mengajukan cuti "
-                f"{leave_request.leave_type.code} ({leave_request.start_date} — {leave_request.end_date})"
-            ),
-            link=leave_request_link(leave_request),
-        )
+    notify_step_approver(
+        tenant=leave_request.tenant,
+        employee=leave_request.employee,
+        request_type=ApprovalLine.RequestType.LEAVE,
+        step_order=leave_request.approval_step or 1,
+        category=Notification.Category.LEAVE,
+        title="Pengajuan cuti baru",
+        message=(
+            f"{leave_request.employee.full_name} mengajukan cuti "
+            f"{leave_request.leave_type.code} ({leave_request.start_date} — {leave_request.end_date})"
+        ),
+        link=leave_request_link(leave_request),
+    )
 
 
 def _notify_employee_status(leave_request, approved=True):
@@ -108,10 +113,12 @@ def submit_leave_request(
     days = _business_days(start_date, end_date, is_half_day)
     balance = get_or_create_balance(employee, leave_type)
 
-    if _tracks_leave_balance(leave_type) and balance.remaining < days:
-        raise LeaveError(
-            f"Saldo cuti {leave_type.code} tidak cukup. Sisa: {balance.remaining} hari."
-        )
+    if _tracks_leave_balance(leave_type):
+        balance = LeaveBalance.objects.select_for_update().get(pk=balance.pk)
+        if balance.remaining < days:
+            raise LeaveError(
+                f"Saldo cuti {leave_type.code} tidak cukup. Sisa: {balance.remaining} hari."
+            )
 
     req = LeaveRequest.objects.create(
         tenant=employee.tenant,
@@ -134,12 +141,43 @@ def submit_leave_request(
     return req
 
 
+def _notify_next_approver(leave_request, step_order: int):
+    notify_step_approver(
+        tenant=leave_request.tenant,
+        employee=leave_request.employee,
+        request_type=ApprovalLine.RequestType.LEAVE,
+        step_order=step_order,
+        category=Notification.Category.LEAVE,
+        title="Persetujuan cuti (layer berikutnya)",
+        message=f"Pengajuan cuti {leave_request.employee.full_name} menunggu persetujuan Anda.",
+        link=leave_request_link(leave_request),
+    )
+
+
 @transaction.atomic
-def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
+def approve_leave_request(leave_request: LeaveRequest, approver) -> LeaveRequest:
+    request = LeaveRequest.objects.select_for_update().get(pk=leave_request.pk)
     if request.status != LeaveRequest.Status.PENDING:
         raise LeaveError("Pengajuan sudah diproses.")
-    if not can_approve_employee(approver, request.employee):
+    current_step = request.approval_step or 1
+    if not can_user_approve_step(
+        approver,
+        request.employee,
+        ApprovalLine.RequestType.LEAVE,
+        current_step,
+    ):
         raise LeaveError("Anda tidak berwenang menyetujui pengajuan cuti ini.")
+
+    next_step = next_step_order(
+        request.tenant,
+        ApprovalLine.RequestType.LEAVE,
+        current_step,
+    )
+    if next_step:
+        request.approval_step = next_step
+        request.save(update_fields=["approval_step", "updated_at"])
+        _notify_next_approver(request, next_step)
+        return request
 
     request.status = LeaveRequest.Status.APPROVED
     request.approver = approver
@@ -147,7 +185,12 @@ def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
     request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
 
     if _tracks_leave_balance(request.leave_type):
-        balance = get_or_create_balance(request.employee, request.leave_type)
+        year = timezone.localdate().year
+        balance = LeaveBalance.objects.select_for_update().get(
+            employee=request.employee,
+            leave_type=request.leave_type,
+            year=year,
+        )
         balance.pending -= request.days
         balance.used += request.days
         balance.save(update_fields=["pending", "used", "updated_at"])
@@ -163,10 +206,17 @@ def approve_leave_request(request: LeaveRequest, approver) -> LeaveRequest:
 
 
 @transaction.atomic
-def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveRequest:
+def reject_leave_request(leave_request: LeaveRequest, approver, reason="") -> LeaveRequest:
+    request = LeaveRequest.objects.select_for_update().get(pk=leave_request.pk)
     if request.status != LeaveRequest.Status.PENDING:
         raise LeaveError("Pengajuan sudah diproses.")
-    if not can_approve_employee(approver, request.employee):
+    current_step = request.approval_step or 1
+    if not can_user_approve_step(
+        approver,
+        request.employee,
+        ApprovalLine.RequestType.LEAVE,
+        current_step,
+    ):
         raise LeaveError("Anda tidak berwenang menolak pengajuan cuti ini.")
 
     request.status = LeaveRequest.Status.REJECTED
@@ -178,7 +228,12 @@ def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveReq
     )
 
     if _tracks_leave_balance(request.leave_type):
-        balance = get_or_create_balance(request.employee, request.leave_type)
+        year = timezone.localdate().year
+        balance = LeaveBalance.objects.select_for_update().get(
+            employee=request.employee,
+            leave_type=request.leave_type,
+            year=year,
+        )
         balance.pending -= request.days
         balance.remaining += request.days
         balance.save(update_fields=["pending", "remaining", "updated_at"])
@@ -189,7 +244,8 @@ def reject_leave_request(request: LeaveRequest, approver, reason="") -> LeaveReq
 
 
 @transaction.atomic
-def cancel_leave_request(request: LeaveRequest, actor) -> LeaveRequest:
+def cancel_leave_request(leave_request: LeaveRequest, actor) -> LeaveRequest:
+    request = LeaveRequest.objects.select_for_update().get(pk=leave_request.pk)
     if request.status != LeaveRequest.Status.PENDING:
         raise LeaveError("Hanya pengajuan pending yang bisa dibatalkan.")
 
@@ -199,7 +255,12 @@ def cancel_leave_request(request: LeaveRequest, actor) -> LeaveRequest:
     request.save(update_fields=["status", "approver", "approved_at", "updated_at"])
 
     if _tracks_leave_balance(request.leave_type):
-        balance = get_or_create_balance(request.employee, request.leave_type)
+        year = timezone.localdate().year
+        balance = LeaveBalance.objects.select_for_update().get(
+            employee=request.employee,
+            leave_type=request.leave_type,
+            year=year,
+        )
         balance.pending -= request.days
         balance.remaining += request.days
         balance.save(update_fields=["pending", "remaining", "updated_at"])

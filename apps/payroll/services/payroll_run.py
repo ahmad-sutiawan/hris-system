@@ -13,6 +13,7 @@ from apps.employees.models import Employee
 from apps.payroll.models import PayrollRun, Payslip
 from apps.web.formatting import format_rupiah
 from apps.payroll.services.aggregation import bulk_overtime_pay, bulk_timesheet_stats
+from apps.payroll.services.shift_allowance import bulk_shift_allowance_pay
 from apps.payroll.services.calculator import (
     calc_alpha_deduction,
     calc_bpjs_jht,
@@ -55,10 +56,17 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         payroll_run.period_start,
         payroll_run.period_end,
     )
+    shift_allowance_stats = bulk_shift_allowance_pay(
+        employee_ids,
+        payroll_run.period_start,
+        payroll_run.period_end,
+        tenant=payroll_run.tenant,
+    )
 
     for employee in employees:
         stats = timesheet_stats[employee.pk]
         ot_total, ot_detail = overtime_stats[employee.pk]
+        shift_allowance_total, shift_allowance_breakdown = shift_allowance_stats[employee.pk]
         ot_before_pay = ot_detail["ot_before"]
         ot_after_pay = ot_detail["ot_after"]
 
@@ -68,7 +76,7 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             employee, present_days=present_days
         )
         alpha_deduction = calc_alpha_deduction(employee, stats["alpha_days"])
-        gross = base + allowance_total + ot_total
+        gross = base + allowance_total + ot_total + shift_allowance_total
 
         bpjs_kes = calc_bpjs_kes(employee)
         bpjs_jht = calc_bpjs_jht(employee)
@@ -85,8 +93,12 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         }
         for key, amount in allowance_breakdown.items():
             earnings[key] = str(amount)
+        for key, amount in shift_allowance_breakdown.items():
+            earnings[key] = amount
         if allowance_total > 0:
             earnings["allowance_daily_total"] = str(allowance_total)
+        if shift_allowance_total > 0:
+            earnings["shift_allowance_total"] = str(shift_allowance_total)
         if ot_before_pay > 0:
             earnings["ot_before"] = str(ot_before_pay)
         if ot_detail["by_type"]:
@@ -159,6 +171,9 @@ def finalize_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         plant=payroll_run.plant,
         work_date__gte=payroll_run.period_start,
         work_date__lte=payroll_run.period_end,
-    ).update(calculation_status=DailyTimesheet.CalculationStatus.LOCKED)
+    ).update(
+        calculation_status=DailyTimesheet.CalculationStatus.LOCKED,
+        locked_at=timezone.now(),
+    )
 
     return payroll_run

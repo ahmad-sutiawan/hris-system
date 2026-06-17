@@ -85,6 +85,7 @@ class LeaveRequest(TenantScopedModel):
     )
     approved_at = models.DateTimeField(null=True, blank=True)
     rejection_reason = models.TextField(blank=True)
+    approval_step = models.PositiveSmallIntegerField(default=1)
 
     class Meta:
         ordering = ["-created_at"]

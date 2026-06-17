@@ -187,3 +187,19 @@ class THRPayslip(TenantScopedModel):
 
     def __str__(self):
         return f"THR {self.thr_run.year} — {self.employee.employee_id}"
+
+
+class ShiftAllowanceRate(TenantScopedModel):
+    """Nominal tunjangan shift per kode (maps to Shift.shift_allowance_code)."""
+
+    code = models.CharField(max_length=32)
+    name = models.CharField(max_length=100)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0"))
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+        unique_together = [["tenant", "code"]]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}"

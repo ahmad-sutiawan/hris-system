@@ -14,6 +14,7 @@ def employee_list_qs(qs):
         "legal_entity",
         "department",
         "job_position",
+        "job_level",
         "default_shift",
         "manager",
         "user",
