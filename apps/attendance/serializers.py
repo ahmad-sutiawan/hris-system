@@ -1,7 +1,7 @@
-from django.conf import settings
 from rest_framework import serializers
 
 from apps.attendance.models import AttendanceRecord, DailyTimesheet
+from apps.core.media_serving import build_media_url
 
 
 def _photo_url(record: AttendanceRecord | None, field: str, request) -> str | None:
@@ -10,13 +10,7 @@ def _photo_url(record: AttendanceRecord | None, field: str, request) -> str | No
     image = getattr(record, field, None)
     if not image or not image.name:
         return None
-    url = image.url
-    site = getattr(settings, "HRIS_SITE_URL", "").rstrip("/")
-    if site:
-        return f"{site}{url}" if url.startswith("/") else f"{site}/{url}"
-    if request is not None:
-        return request.build_absolute_uri(url)
-    return url
+    return build_media_url(image.name, request=request)
 
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):

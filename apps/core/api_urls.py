@@ -1,11 +1,10 @@
 from django.urls import include, path
 from rest_framework import routers
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from apps.attendance.api import AttendanceRecordViewSet, DailyTimesheetViewSet
 from apps.attendance.api_overtime import OvertimeRequestViewSet, OvertimeTypeViewSet
 from apps.core.api_announcements import AnnouncementViewSet
-from apps.core.api_auth import AuthMeView
+from apps.core.api_auth import AuthMeView, ThrottledTokenObtainPairView, ThrottledTokenRefreshView
 from apps.core.api_mobile import MobileDashboardView, MobileProfileView
 from apps.core.api_views import AuditLogViewSet, NotificationViewSet
 from apps.core.views import HealthCheckView
@@ -36,8 +35,8 @@ urlpatterns = [
     path("", include(router.urls)),
     path("health/", HealthCheckView.as_view(), name="health"),
     path("auth/me/", AuthMeView.as_view(), name="auth_me"),
-    path("auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("auth/token/refresh/", ThrottledTokenRefreshView.as_view(), name="token_refresh"),
     path("mobile/dashboard/", MobileDashboardView.as_view(), name="mobile_dashboard"),
     path("mobile/profile/", MobileProfileView.as_view(), name="mobile_profile"),
 ]

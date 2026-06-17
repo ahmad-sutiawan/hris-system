@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "django_htmx",
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "apps.core",
     "apps.organization",
@@ -93,6 +94,8 @@ if "mysql" in _db_engine:
         "charset": "utf8mb4",
         "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
     }
+    DATABASES["default"]["CONN_MAX_AGE"] = config("DB_CONN_MAX_AGE", default=300, cast=int)
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
     if config("DB_SSL_CA", default=""):
         DATABASES["default"]["OPTIONS"]["ssl"] = {"ca": config("DB_SSL_CA")}
 
@@ -147,6 +150,10 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
+    "DEFAULT_THROTTLE_RATES": {
+        "auth": config("DRF_AUTH_THROTTLE", default="10/minute"),
+        "user": config("DRF_USER_THROTTLE", default="1000/hour"),
+    },
 }
 
 SPECTACULAR_SETTINGS = {
@@ -159,8 +166,10 @@ SPECTACULAR_SETTINGS = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=8),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=config("JWT_ACCESS_HOURS", default=4, cast=int)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=config("JWT_REFRESH_DAYS", default=7, cast=int)),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
 }
 
 CORS_ALLOWED_ORIGINS = config(
@@ -169,10 +178,13 @@ CORS_ALLOWED_ORIGINS = config(
     cast=Csv(),
 )
 # Flutter web dev server (port acak per sesi, mis. localhost:63896)
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^http://localhost:\d+$",
-    r"^http://127\.0\.0\.1:\d+$",
-]
+if DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://localhost:\d+$",
+        r"^http://127\.0\.0\.1:\d+$",
+    ]
+else:
+    CORS_ALLOWED_ORIGIN_REGEXES = []
 # Hanya untuk development; production set False di .env
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=DEBUG, cast=bool)
 
@@ -207,6 +219,43 @@ HRIS_AUDIT_ARCHIVE_DIR = config(
 # Field-level encryption (NIK, rekening, gaji) — wajib set key unik di production
 HRIS_FIELD_ENCRYPTION_KEY = config("HRIS_FIELD_ENCRYPTION_KEY", default=SECRET_KEY)
 
+# Protected media (selfie, KTP, slip gaji) — signed URL or session auth
+HRIS_MEDIA_PROTECTED = config("HRIS_MEDIA_PROTECTED", default=not DEBUG, cast=bool)
+HRIS_MEDIA_URL_TTL_SECONDS = config("HRIS_MEDIA_URL_TTL_SECONDS", default=3600, cast=int)
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "standard",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": config("LOG_LEVEL", default="INFO" if not DEBUG else "DEBUG"),
+    },
+    "loggers": {
+        "django.request": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+    },
+}
+
 # SMTP (production)
 EMAIL_HOST = config("EMAIL_HOST", default="")
 EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
@@ -217,6 +266,14 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 if not DEBUG:
     if SECRET_KEY.startswith("django-insecure"):
         raise ValueError("Set SECRET_KEY yang kuat sebelum DEBUG=False.")
+    if (
+        not HRIS_FIELD_ENCRYPTION_KEY
+        or HRIS_FIELD_ENCRYPTION_KEY == SECRET_KEY
+        or len(HRIS_FIELD_ENCRYPTION_KEY) < 32
+    ):
+        raise ValueError(
+            "Set HRIS_FIELD_ENCRYPTION_KEY unik (min. 32 karakter) sebelum DEBUG=False."
+        )
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=True, cast=bool)
     SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=SECURE_SSL_REDIRECT, cast=bool)

@@ -13,8 +13,8 @@ class HealthCheckView(APIView):
         try:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1")
-        except Exception as exc:
+        except Exception:
             payload["status"] = "degraded"
-            payload["database"] = str(exc)
+            payload["database"] = "unavailable"
             return Response(payload, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response(payload)

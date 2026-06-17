@@ -11,6 +11,7 @@ from apps.core.models import Notification
 from apps.core.services.notifications import notify_user
 from apps.employees.models import Employee
 from apps.payroll.models import PayrollRun, Payslip
+from apps.payroll.services.ter import build_ter_cache
 from apps.web.formatting import format_rupiah
 from apps.payroll.services.aggregation import bulk_overtime_pay, bulk_timesheet_stats
 from apps.payroll.services.shift_allowance import bulk_shift_allowance_pay
@@ -41,6 +42,7 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
             plant=payroll_run.plant,
         )
         .exclude(status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED])
+        .select_related("tenant")
     )
 
     Payslip.objects.filter(payroll_run=payroll_run).delete()
@@ -62,6 +64,7 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         payroll_run.period_end,
         tenant=payroll_run.tenant,
     )
+    ter_cache = build_ter_cache(payroll_run.tenant)
 
     for employee in employees:
         stats = timesheet_stats[employee.pk]
@@ -81,7 +84,7 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
         bpjs_kes = calc_bpjs_kes(employee)
         bpjs_jht = calc_bpjs_jht(employee)
         bpjs_jp = calc_bpjs_jp(employee)
-        pph21 = calc_pph21(gross, employee)
+        pph21 = calc_pph21(gross, employee, ter_cache=ter_cache)
 
         deductions = bpjs_kes + bpjs_jht + bpjs_jp + pph21 + alpha_deduction
         net = gross - deductions

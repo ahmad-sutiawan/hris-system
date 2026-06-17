@@ -61,12 +61,16 @@ def calc_bpjs_jp(employee) -> Decimal:
     return (base * BPJS_JP_EMPLOYEE_RATE).quantize(Decimal("0.01"))
 
 
-def calc_pph21(gross: Decimal, employee) -> Decimal:
+def calc_pph21(gross: Decimal, employee, *, ter_cache=None) -> Decimal:
     if getattr(employee, "pph21_deduct", None) is False:
         return Decimal("0")
     tax_status = getattr(employee, "tax_status", "") or ""
     if not tax_status.strip():
         return Decimal("0")
+
+    if ter_cache is not None:
+        rate = ter_cache.lookup(gross, tax_status)
+        return (gross * rate).quantize(Decimal("0.01"))
 
     from apps.payroll.services.ter import lookup_ter_rate
 

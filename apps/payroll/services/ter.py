@@ -90,6 +90,59 @@ def lookup_ter_rate(*, tenant, gross: Decimal, ptkp_code: str) -> Decimal:
     return Decimal("0.34")
 
 
+class TerRateCache:
+    """In-memory TER brackets for payroll batch runs (avoids N+1 queries)."""
+
+    def __init__(self, tenant):
+        self._ptkp_to_category: dict[str, str] = {}
+        for mapping in Pph21TerPtkpMapping.objects.filter(tenant=tenant).select_related(
+            "category"
+        ):
+            self._ptkp_to_category[mapping.ptkp_code.strip()] = mapping.category.code
+
+        self._brackets: dict[str, list[tuple]] = {}
+        for bracket in Pph21TerBracket.objects.filter(
+            tenant=tenant,
+            category__is_active=True,
+        ).select_related("category").order_by("category__code", "bracket_no"):
+            self._brackets.setdefault(bracket.category.code, []).append(
+                (bracket.income_from, bracket.income_to, bracket.rate)
+            )
+
+    def lookup(self, gross: Decimal, ptkp_code: str) -> Decimal:
+        if gross <= 0 or not ptkp_code:
+            return Decimal("0")
+        category_code = self._ptkp_to_category.get(ptkp_code.strip())
+        if not category_code:
+            return Decimal("0")
+
+        brackets = self._brackets.get(category_code)
+        if not brackets:
+            for income_from, income_to, rate in TER_BRACKETS_BY_CATEGORY.get(category_code, ()):
+                if income_to is None:
+                    if gross > income_from:
+                        return rate
+                    continue
+                if gross <= income_to:
+                    if income_from == 0 or gross > income_from:
+                        return rate
+            return Decimal("0.34")
+
+        for income_from, income_to, rate in brackets:
+            if income_to is None:
+                if gross > income_from:
+                    return rate
+                continue
+            if gross <= income_to:
+                if income_from == 0 or gross > income_from:
+                    return rate
+        return Decimal("0.34")
+
+
+def build_ter_cache(tenant) -> TerRateCache:
+    return TerRateCache(tenant)
+
+
 def preview_pph21(*, tenant, gross: Decimal, ptkp_code: str) -> dict:
     rate = lookup_ter_rate(tenant=tenant, gross=gross, ptkp_code=ptkp_code)
     tax = (gross * rate).quantize(Decimal("0.01")) if gross > 0 else Decimal("0")

@@ -31,6 +31,7 @@ CRON_FILE=/etc/cron.d/hris-lite
   echo "SHELL=/bin/sh"
   echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   echo "0 2 * * * root cd /app && python manage.py archive_audit_logs >> /var/log/hris-cron.log 2>&1"
+  echo "0 4 * * 0 root cd /app && python manage.py purge_attendance_retention --execute >> /var/log/hris-cron.log 2>&1"
   if echo "${DB_ENGINE:-}" | grep -q mysql; then
     echo "0 3 * * * root cd /app && python manage.py backup_database --output-dir /app/backups >> /var/log/hris-cron.log 2>&1"
   fi

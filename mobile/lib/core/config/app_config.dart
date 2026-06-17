@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart';
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
-  /// Server production (deploy publik)
-  static const productionBaseUrl = 'http://148.230.98.125:8080$apiPathSuffix';
+  /// Production default — override: flutter build apk --dart-define=API_BASE_URL=https://host/api/v1
+  static const productionBaseUrl = 'https://hris.example.com/api/v1';
 
   /// Emulator Android → host PC (development)
   static const emulatorBaseUrl = 'http://10.0.2.2:8000$apiPathSuffix';
