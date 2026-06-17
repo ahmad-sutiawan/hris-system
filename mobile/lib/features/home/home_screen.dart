@@ -85,6 +85,9 @@ class HomeScreen extends ConsumerWidget {
           final pending = data['pending_requests'] as Map<String, dynamic>? ?? {};
           final pendingLeave = pending['leave'] as int? ?? 0;
           final pendingOvertime = pending['overtime'] as int? ?? 0;
+          final pendingApprovals = data['pending_approvals'] as Map<String, dynamic>? ?? {};
+          final approvalLeave = pendingApprovals['leave'] as int? ?? 0;
+          final approvalOvertime = pendingApprovals['overtime'] as int? ?? 0;
           final leaveBalances = data['leave_balances'] as List? ?? [];
           var sectionIndex = 0;
 
@@ -121,6 +124,20 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (approvalLeave > 0 || approvalOvertime > 0)
+                section(
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.item),
+                    child: PendingRequestsStrip(
+                      leaveCount: approvalLeave,
+                      overtimeCount: approvalOvertime,
+                      onLeaveTap: () => context.push('/leave'),
+                      onOvertimeTap: () => context.push('/overtime'),
+                      leaveLabel: (c) => 'Setujui $c cuti',
+                      overtimeLabel: (c) => 'Setujui $c lembur',
+                    ),
+                  ),
+                ),
               if (pendingLeave > 0 || pendingOvertime > 0)
                 section(
                   Padding(
@@ -130,6 +147,8 @@ class HomeScreen extends ConsumerWidget {
                       overtimeCount: pendingOvertime,
                       onLeaveTap: () => context.push('/leave'),
                       onOvertimeTap: () => context.push('/overtime'),
+                      leaveLabel: (c) => '$c cuti menunggu',
+                      overtimeLabel: (c) => '$c lembur menunggu',
                     ),
                   ),
                 ),

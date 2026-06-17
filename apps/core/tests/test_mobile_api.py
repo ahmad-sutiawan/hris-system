@@ -7,7 +7,9 @@ from rest_framework.test import APIClient
 
 from apps.core.models import Announcement, Plant, Tenant, User
 from apps.employees.models import Employee
+from apps.leave.models import LeaveRequest, LeaveType
 from apps.organization.models import Department, JobPosition
+from apps.payroll.services.ter import seed_ter_master
 from apps.shifts.models import Shift, ShiftAssignment
 
 
@@ -113,10 +115,12 @@ class MobileDashboardApiTests(TestCase):
         self.assertGreaterEqual(len(data["featured_announcements"]), 1)
         self.assertGreaterEqual(len(data["upcoming_shifts"]), 1)
         self.assertIn("pending_requests", data)
+        self.assertIn("pending_approvals", data)
 
         self._login(self.manager_user)
         manager_data = self.client.get("/api/v1/mobile/dashboard/").json()
         self.assertGreaterEqual(len(manager_data["direct_reports"]), 1)
+        self.assertIn("pending_approvals", manager_data)
 
     def test_employee_sees_colleagues_when_no_reports(self):
         self._login(self.employee_user)
@@ -140,6 +144,27 @@ class MobileDashboardApiTests(TestCase):
             if "shifts_shiftassignment" in q["sql"].lower()
         ]
         self.assertLessEqual(len(shift_queries), 2)
+
+    def test_manager_pending_approvals_when_report_submits_leave(self):
+        leave_type = LeaveType.objects.create(
+            tenant=self.tenant,
+            code="CT",
+            name="Cuti Tahunan",
+            default_quota_days=12,
+        )
+        LeaveRequest.objects.create(
+            tenant=self.tenant,
+            employee=self.report,
+            leave_type=leave_type,
+            start_date=timezone.localdate(),
+            end_date=timezone.localdate(),
+            days=Decimal("1"),
+            reason="Cuti",
+            status=LeaveRequest.Status.PENDING,
+        )
+        self._login(self.manager_user)
+        data = self.client.get("/api/v1/mobile/dashboard/").json()
+        self.assertGreaterEqual(data["pending_approvals"]["leave"], 1)
 
 
 class MobileProfileApiTests(TestCase):
@@ -189,6 +214,25 @@ class MobileProfileApiTests(TestCase):
         )
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
+
+    def test_profile_returns_salary_preview_and_tax_fields(self):
+        seed_ter_master(self.tenant)
+        self.employee.tax_status = "TK/0"
+        self.employee.base_salary = Decimal("7000000")
+        self.employee.save(update_fields=["tax_status", "base_salary"])
+        response = self.client.get("/api/v1/mobile/profile/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        employee = data["employee"]
+        self.assertEqual(employee["tax_status"], "TK/0")
+        self.assertIn("base_salary", employee)
+        self.assertIn("salary_preview", data)
+        preview = data["salary_preview"]
+        self.assertIn("gross", preview)
+        self.assertIn("net", preview)
+        self.assertIn("deductions", preview)
+        self.assertIn("pph21", preview)
+        self.assertNotIn("grade", employee)
 
     def test_profile_returns_department_name_and_default_shift(self):
         response = self.client.get("/api/v1/mobile/profile/")

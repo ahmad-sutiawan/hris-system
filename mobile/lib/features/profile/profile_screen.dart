@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/money_utils.dart';
 import '../../core/widgets/hris_widgets.dart';
 
 final profileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -37,6 +38,8 @@ class ProfileScreen extends ConsumerWidget {
             final shifts = data['upcoming_shifts'] as List? ?? [];
             final todayShift = data['today_assignment'] as Map<String, dynamic>?;
             final defaultShift = emp['default_shift'] as Map<String, dynamic>?;
+            final salaryPreview = data['salary_preview'] as Map<String, dynamic>?;
+            final latestPayslip = data['latest_payslip'] as Map<String, dynamic>?;
             final deptName = emp['department_name'] as String? ?? emp['department'] as String?;
             final fmt = DateFormat('dd MMM');
             final timeFmt = DateFormat('HH:mm');
@@ -65,7 +68,6 @@ class ProfileScreen extends ConsumerWidget {
                       _InfoRow('Plant', emp['plant']),
                       _InfoRow('Departemen', deptName),
                       _InfoRow('Jabatan', emp['job_title']),
-                      _InfoRow('Grade', emp['grade']),
                       _InfoRow('Atasan', emp['manager_name']),
                       if (emp['join_date'] != null)
                         _InfoRow(
@@ -74,6 +76,98 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                       _InfoRow('Email', emp['email']),
                       _InfoRow('Telepon', emp['phone']),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const SectionHeader(title: 'Gaji & Tunjangan'),
+                const SizedBox(height: 10),
+                HrisCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _InfoRow('Skema', emp['salary_scheme_label'] ?? emp['salary_scheme']),
+                      _InfoRow('Gaji pokok', formatRupiah(emp['base_salary'])),
+                      _InfoRow('Tunj. transport', formatRupiah(emp['allowance_transport'])),
+                      _InfoRow('Tunj. makan', formatRupiah(emp['allowance_meal'])),
+                      _InfoRow('Tunj. jabatan', formatRupiah(emp['allowance_position'])),
+                      _InfoRow('Total komponen', formatRupiah(data['total_compensation'])),
+                      _InfoRow('Gaji harian efektif', formatRupiah(data['effective_daily_wage'])),
+                      _InfoRow('Tarif per jam', formatRupiah(data['effective_hourly_wage'])),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const SectionHeader(title: 'PPh 21 — TER PP 58/2023'),
+                const SizedBox(height: 10),
+                HrisCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _InfoRow('PTKP', emp['tax_status']),
+                      _InfoRow('NPWP', emp['npwp']),
+                      _InfoRow(
+                        'Potong PPh 21',
+                        emp['pph21_deduct'] == false ? 'Tidak' : (emp['pph21_deduct'] == true ? 'Ya' : '—'),
+                      ),
+                      if (salaryPreview != null) ...[
+                        ...() {
+                          final pph21 = salaryPreview['pph21'] as Map<String, dynamic>? ?? {};
+                          return [
+                            if (pph21['ter_category'] != null)
+                              _InfoRow('Kategori TER', pph21['ter_category']),
+                            if (pph21['ter_rate_percent'] != null)
+                              _InfoRow('Tarif efektif', '${pph21['ter_rate_percent']}%'),
+                            if (pph21['skipped'] == true && pph21['reason'] != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'PPh 21: ${pph21['reason']}',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                ),
+                              ),
+                          ];
+                        }(),
+                      ],
+                    ],
+                  ),
+                ),
+                if (salaryPreview != null) ...[
+                  const SizedBox(height: 16),
+                  _SalaryPreviewCard(preview: salaryPreview),
+                ],
+                if (latestPayslip != null) ...[
+                  const SizedBox(height: 16),
+                  const SectionHeader(title: 'Slip Gaji Terakhir'),
+                  const SizedBox(height: 10),
+                  HrisCard(
+                    accentColor: AppColors.success,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Periode ${latestPayslip['period_start']} — ${latestPayslip['period_end']}',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        const SizedBox(height: 6),
+                        Text('Bruto: ${formatRupiah(latestPayslip['gross_amount'])}'),
+                        Text('Take-home: ${formatRupiah(latestPayslip['net_amount'])}'),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                const SectionHeader(title: 'BPJS & Rekening'),
+                const SizedBox(height: 10),
+                HrisCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _InfoRow('BPJS Kesehatan', emp['bpjs_kesehatan_number']),
+                      _InfoRow('BPJS Ketenagakerjaan', emp['bpjs_ketenagakerjaan_number']),
+                      _InfoRow('Bank', emp['bank_name']),
+                      _InfoRow('No. rekening', emp['bank_account_number']),
+                      _InfoRow('Atas nama', emp['bank_account_name']),
                     ],
                   ),
                 ),
@@ -192,6 +286,118 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
+class _SalaryPreviewCard extends StatelessWidget {
+  const _SalaryPreviewCard({required this.preview});
+
+  final Map<String, dynamic> preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final earnings = preview['earnings'] as List? ?? [];
+    final deductions = preview['deductions'] as List? ?? [];
+
+    return HrisCard(
+      accentColor: AppColors.info,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeader(title: 'Simulasi Perhitungan Gaji'),
+          const SizedBox(height: 4),
+          Text(
+            preview['scenario'] as String? ?? '',
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 12),
+          const Text('Pendapatan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+          ...earnings.map((item) => _PreviewLine(item as Map<String, dynamic>)),
+          _PreviewTotal('Bruto estimasi', preview['gross'], positive: true),
+          const SizedBox(height: 10),
+          const Text('Potongan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+          ...deductions.map((item) => _PreviewLine(item as Map<String, dynamic>, deduct: true)),
+          _PreviewTotal('Total potongan', preview['deductions_total'], deduct: true),
+          const Divider(height: 20),
+          _PreviewTotal('Take-home pay estimasi', preview['net'], highlight: true),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewLine extends StatelessWidget {
+  const _PreviewLine(this.item, {this.deduct = false});
+
+  final Map<String, dynamic> item;
+  final bool deduct;
+
+  @override
+  Widget build(BuildContext context) {
+    final note = item['note'] as String?;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(item['label'] as String? ?? '', style: const TextStyle(fontSize: 13))),
+              Text(
+                deduct ? '− ${formatRupiah(item['amount'])}' : formatRupiah(item['amount']),
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 13,
+                  color: deduct ? AppColors.error : null,
+                ),
+              ),
+            ],
+          ),
+          if (note != null && note.isNotEmpty)
+            Text(note, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreviewTotal extends StatelessWidget {
+  const _PreviewTotal(this.label, this.amount, {this.deduct = false, this.positive = false, this.highlight = false});
+
+  final String label;
+  final dynamic amount;
+  final bool deduct;
+  final bool positive;
+  final bool highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(top: highlight ? 0 : 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: highlight ? FontWeight.w800 : FontWeight.w700,
+                fontSize: highlight ? 15 : 13,
+              ),
+            ),
+          ),
+          Text(
+            deduct ? '− ${formatRupiah(amount)}' : formatRupiah(amount),
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: highlight ? 16 : 13,
+              color: deduct
+                  ? AppColors.error
+                  : (highlight ? AppColors.accent : (positive ? AppColors.success : null)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InfoRow extends StatelessWidget {
   const _InfoRow(this.label, this.value);
 
@@ -209,7 +415,7 @@ class _InfoRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
           ),
           Expanded(child: Text('$value')),

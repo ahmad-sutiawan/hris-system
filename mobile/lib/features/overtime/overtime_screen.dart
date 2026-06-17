@@ -7,6 +7,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
+import '../shared/request_actions.dart';
 
 final overtimeRequestsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/overtime-requests/');
@@ -156,8 +157,10 @@ class OvertimeScreen extends ConsumerWidget {
   }
 
   Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
+    final reason = await promptRejectReason(context);
+    if (reason == null || !context.mounted) return;
     try {
-      await ref.read(apiClientProvider).post('/overtime-requests/$id/reject/', body: {});
+      await ref.read(apiClientProvider).post('/overtime-requests/$id/reject/', body: {'reason': reason});
       ref.invalidate(overtimeRequestsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

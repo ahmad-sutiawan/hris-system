@@ -1253,12 +1253,16 @@ class PendingRequestsStrip extends StatelessWidget {
     required this.overtimeCount,
     required this.onLeaveTap,
     required this.onOvertimeTap,
+    this.leaveLabel,
+    this.overtimeLabel,
   });
 
   final int leaveCount;
   final int overtimeCount;
   final VoidCallback onLeaveTap;
   final VoidCallback onOvertimeTap;
+  final String Function(int count)? leaveLabel;
+  final String Function(int count)? overtimeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -1271,7 +1275,7 @@ class PendingRequestsStrip extends StatelessWidget {
           if (leaveCount > 0)
             Expanded(
               child: _PendingChip(
-                label: '$leaveCount cuti menunggu',
+                label: leaveLabel?.call(leaveCount) ?? '$leaveCount cuti menunggu',
                 onTap: onLeaveTap,
               ),
             ),
@@ -1279,7 +1283,7 @@ class PendingRequestsStrip extends StatelessWidget {
           if (overtimeCount > 0)
             Expanded(
               child: _PendingChip(
-                label: '$overtimeCount lembur menunggu',
+                label: overtimeLabel?.call(overtimeCount) ?? '$overtimeCount lembur menunggu',
                 onTap: onOvertimeTap,
               ),
             ),

@@ -227,6 +227,8 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
                   Text('Total: ${_preview!['total_minutes']} menit'),
                   Text('Estimasi uang: Rp ${_preview!['cash_amount']}'),
                   Text('Estimasi cuti: ${_preview!['leave_days']} hari'),
+                  if (_preview!['grade_label'] != null)
+                    Text('Tarif: ${_preview!['grade_label']}'),
                   Text(
                     'Tarif/jam: Rp ${_preview!['hourly_rate']}',
                     style: const TextStyle(fontSize: 12, color: AppColors.textMuted),

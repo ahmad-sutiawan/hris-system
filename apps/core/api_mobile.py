@@ -8,7 +8,8 @@ from rest_framework.views import APIView
 from apps.attendance.models import AttendanceRecord, OvertimeRequest
 from apps.attendance.serializers import AttendanceRecordSerializer
 from apps.attendance.services.punch_ui import get_punch_ui_state
-from apps.core.models import Notification
+from apps.core.models import Notification, User
+from apps.core.approval import can_approve_employee
 from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
 from apps.employees.models import Employee
@@ -17,7 +18,128 @@ from apps.employees.services.profile import build_employee_profile_context
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.leave.models import LeaveRequest
 from apps.shifts.models import ShiftAssignment
+from apps.payroll.services.salary_preview import build_salary_preview
+from apps.payroll.services.ter import seed_ter_master
 from apps.web.services.dashboard import build_dashboard_context
+
+
+def _pending_own_summary(profile) -> dict:
+    if not profile:
+        return {"leave": 0, "overtime": 0}
+    return {
+        "leave": LeaveRequest.objects.filter(
+            employee=profile,
+            status=LeaveRequest.Status.PENDING,
+        ).count(),
+        "overtime": OvertimeRequest.objects.filter(
+            employee=profile,
+            status=OvertimeRequest.Status.PENDING,
+        ).count(),
+    }
+
+
+def _pending_approval_summary(user, profile, tenant) -> dict:
+    """Pending leave/OT that the logged-in user can approve."""
+    if not tenant:
+        return {"leave": 0, "overtime": 0}
+
+    leave_qs = LeaveRequest.objects.filter(
+        tenant=tenant,
+        status=LeaveRequest.Status.PENDING,
+    ).select_related("employee")
+    ot_qs = OvertimeRequest.objects.filter(
+        tenant=tenant,
+        status=OvertimeRequest.Status.PENDING,
+    ).select_related("employee")
+
+    if user.is_hr or user.is_admin:
+        if user.plant_id and not user.is_admin:
+            leave_qs = leave_qs.filter(employee__plant=user.plant)
+            ot_qs = ot_qs.filter(employee__plant=user.plant)
+    elif user.role == User.Role.MANAGER and profile:
+        leave_qs = leave_qs.filter(employee__manager=profile)
+        ot_qs = ot_qs.filter(employee__manager=profile)
+    else:
+        return {"leave": 0, "overtime": 0}
+
+    leave_count = sum(
+        1 for req in leave_qs if can_approve_employee(user, req.employee)
+    )
+    ot_count = sum(
+        1 for req in ot_qs if can_approve_employee(user, req.employee)
+    )
+    return {"leave": leave_count, "overtime": ot_count}
+
+
+def _serialize_salary_preview(preview: dict) -> dict:
+    def _line(item: dict) -> dict:
+        return {
+            "key": item["key"],
+            "label": item["label"],
+            "amount": str(item["amount"]),
+            "note": item.get("note", ""),
+        }
+
+    pph21 = preview.get("pph21_detail") or {}
+    ter_rate = pph21.get("ter_rate_percent")
+    pph21_amount = pph21.get("pph21_monthly")
+    return {
+        "scenario": preview["scenario"],
+        "salary_scheme": preview["salary_scheme"],
+        "is_daily": preview["is_daily"],
+        "daily_rate": str(preview["daily_rate"]),
+        "work_days": preview["work_days"],
+        "bpjs_base": str(preview["bpjs_base"]),
+        "earnings": [_line(item) for item in preview["earnings"]],
+        "gross": str(preview["gross"]),
+        "deductions": [_line(item) for item in preview["deductions"]],
+        "deductions_total": str(preview["deductions_total"]),
+        "net": str(preview["net"]),
+        "pph21": {
+            "ptkp_code": pph21.get("ptkp_code"),
+            "ter_category": pph21.get("ter_category"),
+            "ter_rate_percent": str(ter_rate) if ter_rate is not None else None,
+            "pph21_amount": str(pph21_amount) if pph21_amount is not None else None,
+            "skipped": bool(pph21.get("skipped")),
+            "reason": pph21.get("reason"),
+        },
+    }
+
+
+def _serialize_employee_mobile(employee, *, default_shift_payload) -> dict:
+    scheme_labels = dict(Employee.SalaryScheme.choices)
+    dept_name = employee.department.name if employee.department_id else None
+    return {
+        "id": employee.id,
+        "employee_id": employee.employee_id,
+        "full_name": employee.full_name,
+        "email": employee.email,
+        "phone": employee.phone,
+        "status": employee.status,
+        "status_label": employee.get_status_display(),
+        "join_date": employee.join_date.isoformat() if employee.join_date else None,
+        "plant": employee.plant.name if employee.plant_id else None,
+        "plant_code": employee.plant.code if employee.plant_id else None,
+        "department": dept_name,
+        "department_name": dept_name,
+        "job_title": employee.job_position.title if employee.job_position_id else None,
+        "manager_name": employee.manager.full_name if employee.manager_id else None,
+        "salary_scheme": employee.salary_scheme,
+        "salary_scheme_label": scheme_labels.get(employee.salary_scheme, employee.salary_scheme),
+        "base_salary": str(employee.base_salary),
+        "allowance_transport": str(employee.allowance_transport),
+        "allowance_meal": str(employee.allowance_meal),
+        "allowance_position": str(employee.allowance_position),
+        "tax_status": employee.tax_status or None,
+        "npwp": employee.npwp or None,
+        "pph21_deduct": employee.pph21_deduct,
+        "bpjs_kesehatan_number": employee.bpjs_kesehatan_number or None,
+        "bpjs_ketenagakerjaan_number": employee.bpjs_ketenagakerjaan_number or None,
+        "bank_name": employee.bank_name or None,
+        "bank_account_number": employee.bank_account_number or None,
+        "bank_account_name": employee.bank_account_name or None,
+        "default_shift": default_shift_payload,
+    }
 
 
 class MobileDashboardView(APIView):
@@ -65,7 +187,8 @@ class MobileDashboardView(APIView):
         direct_reports = []
         team_colleagues = []
         upcoming_shifts = []
-        pending_summary = {"leave": 0, "overtime": 0}
+        pending_summary = _pending_own_summary(profile)
+        pending_approvals = _pending_approval_summary(user, profile, user.tenant)
         if profile:
             profile = (
                 Employee.objects.select_related(
@@ -92,16 +215,6 @@ class MobileDashboardView(APIView):
                 .select_related("shift", "employee", "employee__plant")
                 .order_by("work_date")[:14]
             ]
-            pending_summary = {
-                "leave": LeaveRequest.objects.filter(
-                    employee=profile,
-                    status=LeaveRequest.Status.PENDING,
-                ).count(),
-                "overtime": OvertimeRequest.objects.filter(
-                    employee=profile,
-                    status=OvertimeRequest.Status.PENDING,
-                ).count(),
-            }
 
         today_shift = dashboard.get("today_shift")
         if today_shift is not None:
@@ -137,6 +250,7 @@ class MobileDashboardView(APIView):
             "direct_reports": direct_reports,
             "team_colleagues": team_colleagues,
             "pending_requests": pending_summary,
+            "pending_approvals": pending_approvals,
             "unread_notifications": unread_notifications,
             "active_announcements": active_announcement_count(user),
         }
@@ -155,28 +269,16 @@ class MobileProfileView(APIView):
         employee = ctx["employee"]
         resolved_default = ctx.get("default_shift")
         default_shift_payload = _serialize_default_shift(employee, resolved_default)
-        dept_name = employee.department.name if employee.department_id else None
+        seed_ter_master(request.user.tenant)
+        salary_preview = _serialize_salary_preview(
+            build_salary_preview(employee, tenant=request.user.tenant)
+        )
         return Response(
             {
-                "employee": {
-                    "id": employee.id,
-                    "employee_id": employee.employee_id,
-                    "full_name": employee.full_name,
-                    "email": employee.email,
-                    "phone": employee.phone,
-                    "status": employee.status,
-                    "status_label": employee.get_status_display(),
-                    "join_date": employee.join_date.isoformat() if employee.join_date else None,
-                    "plant": employee.plant.name if employee.plant_id else None,
-                    "plant_code": employee.plant.code if employee.plant_id else None,
-                    "department": dept_name,
-                    "department_name": dept_name,
-                    "job_title": employee.job_position.title if employee.job_position_id else None,
-                    "manager_name": employee.manager.full_name if employee.manager_id else None,
-                    "salary_scheme": employee.salary_scheme,
-                    "tax_status": employee.tax_status or None,
-                    "default_shift": default_shift_payload,
-                },
+                "employee": _serialize_employee_mobile(
+                    employee,
+                    default_shift_payload=default_shift_payload,
+                ),
                 "today": ctx["today"].isoformat(),
                 "month_stats": ctx["month_stats"],
                 "leave_balances": _serialize_leave_balances(ctx.get("leave_balances") or []),
@@ -197,6 +299,7 @@ class MobileProfileView(APIView):
                 "total_compensation": str(ctx["total_compensation"]),
                 "effective_daily_wage": str(ctx["effective_daily_wage"]),
                 "effective_hourly_wage": str(ctx["effective_hourly_wage"]),
+                "salary_preview": salary_preview,
             }
         )
 

@@ -7,6 +7,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
+import '../shared/request_actions.dart';
 
 final leaveRequestsProvider = FutureProvider<List<dynamic>>((ref) async {
   return ref.watch(apiClientProvider).getPaginated('/leave-requests/');
@@ -205,8 +206,10 @@ class LeaveScreen extends ConsumerWidget {
   }
 
   Future<void> _reject(BuildContext context, WidgetRef ref, int id) async {
+    final reason = await promptRejectReason(context);
+    if (reason == null || !context.mounted) return;
     try {
-      await ref.read(apiClientProvider).post('/leave-requests/$id/reject/', body: {});
+      await ref.read(apiClientProvider).post('/leave-requests/$id/reject/', body: {'reason': reason});
       ref.invalidate(leaveRequestsProvider);
       ref.invalidate(leaveBalancesProvider);
       if (context.mounted) {
