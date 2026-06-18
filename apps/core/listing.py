@@ -121,6 +121,13 @@ def build_filter_query(request, *, exclude: tuple[str, ...] = (PAGE_PARAM, EXPOR
     return urlencode(params)
 
 
+def desc_list_row_number(*, total_count: int, page_start_index: int, counter0: int) -> int:
+    """Descending row number: first visible row gets the largest number."""
+    if total_count <= 0:
+        return 0
+    return total_count - int(page_start_index) - int(counter0) + 1
+
+
 def list_pagination_context(request, page_obj, filters: ListFilters) -> dict:
     paginator = page_obj.paginator
     start_index = 0

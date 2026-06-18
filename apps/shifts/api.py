@@ -9,6 +9,7 @@ class ShiftViewSet(TenantScopedViewSet):
     serializer_class = ShiftSerializer
     filterset_fields = ["plant", "is_active"]
     search_fields = ["code", "name"]
+    http_method_names = ["get", "head", "options"]
 
 
 class ShiftAssignmentViewSet(TenantScopedViewSet):

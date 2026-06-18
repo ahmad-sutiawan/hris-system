@@ -2,6 +2,7 @@ from django import template
 from django.utils.safestring import mark_safe
 
 from apps.core.approval import can_approve_employee, can_approve_request
+from apps.core.listing import desc_list_row_number
 from apps.web.formatting import format_number, format_rupiah
 from apps.web.nav_icons import resolve_nav_icon
 
@@ -80,6 +81,19 @@ def nav_master_active(context, slug):
     }:
         return " is-active"
     return ""
+
+
+@register.simple_tag
+def list_row_no(total, counter0, page_start=1):
+    """Nomor baris menurun: baris teratas = angka terbesar."""
+    try:
+        return desc_list_row_number(
+            total_count=int(total),
+            page_start_index=int(page_start),
+            counter0=int(counter0),
+        )
+    except (TypeError, ValueError):
+        return ""
 
 
 @register.filter

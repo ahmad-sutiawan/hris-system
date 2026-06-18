@@ -30,7 +30,7 @@
           <tbody>
             {% for req in overtime_history %}
             <tr>
-              <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+              <td class="hris-col-no hris-text-dim">{% list_row_no overtime_history|length forloop.counter0 %}</td>
               {% if show_history_employee %}
               <td class="hris-strong">{{ req.employee.full_name }}</td>
               {% endif %}

@@ -72,6 +72,35 @@ class GeoFenceTests(TestCase):
         )
         validate_punch_location(self.employee, -6.1752, 106.8651)
 
+    def test_punch_location_on_parent_pt_for_branch_employee(self):
+        pt = Plant.objects.create(
+            tenant=self.tenant,
+            code="PT1",
+            name="Plant Induk",
+            entity_type=Plant.EntityType.PT,
+        )
+        branch = Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BR1",
+            name="Cabang A",
+            entity_type=Plant.EntityType.BRANCH,
+            latitude=Decimal("-6.2088000"),
+            longitude=Decimal("106.8456000"),
+            geo_fence_radius_m=200,
+        )
+        self.employee.plant = branch
+        self.employee.save(update_fields=["plant"])
+        PunchLocation.objects.create(
+            tenant=self.tenant,
+            plant=pt,
+            name="Site PT",
+            latitude=Decimal("-6.1751000"),
+            longitude=Decimal("106.8650000"),
+            radius_m=150,
+        )
+        validate_punch_location(self.employee, -6.1752, 106.8651)
+
     def test_mobile_punch_outside_geo_rejected(self):
         with self.assertRaises(PunchError) as ctx:
             clock_in(

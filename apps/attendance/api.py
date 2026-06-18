@@ -58,7 +58,7 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
     )
     serializer_class = AttendanceRecordSerializer
     filterset_fields = ["employee", "plant", "work_date", "source"]
-    http_method_names = ["get", "post", "head", "options"]
+    http_method_names = ["get", "head", "options"]
 
     def get_queryset(self):
         qs = super().get_queryset()

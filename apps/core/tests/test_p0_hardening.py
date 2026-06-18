@@ -72,6 +72,28 @@ class ApiAuthorizationTests(TestCase):
         response = self.client.get("/api/v1/payroll-runs/")
         self.assertEqual(response.status_code, 200)
 
+    def test_employee_cannot_create_shift(self):
+        self.client.force_authenticate(self.worker_user)
+        response = self.client.post(
+            "/api/v1/shifts/",
+            {"code": "MAL", "name": "Malicious Shift", "plant": self.plant.pk},
+            format="json",
+        )
+        self.assertIn(response.status_code, {403, 405})
+
+    def test_employee_cannot_create_attendance_directly(self):
+        self.client.force_authenticate(self.worker_user)
+        response = self.client.post(
+            "/api/v1/attendance/",
+            {
+                "employee": self.employee.pk,
+                "work_date": "2026-06-18",
+                "check_in": "2026-06-18T07:00:00+07:00",
+            },
+            format="json",
+        )
+        self.assertIn(response.status_code, {403, 405})
+
 
 class TimesheetLockTests(TestCase):
     def setUp(self):

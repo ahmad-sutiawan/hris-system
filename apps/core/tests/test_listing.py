@@ -103,6 +103,25 @@ class ListingHelpersTests(TestCase):
         self.assertIn("date_from=2024-01-01", query)
         self.assertNotIn("page=", query)
 
+    def test_desc_list_row_number(self):
+        from apps.core.listing import desc_list_row_number
+
+        # 100 rows, page 1 (start_index=1): 100, 99, …, 76
+        self.assertEqual(
+            desc_list_row_number(total_count=100, page_start_index=1, counter0=0),
+            100,
+        )
+        self.assertEqual(
+            desc_list_row_number(total_count=100, page_start_index=1, counter0=24),
+            76,
+        )
+        # page 2 (start_index=26): 75, 74, …
+        self.assertEqual(
+            desc_list_row_number(total_count=100, page_start_index=26, counter0=0),
+            75,
+        )
+        self.assertEqual(desc_list_row_number(total_count=0, page_start_index=1, counter0=0), 0)
+
     def test_queryset_to_csv(self):
         content = queryset_to_csv(
             [{"name": "A"}, {"name": "B"}],

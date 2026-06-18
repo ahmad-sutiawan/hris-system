@@ -172,7 +172,7 @@
     </section>
 
     <section class="hx-panel hx-span-4">
-      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Spectrum</span><h2>Karyawan per Cabang</h2></header>
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Spectrum</span><h2>Karyawan per Branch</h2></header>
       <div class="hx-bars">
         {% for row in analytics.neo.diverging_plants %}
         <div class="hx-bar-row" data-hx-bar style="--w:{{ row.bar_pct }}%;" data-label="{{ row.label }}" data-value="{{ row.value|num:0 }}">

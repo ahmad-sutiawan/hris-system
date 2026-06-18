@@ -783,6 +783,14 @@ class PunchLocationForm(forms.ModelForm):
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _base_init(self, tenant, user)
+        if tenant and "plant" in self.fields:
+            self.fields["plant"].queryset = Plant.objects.filter(
+                tenant=tenant,
+                entity_type=Plant.EntityType.PT,
+                is_active=True,
+            ).order_by("code")
+            self.fields["plant"].label = "Plant"
+            self.fields["plant"].empty_label = "— Pilih plant —"
 
 
 class HolidayCalendarForm(forms.ModelForm):

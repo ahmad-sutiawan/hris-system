@@ -7,7 +7,7 @@ import math
 from django.conf import settings
 from django.core.cache import cache
 
-from apps.core.models import PunchLocation
+from apps.core.models import PunchLocation, Plant
 
 
 class GeoFenceError(Exception):
@@ -31,6 +31,17 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     return 2 * r * math.asin(math.sqrt(a))
 
 
+def _resolve_pt_plant(plant) -> Plant | None:
+    """Cabang karyawan → plant induk (PT); plant PT tetap dipakai."""
+    if not plant:
+        return None
+    if plant.entity_type == Plant.EntityType.PT:
+        return plant
+    if plant.parent_id:
+        return plant.parent
+    return plant
+
+
 def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
     plant = employee.plant
     tenant_id = employee.tenant_id
@@ -45,12 +56,14 @@ def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
         radius = plant.geo_fence_radius_m or 150
         points.append((float(plant.latitude), float(plant.longitude), radius, plant.name))
 
-    for loc in PunchLocation.objects.filter(
-        tenant_id=tenant_id,
-        plant=plant,
-        is_active=True,
-    ).only("latitude", "longitude", "radius_m", "name"):
-        points.append((float(loc.latitude), float(loc.longitude), loc.radius_m, loc.name))
+    pt = _resolve_pt_plant(plant)
+    if pt:
+        for loc in PunchLocation.objects.filter(
+            tenant_id=tenant_id,
+            plant=pt,
+            is_active=True,
+        ).only("latitude", "longitude", "radius_m", "name"):
+            points.append((float(loc.latitude), float(loc.longitude), loc.radius_m, loc.name))
 
     ttl = int(getattr(settings, "HRIS_GEO_CACHE_TTL", 300))
     cache.set(cache_key, points, ttl)

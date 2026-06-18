@@ -48,7 +48,7 @@
       <tbody>
         {% for log in audit_logs %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{{ forloop.counter0|add:page_start }}</td>
+          <td class="hris-col-no hris-text-dim">{% list_row_no result_count forloop.counter0 page_start %}</td>
           <td style="white-space:nowrap">{{ log.created_at|date:"d M Y H:i" }}</td>
           <td class="hris-strong">{{ log.user.username|default:"-" }}</td>
           <td>{% status_badge log.action log.get_action_display %}</td>

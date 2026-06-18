@@ -4,7 +4,12 @@ from rest_framework import routers
 from apps.attendance.api import AttendanceRecordViewSet, DailyTimesheetViewSet
 from apps.attendance.api_overtime import OvertimeRequestViewSet, OvertimeTypeViewSet
 from apps.core.api_announcements import AnnouncementViewSet
-from apps.core.api_auth import AuthMeView, ThrottledTokenObtainPairView, ThrottledTokenRefreshView
+from apps.core.api_auth import (
+    AuthLogoutView,
+    AuthMeView,
+    ThrottledTokenObtainPairView,
+    ThrottledTokenRefreshView,
+)
 from apps.core.api_mobile import MobileDashboardView, MobileProfileView
 from apps.core.api_media import MediaFileView
 from apps.core.api_views import AuditLogViewSet, NotificationViewSet
@@ -38,6 +43,7 @@ urlpatterns = [
     path("auth/me/", AuthMeView.as_view(), name="auth_me"),
     path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", ThrottledTokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/logout/", AuthLogoutView.as_view(), name="token_logout"),
     path("mobile/dashboard/", MobileDashboardView.as_view(), name="mobile_dashboard"),
     path("mobile/profile/", MobileProfileView.as_view(), name="mobile_profile"),
     path("media/<path:path>", MediaFileView.as_view(), name="api_media"),
