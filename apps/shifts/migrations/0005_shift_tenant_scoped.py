@@ -22,6 +22,58 @@ def clear_shift_plant_and_dedupe(apps, schema_editor):
             shift.save(update_fields=["plant_id"])
 
 
+def _mysql_indexes(cursor, table):
+    cursor.execute(f"SHOW INDEX FROM `{table}`")
+    by_key = {}
+    for row in cursor.fetchall():
+        key_name = row[2]
+        by_key.setdefault(key_name, {"non_unique": row[1], "cols": {}})
+        by_key[key_name]["cols"][row[3]] = row[4]
+    return {
+        name: {
+            "non_unique": meta["non_unique"],
+            "columns": [meta["cols"][i] for i in sorted(meta["cols"])],
+        }
+        for name, meta in by_key.items()
+    }
+
+
+def apply_shift_tenant_code_unique(apps, schema_editor):
+    """MySQL-safe unique_together swap; avoids duplicate tenant_id index errors."""
+    connection = schema_editor.connection
+    Shift = apps.get_model("shifts", "Shift")
+
+    if connection.vendor != "mysql":
+        schema_editor.alter_unique_together(
+            Shift,
+            [("tenant", "plant", "code")],
+            [("tenant", "code")],
+        )
+        return
+
+    table = Shift._meta.db_table
+    old_cols = ("tenant_id", "plant_id", "code")
+    new_cols = ("tenant_id", "code")
+    new_index = "shifts_shift_tenant_code_uniq"
+
+    with connection.cursor() as cursor:
+        indexes = _mysql_indexes(cursor, table)
+        for name, meta in indexes.items():
+            if meta["non_unique"] == 0 and tuple(meta["columns"]) == old_cols:
+                cursor.execute(f"ALTER TABLE `{table}` DROP INDEX `{name}`")
+
+        indexes = _mysql_indexes(cursor, table)
+        has_new = any(
+            meta["non_unique"] == 0 and tuple(meta["columns"]) == new_cols
+            for meta in indexes.values()
+        )
+        if not has_new:
+            cursor.execute(
+                f"ALTER TABLE `{table}` ADD UNIQUE INDEX `{new_index}` "
+                f"(`tenant_id`, `code`)"
+            )
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("shifts", "0004_enable_cross_day_night_shifts"),
@@ -41,8 +93,18 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(clear_shift_plant_and_dedupe, migrations.RunPython.noop),
-        migrations.AlterUniqueTogether(
-            name="shift",
-            unique_together={("tenant", "code")},
+        migrations.SeparateDatabaseAndState(
+            state_operations=[
+                migrations.AlterUniqueTogether(
+                    name="shift",
+                    unique_together={("tenant", "code")},
+                ),
+            ],
+            database_operations=[
+                migrations.RunPython(
+                    apply_shift_tenant_code_unique,
+                    migrations.RunPython.noop,
+                ),
+            ],
         ),
     ]
