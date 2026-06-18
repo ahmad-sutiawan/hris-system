@@ -1,6 +1,9 @@
 try:
-    import pymysql
-
-    pymysql.install_as_MySQLdb()
+    import MySQLdb  # mysqlclient — dipakai di Docker/production
 except ImportError:
-    pass
+    try:
+        import pymysql
+
+        pymysql.install_as_MySQLdb()
+    except ImportError:
+        pass
