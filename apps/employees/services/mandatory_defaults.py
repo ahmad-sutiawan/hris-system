@@ -25,17 +25,25 @@ TEXT_DEFAULTS = (
 )
 
 
-def apply_mandatory_defaults(employee: Employee, *, fill_fk: bool = True) -> bool:
+def apply_mandatory_defaults(
+    employee: Employee,
+    *,
+    fill_fk: bool = True,
+    skip_na_fill: bool = False,
+) -> bool:
     """
     Fill blank mandatory fields with N/A (and sensible FK/date defaults when fill_fk=True).
     Returns True if any field was changed.
+
+    skip_na_fill: dipakai saat import Talenta agar sel kosong tetap kosong (bukan N/A).
     """
     changed = False
 
-    for field in TEXT_DEFAULTS:
-        if not (getattr(employee, field) or "").strip():
-            setattr(employee, field, NA)
-            changed = True
+    if not skip_na_fill:
+        for field in TEXT_DEFAULTS:
+            if not (getattr(employee, field) or "").strip():
+                setattr(employee, field, NA)
+                changed = True
 
     if not employee.gender:
         employee.gender = Employee.Gender.NA

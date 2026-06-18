@@ -4,63 +4,13 @@ from __future__ import annotations
 
 from django.utils.text import slugify
 
+from apps.employees.talenta_mapping import (
+    TALENTA_EMPLOYEE_COLUMNS,
+    TALENTA_OPTIONAL_COLUMNS,
+)
+
 # Header persis seperti file Excel di folder media
-TALENTA_COLUMNS = [
-    "Employee ID",
-    "Full Name",
-    "Barcode",
-    "Organization",
-    "Job Position",
-    "Job Level",
-    "Join Date",
-    "Resign Date",
-    "Status Employee",
-    "End Date",
-    "Sign Date",
-    "Email",
-    "Birth Date",
-    "Age",
-    "Birth Place",
-    "Citizen ID Address",
-    "Residential Address",
-    "NPWP",
-    "PTKP Status",
-    "Employee Tax Status",
-    "Tax Config",
-    "Bank Name",
-    "Bank Account",
-    "Bank Account Holder",
-    "BPJS Ketenagakerjaan",
-    "BPJS Kesehatan",
-    "NIK (NPWP 16 Digit)",
-    "Mobile Phone",
-    "Phone",
-    "Branch Name",
-    "Parent Branch Name",
-    "Religion",
-    "Gender",
-    "Marital Status",
-    "Blood Type",
-    "Nationality Code",
-    "Currency",
-    "Length Of Service",
-    "Payment Schedule",
-    "Approval Line",
-    "Manager",
-    "Grade",
-    "Class",
-    "Profile Picture",
-    "Cost Center",
-    "Cost Center Category",
-    "SBU",
-    "NPWP 16 digit (new)",
-    "Passport",
-    "Passport Expiration Date",
-    "Jenis Dok. Referensi Bukti Potong",
-    "Nomor Dok. Referensi Bukti Potong",
-    "Tanggal Dok. Referensi Bukti Potong",
-    "TIN (Taxpayer Identification Number)",
-]
+TALENTA_COLUMNS = list(TALENTA_OPTIONAL_COLUMNS) + list(TALENTA_EMPLOYEE_COLUMNS)
 
 # Kolom utama di halaman daftar karyawan (urutan mengikuti Excel)
 EMPLOYEE_LIST_COLUMNS = [

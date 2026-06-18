@@ -10,7 +10,7 @@ from apps.core.models import (
     PunchLocation,
     User,
 )
-from apps.employees.models import Employee, EmployeeDocument
+from apps.employees.models import Employee, EmployeeDocument, TalentaMaster
 from apps.leave.models import LeaveBalance, LeaveRequest, LeaveType
 from apps.organization.models import Department, JobLevel, JobPosition
 from apps.payroll.models import (
@@ -46,6 +46,7 @@ from apps.web.admin_crud.forms import (
     NotificationAdminForm,
     PayslipForm,
     PlantForm,
+    BranchForm,
     PunchLocationForm,
     Pph21TerBracketForm,
     Pph21TerCategoryForm,
@@ -53,6 +54,7 @@ from apps.web.admin_crud.forms import (
     SalaryComponentForm,
     ShiftAllowanceRateForm,
     ShiftForm,
+    TalentaMasterForm,
 )
 from apps.web.admin_crud.registry import AdminResource, Column, register
 
@@ -66,20 +68,43 @@ def bootstrap_registry():
             model=Plant,
             form_class=PlantForm,
             section="Core",
+            title="Plant",
+            title_plural="Plants",
+            columns=[
+                Column("Code", "code"),
+                Column("Plant name", "name"),
+                Column("Active", "is_active"),
+            ],
+            search_fields=["code", "name"],
+            select_related=["tenant"],
+            order_by=["code"],
+            tenant_scoped=False,
+            master_data=True,
+            master_group="Organization Structure",
+            list_limit=500,
+        )
+    )
+    register(
+        AdminResource(
+            slug="branches",
+            model=Plant,
+            form_class=BranchForm,
+            section="Core",
             title="Branch Name",
             title_plural="Branch Name",
             columns=[
-                Column("Kode", "code"),
-                Column("Branch Name", "name"),
-                Column("Tipe Cabang", "branch_type"),
+                Column("Code", "code"),
+                Column("Branch name", "name"),
+                Column("Plant", "parent"),
+                Column("Branch type", "branch_type"),
                 Column("Lat", "latitude"),
                 Column("Lng", "longitude"),
                 Column("Radius (m)", "geo_fence_radius_m"),
                 Column("Timezone", "timezone"),
-                Column("Aktif", "is_active"),
+                Column("Active", "is_active"),
             ],
             search_fields=["code", "name"],
-            select_related=["tenant"],
+            select_related=["tenant", "parent"],
             order_by=["code"],
             tenant_scoped=False,
             master_data=True,
@@ -283,7 +308,6 @@ def bootstrap_registry():
             title="Master Shift",
             title_plural="Master Shift",
             columns=[
-                Column("Branch", "plant"),
                 Column("Code", "code"),
                 Column("Name", "name"),
                 Column("Label", "label"),
@@ -297,7 +321,6 @@ def bootstrap_registry():
                 Column("Active", "is_active"),
             ],
             search_fields=["code", "name", "label", "shift_allowance_code"],
-            select_related=["plant"],
             order_by=["code"],
             master_data=True,
             master_group="Operations",
@@ -637,6 +660,28 @@ def bootstrap_registry():
             master_data=True,
             master_group="Organization Structure",
             tenant_scoped=True,
+        )
+    )
+    register(
+        AdminResource(
+            slug="talenta-masters",
+            model=TalentaMaster,
+            form_class=TalentaMasterForm,
+            section="Employees",
+            title="Talenta Reference",
+            title_plural="Talenta Reference",
+            columns=[
+                Column("Category", "category"),
+                Column("Code", "code"),
+                Column("Name", "name"),
+                Column("Active", "is_active"),
+            ],
+            search_fields=["code", "name", "category"],
+            order_by=["category", "name"],
+            master_data=True,
+            master_group="Organization Structure",
+            tenant_scoped=True,
+            list_limit=500,
         )
     )
     register(

@@ -10,7 +10,11 @@ def require_roles(*roles):
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return redirect("web:login")
-            if request.user.is_admin or request.user.role in roles:
+            if (
+                request.user.is_admin
+                or request.user.is_superuser
+                or request.user.role in roles
+            ):
                 return view_func(request, *args, **kwargs)
             messages.error(request, "Anda tidak memiliki akses ke halaman ini.")
             return redirect("web:dashboard")
@@ -39,6 +43,11 @@ def user_has_admin_console(user) -> bool:
 
 def user_can_manage_master_data(user) -> bool:
     return bool(user.is_authenticated and (user.is_admin or user.is_hr or user.is_superuser))
+
+
+def user_can_manage_employees(user) -> bool:
+    """Akses daftar / CRUD karyawan (menu Operations → Employees)."""
+    return bool(user.is_authenticated and user.is_hr)
 
 
 def require_master_data(view_func):

@@ -66,10 +66,10 @@
 
         <div class="hris-nav-section">
           <div class="hris-nav-label">Operations</div>
-          {% if user.role == 'admin' or user.role == 'hr' %}
+          {% if show_employee_nav %}
           <a href="{% url 'web:employee_list' %}" class="hris-nav-link{% nav_is_active 'employee_list' 'employee_create' 'employee_edit' 'employee_import' 'employee_import_template' %}">
             {% nav_icon "employees" %}
-            Employees
+            Karyawan
           </a>
           {% endif %}
           <a href="{% url 'web:leave_list' %}" class="hris-nav-link{% nav_is_active 'leave_list' 'leave_create' 'leave_approve' 'leave_reject' 'leave_cancel' %}">
@@ -80,7 +80,7 @@
             {% nav_icon "overtime" %}
             Overtime Requests
           </a>
-          {% if user.role == 'admin' or user.role == 'hr' %}
+          {% if user.is_hr %}
           <a href="{% url 'web:shift_assignment_list' %}" class="hris-nav-link{% nav_is_active 'shift_assignment_list' 'shift_assign' 'shift_edit' 'shift_delete' %}">
             {% nav_icon "shift-schedule" %}
             Shift Scheduling
@@ -90,7 +90,7 @@
             {% nav_icon "attendance" %}
             Attendance Summary
           </a>
-          {% if user.role == 'admin' or user.role == 'hr' %}
+          {% if user.is_hr %}
           <a href="{% url 'web:attendance_import' %}" class="hris-nav-link{% nav_is_active 'attendance_import' 'attendance_import_template' %}">
             {% nav_icon "attendance" %}
             Import Attendance
@@ -104,7 +104,7 @@
             {% nav_icon "payslip" %}
             Payslips
           </a>
-          {% if user.role == 'admin' or user.role == 'hr' %}
+          {% if user.is_hr %}
           <a href="{% url 'web:payroll_list' %}" class="hris-nav-link{% nav_is_active 'payroll_list' 'payroll_create' 'payroll_detail' 'payroll_edit' 'payroll_cancel' 'payroll_calculate' 'payroll_finalize' 'payroll_bank_export' %}">
             {% nav_icon "payroll" %}
             Payroll
@@ -121,7 +121,7 @@
           <div class="hris-nav-label">Administration</div>
           {% include "components/admin_sidebar_nav.html" %}
         </div>
-        {% elif user.role == 'admin' or user.role == 'hr' %}
+        {% elif user.is_hr %}
         <div class="hris-nav-section">
           <div class="hris-nav-label">Governance</div>
           <a href="{% url 'web:audit_log_list' %}" class="hris-nav-link{% if '/audit' in request.path %} is-active{% endif %}">

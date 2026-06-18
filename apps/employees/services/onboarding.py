@@ -17,7 +17,6 @@ def resolve_default_shift(employee: Employee) -> Shift | None:
 
     shift = Shift.objects.filter(
         tenant=employee.tenant,
-        plant=plant,
         code="PAGI",
         is_active=True,
     ).first()
@@ -25,7 +24,7 @@ def resolve_default_shift(employee: Employee) -> Shift | None:
         return shift
 
     return (
-        Shift.objects.filter(tenant=employee.tenant, plant=plant, is_active=True)
+        Shift.objects.filter(tenant=employee.tenant, is_active=True)
         .order_by("code")
         .first()
     )

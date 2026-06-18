@@ -6,11 +6,6 @@ from apps.core.models.base import TenantScopedModel
 
 
 class Shift(TenantScopedModel):
-    plant = models.ForeignKey(
-        "core.Plant",
-        on_delete=models.CASCADE,
-        related_name="shifts",
-    )
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=32)
     label = models.CharField(max_length=100, blank=True)
@@ -32,7 +27,7 @@ class Shift(TenantScopedModel):
 
     class Meta:
         ordering = ["code"]
-        unique_together = [["tenant", "plant", "code"]]
+        unique_together = [["tenant", "code"]]
 
     def __str__(self):
         return f"{self.code} — {self.name}"

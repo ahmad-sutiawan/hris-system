@@ -34,8 +34,21 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return self.role == self.Role.ADMIN
+        return self.is_superuser or self.role == self.Role.ADMIN
 
     @property
     def is_hr(self):
-        return self.role in {self.Role.ADMIN, self.Role.HR}
+        return self.is_superuser or self.role in {self.Role.ADMIN, self.Role.HR}
+
+    def save(self, *args, **kwargs):
+        if self.is_superuser:
+            self.is_staff = True
+            if self.role != self.Role.ADMIN:
+                self.role = self.Role.ADMIN
+            if not self.tenant_id:
+                from apps.core.models import Tenant
+
+                tenant = Tenant.objects.order_by("pk").first()
+                if tenant:
+                    self.tenant = tenant
+        super().save(*args, **kwargs)

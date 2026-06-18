@@ -48,9 +48,13 @@ def _style_fields(form):
             widget.attrs.setdefault("class", HRIS_INPUT_CLASS)
 
 
-def _filter_plant_queryset(form, tenant, user=None):
+def _filter_plant_queryset(form, tenant, user=None, *, entity_type=None):
     if tenant and "plant" in form.fields:
-        qs = Plant.objects.filter(tenant=tenant)
+        qs = Plant.objects.filter(tenant=tenant, is_active=True)
+        if entity_type:
+            qs = qs.filter(entity_type=entity_type)
+        else:
+            qs = qs.filter(entity_type=Plant.EntityType.BRANCH)
         if user and user.plant_id and not user.is_admin:
             qs = qs.filter(pk=user.plant_id)
         form.fields["plant"].queryset = qs
@@ -74,7 +78,6 @@ def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=
     if plant_id:
         dept_qs = dept_qs.filter(plant_id=plant_id)
         job_qs = job_qs.filter(plant_id=plant_id)
-        shift_qs = shift_qs.filter(plant_id=plant_id)
 
     form.fields["department"].queryset = dept_qs
     form.fields["department"].label = "Organization"
@@ -245,8 +248,8 @@ class EmployeeForm(forms.ModelForm):
             self.add_error("department", "Department harus sesuai plant yang dipilih.")
         if job_position and plant and job_position.plant_id != plant.pk:
             self.add_error("job_position", "Jabatan harus sesuai plant yang dipilih.")
-        if default_shift and plant and default_shift.plant_id != plant.pk:
-            self.add_error("default_shift", "Shift harus sesuai plant yang dipilih.")
+        if default_shift and self.instance.tenant_id and default_shift.tenant_id != self.instance.tenant_id:
+            self.add_error("default_shift", "Shift must belong to the same company.")
         return cleaned
 
 

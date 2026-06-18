@@ -1,6 +1,10 @@
 from django.urls import reverse
 
-from apps.core.decorators import user_can_manage_master_data, user_has_admin_console
+from apps.core.decorators import (
+    user_can_manage_employees,
+    user_can_manage_master_data,
+    user_has_admin_console,
+)
 from apps.core.models import Notification
 from apps.core.services.announcements import active_announcements_for_user
 from apps.web.admin_crud.registry import (
@@ -53,6 +57,12 @@ def admin_navigation(request):
     return {
         "show_admin_nav": True,
         "admin_nav_apps": apps,
+    }
+
+
+def employee_navigation(request):
+    return {
+        "show_employee_nav": user_can_manage_employees(request.user),
     }
 
 

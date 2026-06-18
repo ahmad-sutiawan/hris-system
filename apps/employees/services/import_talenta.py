@@ -19,14 +19,8 @@ from apps.organization.services.codes import (
     job_position_code_from_name,
 )
 
-TALENTA_REQUIRED_HEADERS = [
-    "Employee ID",
-    "Full Name",
-    "Organization",
-    "Job Position",
-    "Join Date",
-    "Status Employee",
-]
+from apps.employees.talenta_mapping import TALENTA_REQUIRED_IMPORT_COLUMNS
+from apps.employees.services.talenta_master import resolve_talenta_masters_from_row
 
 from apps.employees.talenta_vocabulary import (
     TALENTA_JOB_LEVEL_RANK,
@@ -53,6 +47,16 @@ def _cell(row: dict, key: str, default: str = "") -> str:
     if key not in row:
         return default
     return _normalize_text(row[key])
+
+
+def _cell_preserve(row: dict, key: str, default: str = "") -> str:
+    """Nilai teks persis dari Excel (hanya trim ujung, spasi ganda dipertahankan)."""
+    if key not in row:
+        return default
+    value = row[key]
+    if value is None:
+        return default
+    return str(value).strip()
 
 
 def _parse_date(value) -> date | None:
@@ -131,7 +135,7 @@ def _load_rows(file_bytes: bytes) -> tuple[list[str], list[dict]]:
     if not any(headers):
         raise ValueError("Header Excel tidak valid.")
 
-    missing = [h for h in TALENTA_REQUIRED_HEADERS if h not in headers]
+    missing = [h for h in TALENTA_REQUIRED_IMPORT_COLUMNS if h not in headers]
     if missing:
         raise ValueError(f"Kolom wajib hilang: {', '.join(missing)}")
 
@@ -151,14 +155,59 @@ class _OrgCache:
         self.departments: dict[tuple[int, str], Department] = {}
         self.jobs: dict[tuple[int, str], JobPosition] = {}
         self.levels: dict[str, JobLevel] = {}
+        self.pt_plants: dict[str, Plant] = {}
+        self.master_cache: dict[tuple[str, str], object] = {}
         self.stats = {
             "plants_created": 0,
+            "pt_plants_created": 0,
             "departments_created": 0,
             "job_positions_created": 0,
             "job_levels_created": 0,
+            "talenta_masters_created": 0,
         }
 
-    def get_plant(self, branch_name: str) -> Plant:
+    def get_pt_plant(self, parent_name: str) -> Plant | None:
+        name = _normalize_text(parent_name)
+        if not name:
+            return None
+        key = name.lower()
+        if key in self.pt_plants:
+            return self.pt_plants[key]
+
+        from django.utils.text import slugify
+
+        code = slugify(name).upper().replace("-", "_")[:20] or "PT"
+        existing = Plant.objects.filter(
+            tenant=self.tenant,
+            entity_type=Plant.EntityType.PT,
+            name=name,
+        ).first()
+        if not existing:
+            existing = Plant.objects.filter(
+                tenant=self.tenant,
+                entity_type=Plant.EntityType.PT,
+                code=code,
+            ).first()
+        if not existing:
+            existing = Plant.objects.filter(tenant=self.tenant, code=code).first()
+        if existing:
+            if existing.entity_type != Plant.EntityType.PT:
+                existing.entity_type = Plant.EntityType.PT
+                existing.save(update_fields=["entity_type"])
+            self.pt_plants[key] = existing
+            return existing
+
+        plant = Plant.objects.create(
+            tenant=self.tenant,
+            code=code,
+            name=name,
+            entity_type=Plant.EntityType.PT,
+        )
+        self.stats["pt_plants_created"] += 1
+        self.pt_plants[key] = plant
+        return plant
+
+    def get_plant(self, branch_name: str, parent_branch_name: str = "") -> Plant:
         key = _normalize_text(branch_name).lower()
         if key in self.plants:
             return self.plants[key]
@@ -167,12 +216,29 @@ class _OrgCache:
         code = branch_plant_code(name)
         branch_type = branch_type_from_excel_name(name)
 
-        existing = Plant.objects.filter(tenant=self.tenant, name=name).first()
+        existing = Plant.objects.filter(
+            tenant=self.tenant,
+            entity_type=Plant.EntityType.BRANCH,
+            name=name,
+        ).first()
+        if not existing:
+            existing = Plant.objects.filter(
+                tenant=self.tenant,
+                entity_type=Plant.EntityType.BRANCH,
+                code=code,
+            ).first()
         if not existing:
             existing = Plant.objects.filter(tenant=self.tenant, code=code).first()
 
         if existing:
             updates = []
+            parent = self.get_pt_plant(parent_branch_name) if parent_branch_name else None
+            if parent and existing.parent_id != parent.pk and existing.pk != parent.pk:
+                existing.parent = parent
+                updates.append("parent")
+            if existing.entity_type != Plant.EntityType.BRANCH:
+                existing.entity_type = Plant.EntityType.BRANCH
+                updates.append("entity_type")
             if existing.name != name:
                 existing.name = name
                 updates.append("name")
@@ -189,22 +255,27 @@ class _OrgCache:
             self.plants[key] = existing
             return existing
 
+        parent = self.get_pt_plant(parent_branch_name) if parent_branch_name else None
         plant = Plant.objects.create(
             tenant=self.tenant,
             code=code,
             name=name,
             branch_type=branch_type,
+            entity_type=Plant.EntityType.BRANCH,
+            parent=parent,
         )
         self.stats["plants_created"] += 1
         self.plants[key] = plant
         return plant
 
     def get_department(self, plant: Plant, org_name: str) -> Department:
-        key = (plant.pk, _normalize_text(org_name).lower())
+        name = _cell_preserve({"Organization": org_name}, "Organization")
+        key = (plant.pk, _normalize_text(name).lower())
         if key in self.departments:
             return self.departments[key]
 
-        name = _normalize_text(org_name) or NA
+        if not name:
+            name = NA
         existing = Department.objects.filter(
             tenant=self.tenant, plant=plant, name=name
         ).first()
@@ -291,10 +362,13 @@ class _OrgCache:
 
 def _employee_defaults_from_row(row: dict, org: _OrgCache) -> dict:
     branch_name = _cell(row, "Branch Name") or _cell(row, "Parent Branch Name") or "Plant Utama"
-    plant = org.get_plant(branch_name)
-    dept = org.get_department(plant, _cell(row, "Organization") or NA)
+    parent_name = _cell(row, "Parent Branch Name")
+    plant = org.get_plant(branch_name, parent_name)
+    dept = org.get_department(plant, _cell_preserve(row, "Organization") or NA)
     job = org.get_job(plant, dept, _cell(row, "Job Position") or NA)
     job_level = org.get_job_level(_cell(row, "Job Level"))
+
+    masters = resolve_talenta_masters_from_row(org.tenant, row, cache=org.master_cache)
 
     join_date = _parse_date(row.get("Join Date"))
     if not join_date:
@@ -302,19 +376,30 @@ def _employee_defaults_from_row(row: dict, org: _OrgCache) -> dict:
 
     status, salary_scheme, status_employee, resign_date, contract_end = _map_employment(row)
 
-    phone = _cell(row, "Mobile Phone") or _cell(row, "Phone") or NA
-    address = _cell(row, "Residential Address") or _cell(row, "Citizen ID Address") or NA
-    nik = _cell(row, "NIK (NPWP 16 Digit)") or _cell(row, "NPWP 16 digit (new)") or NA
-    npwp = _cell(row, "NPWP") or _cell(row, "NPWP 16 digit (new)") or NA
+    phone = _cell(row, "Mobile Phone")
+    phone_landline = _cell_preserve(row, "Phone")
+    citizen_id_address = _cell_preserve(row, "Citizen ID Address")
+    address = _cell_preserve(row, "Residential Address") or citizen_id_address
+    nik = _cell(row, "NIK (NPWP 16 Digit)")
+    npwp = _cell_preserve(row, "NPWP")
+    npwp_16 = _cell(row, "NPWP 16 digit (new)") or nik
+
+    tax_status_raw = _cell(row, "Employee Tax Status")
+    tax_config_raw = _cell(row, "Tax Config")
 
     defaults = {
+        "barcode": _cell(row, "Barcode"),
         "full_name": _cell(row, "Full Name") or NA,
-        "nik": nik or NA,
-        "email": _cell(row, "Email") or NA,
-        "phone": phone or NA,
-        "address": address or NA,
-        "birth_place": _cell(row, "Birth Place") or NA,
+        "nik": nik,
+        "npwp_16_digit": npwp_16,
+        "email": _cell(row, "Email"),
+        "phone": phone,
+        "phone_landline": phone_landline,
+        "address": address,
+        "citizen_id_address": citizen_id_address,
+        "birth_place": _cell_preserve(row, "Birth Place"),
         "birth_date": _parse_date(row.get("Birth Date")),
+        "talenta_age": _cell_preserve(row, "Age"),
         "gender": _map_gender(_cell(row, "Gender")),
         "marital_status": _map_marital_status(_cell(row, "Marital Status")),
         "plant": plant,
@@ -322,16 +407,40 @@ def _employee_defaults_from_row(row: dict, org: _OrgCache) -> dict:
         "job_position": job,
         "job_level": job_level,
         "join_date": join_date,
+        "sign_date": _parse_date(row.get("Sign Date")),
         "status": status,
         "status_employee": status_employee,
         "salary_scheme": salary_scheme,
-        "tax_status": _cell(row, "PTKP Status") or NA,
-        "npwp": npwp or NA,
-        "bank_name": _cell(row, "Bank Name") or NA,
-        "bank_account_number": _cell(row, "Bank Account") or NA,
-        "bank_account_name": _cell(row, "Bank Account Holder") or NA,
-        "bpjs_ketenagakerjaan_number": _cell(row, "BPJS Ketenagakerjaan") or NA,
-        "bpjs_kesehatan_number": _cell(row, "BPJS Kesehatan") or NA,
+        "length_of_service": _cell_preserve(row, "Length Of Service"),
+        "tax_status": _cell(row, "PTKP Status"),
+        "employee_tax_status": tax_status_raw,
+        "tax_config": tax_config_raw,
+        "npwp": npwp,
+        "bank_name": _cell(row, "Bank Name"),
+        "bank_account_number": _cell(row, "Bank Account"),
+        "bank_account_name": _cell_preserve(row, "Bank Account Holder"),
+        "bpjs_ketenagakerjaan_number": _cell(row, "BPJS Ketenagakerjaan"),
+        "bpjs_kesehatan_number": _cell(row, "BPJS Kesehatan"),
+        "passport_number": _cell(row, "Passport"),
+        "passport_expiration_date": _parse_date(row.get("Passport Expiration Date")),
+        "tax_ref_doc_type": _cell(row, "Jenis Dok. Referensi Bukti Potong"),
+        "tax_ref_doc_number": _cell(row, "Nomor Dok. Referensi Bukti Potong"),
+        "tax_ref_doc_date": _parse_date(row.get("Tanggal Dok. Referensi Bukti Potong")),
+        "tin": _cell(row, "TIN (Taxpayer Identification Number)"),
+        "profile_picture_url": _cell(row, "Profile Picture"),
+        "religion": masters.get("religion"),
+        "blood_type": masters.get("blood_type"),
+        "nationality": masters.get("nationality"),
+        "currency": masters.get("currency"),
+        "payment_schedule": masters.get("payment_schedule"),
+        "approval_line": masters.get("approval_line"),
+        "grade": masters.get("grade"),
+        "talenta_class": masters.get("employee_class"),
+        "cost_center": masters.get("cost_center"),
+        "cost_center_category": masters.get("cost_center_category"),
+        "sbu": masters.get("sbu"),
+        "employee_tax_status_master": masters.get("employee_tax_status"),
+        "tax_config_master": masters.get("tax_config"),
     }
 
     if resign_date:
@@ -403,7 +512,7 @@ def import_employees_talenta_xlsx(tenant, file_bytes: bytes, *, dry_run=False):
                 employee_id=employee_id,
                 defaults=defaults,
             )
-            apply_mandatory_defaults(obj, fill_fk=False)
+            apply_mandatory_defaults(obj, fill_fk=False, skip_na_fill=True)
             obj.save()
             if was_created:
                 created += 1

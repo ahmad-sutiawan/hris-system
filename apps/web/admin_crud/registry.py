@@ -72,9 +72,11 @@ MASTER_GROUP_ORDER = [
 
 MASTER_SLUG_ORDER = [
     "plants",
+    "branches",
     "departments",
     "job-positions",
     "job-levels",
+    "talenta-masters",
     "punch-locations",
     "holidays",
     "shifts",

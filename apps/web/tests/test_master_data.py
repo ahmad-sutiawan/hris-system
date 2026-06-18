@@ -36,6 +36,7 @@ class MasterDataTests(TestCase):
         self.assertContains(response, "Master Data")
         self.assertContains(response, "Organization")
         self.assertContains(response, "Job Position")
+        self.assertContains(response, "Plants")
         self.assertContains(response, "Branch Name")
 
     def test_master_sidebar_flat_submenu(self):
@@ -46,6 +47,7 @@ class MasterDataTests(TestCase):
         self.assertEqual(content.count("Master Data"), 1)
         self.assertIn("Organization", content)
         self.assertIn("Job Position", content)
+        self.assertIn("Plants", content)
         self.assertIn("Branch Name", content)
         self.assertIn("Master Shift", content)
         self.assertIn("Salary Components", content)

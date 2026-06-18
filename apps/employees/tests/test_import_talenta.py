@@ -216,9 +216,15 @@ class TalentaImportTests(TestCase):
         ]
         import_employees_talenta_xlsx(self.tenant, _build_xlsx(rows))
 
-        plants = Plant.objects.filter(tenant=self.tenant).order_by("code")
+        plants = Plant.objects.filter(
+            tenant=self.tenant,
+            entity_type=Plant.EntityType.BRANCH,
+        ).order_by("code")
         codes = set(plants.values_list("code", flat=True))
         self.assertEqual(codes, {"BPS_HARIAN", "BPS_STAFF", "SPV_UP"})
+        self.assertTrue(
+            Plant.objects.filter(tenant=self.tenant, entity_type=Plant.EntityType.PT).exists()
+        )
 
         harian = Employee.objects.get(tenant=self.tenant, employee_id="601")
         staff = Employee.objects.get(tenant=self.tenant, employee_id="602")

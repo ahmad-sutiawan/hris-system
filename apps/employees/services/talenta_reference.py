@@ -7,7 +7,8 @@ from pathlib import Path
 
 from django.conf import settings
 
-from apps.employees.services.import_talenta import TALENTA_REQUIRED_HEADERS, _load_rows
+from apps.employees.talenta_mapping import TALENTA_REQUIRED_IMPORT_COLUMNS
+from apps.employees.services.import_talenta import _load_rows
 
 
 def media_root() -> Path:
@@ -18,6 +19,10 @@ def find_talenta_excel_file(*, media_dir: Path | None = None) -> Path | None:
     root = media_dir or media_root()
     if not root.is_dir():
         return None
+
+    preferred = root / "employee_db.xlsx"
+    if preferred.is_file() and is_talenta_export(preferred):
+        return preferred
 
     candidates = sorted(
         root.glob("*.xlsx"),
@@ -41,7 +46,7 @@ def is_talenta_export(path: Path) -> bool:
 def read_talenta_excel(path: Path | None = None) -> tuple[Path, bytes]:
     file_path = path or find_talenta_excel_file()
     if not file_path:
-        missing = ", ".join(TALENTA_REQUIRED_HEADERS[:4])
+        missing = ", ".join(TALENTA_REQUIRED_IMPORT_COLUMNS[:4])
         raise FileNotFoundError(
             f"Tidak ada file export Talenta (.xlsx) di {media_root()}. "
             f"File harus memiliki kolom: {missing}, …"

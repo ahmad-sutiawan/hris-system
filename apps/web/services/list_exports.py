@@ -51,65 +51,20 @@ def export_employee_compensation_csv(qs) -> str:
 
 
 def export_employees_csv(qs) -> str:
-    def row(emp):
-        return [
-            emp.employee_id,
-            emp.full_name,
-            "",  # Barcode
-            emp.organization_name,
-            emp.job_position.title if emp.job_position_id else "",
-            emp.job_level.name if emp.job_level_id else "",
-            format_date(emp.join_date) if emp.join_date else "",
-            format_date(emp.resign_date) if emp.resign_date else "",
-            emp.get_status_employee_display(),
-            format_date(emp.contract_end_date) if emp.contract_end_date else "",
-            "",  # Sign Date
-            emp.email or "",
-            format_date(emp.birth_date) if emp.birth_date else "",
-            "",  # Age
-            emp.birth_place or "",
-            "",  # Citizen ID Address
-            (emp.address or "").replace("\n", " "),
-            emp.npwp or "",
-            emp.tax_status or "",
-            "",  # Employee Tax Status
-            "",  # Tax Config
-            emp.bank_name or "",
-            emp.bank_account_number or "",
-            emp.bank_account_name or "",
-            emp.bpjs_ketenagakerjaan_number or "",
-            emp.bpjs_kesehatan_number or "",
-            emp.nik or "",
-            emp.phone or "",
-            "",  # Phone
-            emp.branch_name,
-            emp.parent_branch_name,
-            "",  # Religion
-            emp.get_gender_excel_display(),
-            emp.get_marital_status_excel_display(),
-            "",  # Blood Type
-            "",  # Nationality Code
-            "",  # Currency
-            "",  # Length Of Service
-            "",  # Payment Schedule
-            "",  # Approval Line
-            emp.manager.full_name if emp.manager_id else "",
-            "",  # Grade
-            "",  # Class
-            "",  # Profile Picture
-            "",  # Cost Center
-            "",  # Cost Center Category
-            "",  # SBU
-            emp.nik or "",
-            "",  # Passport
-            "",  # Passport Expiration Date
-            "",  # Jenis Dok. Referensi Bukti Potong
-            "",  # Nomor Dok. Referensi Bukti Potong
-            "",  # Tanggal Dok. Referensi Bukti Potong
-            "",  # TIN
-        ]
+    from apps.employees.talenta_vocabulary import TALENTA_COLUMNS
 
-    return queryset_to_csv(qs, EMPLOYEE_EXPORT_HEADERS, row)
+    def row(emp):
+        data = emp.talenta_export_row()
+        barcode = getattr(emp, "barcode", "") or ""
+        out = []
+        for header in TALENTA_COLUMNS:
+            if header == "Barcode":
+                out.append(barcode)
+            else:
+                out.append(data.get(header, ""))
+        return out
+
+    return queryset_to_csv(qs, TALENTA_COLUMNS, row)
 
 
 SHIFT_EXPORT_HEADERS = [

@@ -16,13 +16,30 @@ class Tenant(TimeStampedModel):
 
 
 class Plant(TimeStampedModel):
+    class EntityType(models.TextChoices):
+        PT = "pt", "Plant (PT)"
+        BRANCH = "branch", "Branch"
+
     class BranchType(models.TextChoices):
-        BPS_HARIAN = "bps_harian", "PT BPS Harian"
-        BPS_STAFF = "bps_staff", "PT BPS Staff"
-        SPV_UP = "spv_up", "SPV ke atas"
-        OTHER = "other", "Lainnya"
+        BPS_HARIAN = "bps_harian", "BPS Harian"
+        BPS_STAFF = "bps_staff", "BPS Staff"
+        SPV_UP = "spv_up", "SPV Up"
+        OTHER = "other", "Other"
 
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="plants")
+    entity_type = models.CharField(
+        max_length=16,
+        choices=EntityType.choices,
+        default=EntityType.BRANCH,
+    )
+    parent = models.ForeignKey(
+        "self",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="child_branches",
+        help_text="PT induk untuk cabang karyawan (BPS Harian, Staff, SPV Up).",
+    )
     code = models.CharField(max_length=20)
     name = models.CharField(max_length=200)
     branch_type = models.CharField(
@@ -56,7 +73,7 @@ class Plant(TimeStampedModel):
         null=True,
         blank=True,
         related_name="default_for_plants",
-        help_text="Shift otomatis untuk karyawan baru di plant ini.",
+        help_text="Shift otomatis untuk karyawan baru di cabang ini.",
     )
     is_active = models.BooleanField(default=True)
 
@@ -66,3 +83,11 @@ class Plant(TimeStampedModel):
 
     def __str__(self):
         return f"{self.code} — {self.name}"
+
+    @property
+    def is_pt(self) -> bool:
+        return self.entity_type == self.EntityType.PT
+
+    @property
+    def is_branch(self) -> bool:
+        return self.entity_type == self.EntityType.BRANCH

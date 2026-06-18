@@ -30,6 +30,10 @@ def get_queryset(request, resource, filters: ListFilters | None = None):
     if model is Plant:
         if tenant:
             qs = qs.filter(tenant=tenant)
+        if resource.slug == "plants":
+            qs = qs.filter(entity_type=Plant.EntityType.PT)
+        elif resource.slug == "branches":
+            qs = qs.filter(entity_type=Plant.EntityType.BRANCH)
         return qs
 
     if model is type(user):

@@ -69,6 +69,7 @@ TEMPLATES = [
                 "apps.web.context_processors.announcement_banners",
                 "apps.web.context_processors.notifications",
                 "apps.web.context_processors.admin_navigation",
+                "apps.web.context_processors.employee_navigation",
                 "apps.web.context_processors.master_data_navigation",
             ],
         },

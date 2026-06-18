@@ -55,8 +55,30 @@ class TenantForm(forms.ModelForm):
 class PlantForm(forms.ModelForm):
     class Meta:
         model = Plant
+        fields = ["tenant", "code", "name", "is_active"]
+        labels = {"name": "Plant name"}
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
+        if tenant:
+            self.fields["tenant"].queryset = Tenant.objects.filter(pk=tenant.pk)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.entity_type = Plant.EntityType.PT
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
+
+
+class BranchForm(forms.ModelForm):
+    class Meta:
+        model = Plant
         fields = [
             "tenant",
+            "parent",
             "code",
             "name",
             "branch_type",
@@ -68,16 +90,32 @@ class PlantForm(forms.ModelForm):
             "default_shift",
             "is_active",
         ]
+        labels = {
+            "parent": "Plant",
+            "name": "Branch name",
+            "branch_type": "Branch type",
+        }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _base_init(self, tenant, user)
         if tenant:
             self.fields["tenant"].queryset = Tenant.objects.filter(pk=tenant.pk)
+            self.fields["parent"].queryset = Plant.objects.filter(
+                tenant=tenant, entity_type=Plant.EntityType.PT, is_active=True
+            )
             self.fields["default_shift"].queryset = Shift.objects.filter(
                 tenant=tenant, is_active=True
             )
             self.fields["default_shift"].required = False
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.entity_type = Plant.EntityType.BRANCH
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
 
 class FeatureFlagForm(forms.ModelForm):
@@ -317,7 +355,6 @@ class ShiftForm(forms.ModelForm):
     class Meta:
         model = Shift
         fields = [
-            "plant",
             "name",
             "code",
             "label",
@@ -355,7 +392,6 @@ class ShiftForm(forms.ModelForm):
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style_fields(self)
-        _base_init(self, tenant, user)
         apply_time_fields(self, "scheduled_check_in", "scheduled_check_out")
 
 
@@ -567,6 +603,11 @@ class AdminPayrollRunForm(forms.ModelForm):
         _style_fields(self)
         apply_date_fields(self, "period_start", "period_end")
         _base_init(self, tenant, user)
+        if tenant and "plant" in self.fields:
+            self.fields["plant"].queryset = Plant.objects.filter(
+                tenant=tenant, entity_type=Plant.EntityType.PT, is_active=True
+            )
+            self.fields["plant"].label = "Plant"
 
 
 class PayslipForm(forms.ModelForm):
@@ -706,6 +747,18 @@ class AnnouncementForm(forms.ModelForm):
             instance.save()
             self.save_m2m()
         return instance
+
+
+class TalentaMasterForm(forms.ModelForm):
+    class Meta:
+        from apps.employees.models import TalentaMaster
+
+        model = TalentaMaster
+        fields = ["category", "code", "name", "is_active"]
+
+    def __init__(self, *args, tenant=None, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        _base_init(self, tenant, user)
 
 
 class JobLevelForm(forms.ModelForm):

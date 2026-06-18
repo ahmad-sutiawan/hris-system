@@ -51,6 +51,7 @@ class AdminManageTests(TestCase):
         self.assertContains(response, "Administration")
         self.assertContains(response, "Master Data")
         self.assertContains(response, "Organization")
+        self.assertContains(response, "Plants")
         self.assertContains(response, "Branch Name")
         self.assertContains(response, "Job Position")
         self.assertContains(response, "Salary Components")
