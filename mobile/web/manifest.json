@@ -1,11 +1,11 @@
 {
-    "name": "hris_mobile",
-    "short_name": "hris_mobile",
+    "name": "BPS HRIS",
+    "short_name": "BPS HRIS",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F3F5FC",
+    "theme_color": "#140B6E",
+    "description": "Portal karyawan BPS HRIS — absensi, cuti, lembur, slip gaji.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

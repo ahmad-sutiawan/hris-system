@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load hris_ui %}
-{% block title %}Payroll Detail — BPS HRIS{% endblock %}
-{% block page_title %}Payroll Detail{% endblock %}
+{% block title %}Detail Penggajian — BPS HRIS{% endblock %}
+{% block page_title %}Detail Penggajian{% endblock %}
 
 {% block content %}
 <div class="hris-page-header">
   <div>
-    <h1>Payroll {{ payroll_run.plant.code }}</h1>
+    <h1>Penggajian {{ payroll_run.plant.code }}</h1>
     <p>{{ payroll_run.period_start }} — {{ payroll_run.period_end }} · {% status_badge payroll_run.status payroll_run.get_status_display %} · {{ result_count|num:0 }} slip</p>
   </div>
   <div class="hris-actions">
@@ -23,7 +23,7 @@
     {% endif %}
     {% if payroll_run.status != 'finalized' %}
     <form method="post" action="{% url 'web:payroll_calculate' payroll_run.pk %}">{% csrf_token %}
-      <button class="hris-btn hris-btn-secondary">Hitung Payroll</button>
+      <button class="hris-btn hris-btn-secondary">Hitung Penggajian</button>
     </form>
     {% if payroll_run.status == 'review' %}
     <form method="post" action="{% url 'web:payroll_finalize' payroll_run.pk %}">{% csrf_token %}
@@ -65,7 +65,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="6"><div class="hris-empty">{% if search_query %}Tidak ada slip yang cocok dengan pencarian.{% else %}Belum dihitung. Klik "Hitung Payroll".{% endif %}</div></td></tr>
+        <tr><td colspan="6"><div class="hris-empty">{% if search_query %}Tidak ada slip yang cocok dengan pencarian.{% else %}Belum dihitung. Klik "Hitung Penggajian".{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

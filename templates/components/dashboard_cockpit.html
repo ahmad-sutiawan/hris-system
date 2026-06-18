@@ -172,7 +172,7 @@
     </section>
 
     <section class="hx-panel hx-span-4">
-      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Spectrum</span><h2>Karyawan per Branch</h2></header>
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Spectrum</span><h2>Karyawan per Cabang</h2></header>
       <div class="hx-bars">
         {% for row in analytics.neo.diverging_plants %}
         <div class="hx-bar-row" data-hx-bar style="--w:{{ row.bar_pct }}%;" data-label="{{ row.label }}" data-value="{{ row.value|num:0 }}">
@@ -287,15 +287,15 @@
     {% endif %}
 
     <section class="hx-panel hx-span-{% if profile and profile_summary %}4{% else %}8{% endif %}">
-      <header class="hx-panel-head"><span class="hx-tag hx-tag--cyan">Actions</span><h2>Quick Actions</h2></header>
+      <header class="hx-panel-head"><span class="hx-tag hx-tag--cyan">Aksi</span><h2>Aksi Cepat</h2></header>
       <div class="hx-actions">
-        <a href="{% url 'web:leave_create' %}" class="hx-action">Submit Leave</a>
-        <a href="{% url 'web:overtime_create' %}" class="hx-action">Submit Overtime</a>
-        <a href="{% url 'web:payslip_list' %}" class="hx-action">Payslips</a>
-        <a href="{% url 'web:attendance_list' %}" class="hx-action">Attendance History</a>
+        <a href="{% url 'web:leave_create' %}" class="hx-action">Ajukan Cuti</a>
+        <a href="{% url 'web:overtime_create' %}" class="hx-action">Ajukan Lembur</a>
+        <a href="{% url 'web:payslip_list' %}" class="hx-action">Slip Gaji</a>
+        <a href="{% url 'web:attendance_list' %}" class="hx-action">Riwayat Absensi</a>
         {% if user.role == 'admin' or user.role == 'hr' %}
-        <a href="{% url 'web:employee_list' %}" class="hx-action">Employee List</a>
-        <a href="{% url 'web:payroll_create' %}" class="hx-action">Create Payroll</a>
+        <a href="{% url 'web:employee_list' %}" class="hx-action">Daftar Karyawan</a>
+        <a href="{% url 'web:payroll_create' %}" class="hx-action">Buat Penggajian</a>
         {% endif %}
       </div>
       {% if latest_payroll %}<p class="hx-footnote">Payroll terakhir: {% if latest_payroll.plant %}{{ latest_payroll.plant.code }}{% else %}—{% endif %} · {{ latest_payroll.period_start|local_date:"M Y" }}</p>{% endif %}

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% load hris_ui %}
-{% block title %}Payroll — BPS HRIS{% endblock %}
-{% block page_title %}Payroll{% endblock %}
+{% block title %}Penggajian — BPS HRIS{% endblock %}
+{% block page_title %}Penggajian{% endblock %}
 
 {% block content %}
 <div class="hris-page-header">
   <div>
-    <h1>Payroll Run</h1>
+    <h1>Proses Penggajian</h1>
     <p>Proses gaji periodik per plant — {{ result_count|num:0 }} baris</p>
   </div>
-  <a href="{% url 'web:payroll_create' %}" class="hris-btn hris-btn-primary">+ Buat Payroll</a>
+  <a href="{% url 'web:payroll_create' %}" class="hris-btn hris-btn-primary">+ Buat Penggajian</a>
 </div>
 
 {% include "components/list_toolbar.html" with search_placeholder="Cari plant, periode, status, catatan…" show_date_range=True show_export=True search_reset_url=request.path %}

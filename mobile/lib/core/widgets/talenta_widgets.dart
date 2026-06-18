@@ -298,7 +298,7 @@ class ShiftScheduleCard extends StatelessWidget {
                   Expanded(
                     child: _PunchAction(
                       icon: Icons.login_rounded,
-                      label: 'Clock In',
+                      label: 'Masuk',
                       color: AppColors.darkGold,
                       enabled: canClockIn,
                       onTap: onClockIn,
@@ -308,7 +308,7 @@ class ShiftScheduleCard extends StatelessWidget {
                   Expanded(
                     child: _PunchAction(
                       icon: Icons.logout_rounded,
-                      label: 'Clock Out',
+                      label: 'Pulang',
                       color: AppColors.chinaRed,
                       enabled: canClockOut,
                       onTap: onClockOut,

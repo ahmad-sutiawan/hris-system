@@ -119,13 +119,10 @@ class AttendanceScreen extends ConsumerWidget {
     final filter = ref.watch(attendanceFilterProvider);
     final timesheets = ref.watch(timesheetsProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Text(
-          'Attendance Summary',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
-        ),
+    return HrisScaffold(
+      withBackground: false,
+      appBar: hrisAppBar(
+        title: 'Ringkasan Absensi',
         actions: [
           AnimatedPress(
             onTap: () => context.push('/punch?action=in'),
@@ -530,7 +527,7 @@ class _TimesheetCard extends ConsumerWidget {
             children: [
               Expanded(
                 child: _TimeBlock(
-                  label: 'Clock In',
+                  label: 'Masuk',
                   time: _formatTime(data['check_in'], fmtTime),
                   lateMinutes: data['late_in_minutes'] as int? ?? 0,
                   isIn: true,
@@ -539,7 +536,7 @@ class _TimesheetCard extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: _TimeBlock(
-                  label: 'Clock Out',
+                  label: 'Pulang',
                   time: _formatTime(data['check_out'], fmtTime),
                   earlyMinutes: data['early_out_minutes'] as int? ?? 0,
                   isIn: false,
@@ -598,7 +595,7 @@ class _TimesheetCard extends ConsumerWidget {
   static String _sourceLabel(dynamic source) {
     switch ('$source') {
       case 'mobile':
-        return 'Mobile App';
+        return 'Aplikasi Mobile';
       case 'web':
         return 'Portal Web';
       case 'kiosk':

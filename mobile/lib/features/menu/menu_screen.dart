@@ -27,8 +27,8 @@ class MenuScreen extends ConsumerWidget {
     );
     final name = employee?['full_name'] ?? auth.user?['username'] ?? '';
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return HrisScaffold(
+      withBackground: false,
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(dashboardProvider),
@@ -55,7 +55,7 @@ class MenuScreen extends ConsumerWidget {
               ),
             ),
             SliverToBoxAdapter(
-              child: HomeSectionHeader(title: 'Account Menu'),
+              child: HomeSectionHeader(title: 'Menu Akun'),
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -63,54 +63,54 @@ class MenuScreen extends ConsumerWidget {
                 delegate: SliverChildListDelegate([
                   _MenuTile(
                     icon: Icons.person_outline_rounded,
-                    label: 'Employee Profile',
+                    label: 'Profil Karyawan',
                     onTap: () => context.push('/profile'),
                   ),
                   _MenuTile(
                     icon: Icons.mail_outline_rounded,
-                    label: 'Inbox',
+                    label: 'Kotak Masuk',
                     badge: unread > 0 ? '$unread' : null,
                     onTap: () => context.go('/inbox'),
                   ),
                   _MenuTile(
                     icon: Icons.campaign_outlined,
-                    label: 'Announcements',
+                    label: 'Pengumuman',
                     badge: announcements > 0 ? '$announcements' : null,
                     onTap: () => context.push('/announcements'),
                   ),
                   _MenuTile(
                     icon: Icons.apps_rounded,
-                    label: 'All Apps',
+                    label: 'Semua Aplikasi',
                     onTap: () => context.push('/all-apps'),
                   ),
                   _MenuTile(
                     icon: Icons.calendar_month_outlined,
-                    label: 'Attendance Summary',
+                    label: 'Ringkasan Absensi',
                     onTap: () => context.go('/attendance'),
                   ),
                   _MenuTile(
                     icon: Icons.beach_access_outlined,
-                    label: 'Leave Requests',
+                    label: 'Pengajuan Cuti',
                     onTap: () => context.push('/leave'),
                   ),
                   _MenuTile(
                     icon: Icons.more_time_outlined,
-                    label: 'Overtime Requests',
+                    label: 'Pengajuan Lembur',
                     onTap: () => context.push('/overtime'),
                   ),
                   _MenuTile(
                     icon: Icons.receipt_long_outlined,
-                    label: 'Payslips',
+                    label: 'Slip Gaji',
                     onTap: () => context.push('/payslips'),
                   ),
                   _MenuTile(
                     icon: Icons.add_circle_outline_rounded,
-                    label: 'New Request',
+                    label: 'Pengajuan Baru',
                     onTap: () => context.go('/request'),
                   ),
                   const SizedBox(height: 20),
                   PrimaryButton(
-                    label: 'Sign Out',
+                    label: 'Keluar',
                     secondary: true,
                     icon: Icons.logout,
                     onPressed: () async {

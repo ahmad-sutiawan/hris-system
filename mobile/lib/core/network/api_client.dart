@@ -163,6 +163,18 @@ class ApiClient {
     await _deleteStorage(_refreshKey);
   }
 
+  Future<void> logout() async {
+    final refresh = await _readStorage(_refreshKey);
+    if (refresh != null && refresh.isNotEmpty) {
+      try {
+        await _dio.post('/auth/logout/', data: {'refresh': refresh});
+      } catch (_) {
+        // Token blacklist best-effort; tetap hapus lokal.
+      }
+    }
+    await clearTokens();
+  }
+
   Future<bool> hasToken() async {
     final token = await _readStorage(_accessKey);
     return token != null && token.isNotEmpty;

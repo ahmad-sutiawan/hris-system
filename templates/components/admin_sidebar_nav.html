@@ -2,7 +2,7 @@
 {% if show_admin_nav %}
 <a href="{% url 'web:manage_hub' %}" class="hris-nav-link hris-nav-link--admin-hub{% if request.path == '/manage/' %} is-active{% endif %}">
   {% nav_icon "manage_hub" %}
-  Admin Console
+  Konsol Admin
 </a>
 {% for app in admin_nav_apps %}
 <div class="hris-nav-section hris-nav-section--admin">

@@ -27,13 +27,10 @@ class NotificationsScreen extends ConsumerWidget {
     final filter = ref.watch(inboxFilterProvider);
     final notifications = ref.watch(notificationsProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: Text(
-          embedded ? 'Inbox' : 'Notifications',
-          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
-        ),
+    return HrisScaffold(
+      withBackground: !embedded,
+      appBar: hrisAppBar(
+        title: embedded ? 'Kotak Masuk' : 'Notifikasi',
         actions: [
           AnimatedPress(
             onTap: () => _markAllRead(context, ref),

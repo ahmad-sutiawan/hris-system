@@ -8,7 +8,7 @@ abstract final class AppSpacing {
   static const section = 16.0;
   static const item = 10.0;
   static const screenH = 16.0;
-  static const bottomNav = 88.0;
+  static const bottomNav = 100.0;
 }
 
 /// Tap scale + fade/slide entrance — tanpa dependency ekstra.

@@ -133,7 +133,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
-    await _api.clearTokens();
+    await _api.logout();
     state = const AuthState(isLoading: false, isAuthenticated: false);
   }
 }

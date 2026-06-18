@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load hris_ui %}
-{% block title %}{{ resource.title_plural }} — Master Data{% endblock %}
+{% block title %}{{ resource.title_plural }} — Data Master{% endblock %}
 {% block page_title %}{{ resource.title_plural }}{% endblock %}
 
 {% block content %}
@@ -10,7 +10,7 @@
     <p>Master data {{ resource.title|lower }} — {{ result_count|num:0 }} baris</p>
   </div>
   <div class="hris-actions">
-    <a href="{% url crud_url_names.hub %}" class="hris-btn hris-btn-secondary">← Master Data</a>
+    <a href="{% url crud_url_names.hub %}" class="hris-btn hris-btn-secondary">← Data Master</a>
     {% if resource.allow_create %}
     <a href="{% url crud_url_names.create resource.slug %}" class="hris-btn hris-btn-primary">+ Tambah</a>
     {% endif %}

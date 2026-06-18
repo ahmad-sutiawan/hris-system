@@ -67,9 +67,9 @@ def bootstrap_registry():
             slug="plants",
             model=Plant,
             form_class=PlantForm,
-            section="Core",
+            section="Inti",
             title="Plant",
-            title_plural="Plants",
+            title_plural="Plant",
             columns=[
                 Column("Code", "code"),
                 Column("Plant name", "name"),
@@ -80,7 +80,7 @@ def bootstrap_registry():
             order_by=["code"],
             tenant_scoped=False,
             master_data=True,
-            master_group="Organization Structure",
+            master_group="Struktur Organisasi",
             list_limit=500,
         )
     )
@@ -89,9 +89,9 @@ def bootstrap_registry():
             slug="branches",
             model=Plant,
             form_class=BranchForm,
-            section="Core",
-            title="Branch Name",
-            title_plural="Branch Name",
+            section="Inti",
+            title="Cabang",
+            title_plural="Cabang",
             columns=[
                 Column("Code", "code"),
                 Column("Branch name", "name"),
@@ -108,7 +108,7 @@ def bootstrap_registry():
             order_by=["code"],
             tenant_scoped=False,
             master_data=True,
-            master_group="Organization Structure",
+            master_group="Struktur Organisasi",
             list_limit=500,
         )
     )
@@ -117,9 +117,9 @@ def bootstrap_registry():
             slug="users",
             model=User,
             form_class=AdminUserForm,
-            section="Core",
+            section="Inti",
             title="Pengguna",
-            title_plural="Users",
+            title_plural="Pengguna",
             columns=[
                 Column("Username", "username"),
                 Column("Email", "email"),
@@ -138,9 +138,9 @@ def bootstrap_registry():
             slug="feature-flags",
             model=FeatureFlag,
             form_class=FeatureFlagForm,
-            section="Core",
-            title="Feature Flag",
-            title_plural="Feature Flags",
+            section="Inti",
+            title="Fitur Sistem",
+            title_plural="Fitur Sistem",
             columns=[
                 Column("Key", "key"),
                 Column("Plant", "plant"),
@@ -157,9 +157,9 @@ def bootstrap_registry():
             slug="departments",
             model=Department,
             form_class=DepartmentForm,
-            section="Organization",
-            title="Organization",
-            title_plural="Organization",
+            section="Organisasi",
+            title="Organisasi",
+            title_plural="Organisasi",
             columns=[
                 Column("Organization", "name"),
                 Column("Branch Name", "plant"),
@@ -169,7 +169,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["name"],
             master_data=True,
-            master_group="Organization Structure",
+            master_group="Struktur Organisasi",
             list_limit=500,
         )
     )
@@ -178,9 +178,9 @@ def bootstrap_registry():
             slug="job-positions",
             model=JobPosition,
             form_class=JobPositionForm,
-            section="Organization",
-            title="Job Position",
-            title_plural="Job Position",
+            section="Organisasi",
+            title="Jabatan",
+            title_plural="Jabatan",
             columns=[
                 Column("Kode", "code"),
                 Column("Job Position", "title"),
@@ -191,7 +191,7 @@ def bootstrap_registry():
             select_related=["department", "plant"],
             order_by=["title"],
             master_data=True,
-            master_group="Organization Structure",
+            master_group="Struktur Organisasi",
             list_limit=500,
         )
     )
@@ -200,9 +200,9 @@ def bootstrap_registry():
             slug="pph21-ter-categories",
             model=Pph21TerCategory,
             form_class=Pph21TerCategoryForm,
-            section="Payroll",
+            section="Penggajian",
             title="Kategori TER PPh 21",
-            title_plural="PPh 21 TER Categories",
+            title_plural="Kategori TER PPh 21",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -211,7 +211,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Finance",
+            master_group="Keuangan",
             list_limit=10,
         )
     )
@@ -220,9 +220,9 @@ def bootstrap_registry():
             slug="pph21-ter-brackets",
             model=Pph21TerBracket,
             form_class=Pph21TerBracketForm,
-            section="Payroll",
+            section="Penggajian",
             title="Lapisan TER PPh 21",
-            title_plural="PPh 21 TER Brackets",
+            title_plural="Lapisan TER PPh 21",
             columns=[
                 Column("Kategori", "category"),
                 Column("No", "bracket_no"),
@@ -234,7 +234,7 @@ def bootstrap_registry():
             select_related=["category"],
             order_by=["category__code", "bracket_no"],
             master_data=True,
-            master_group="Finance",
+            master_group="Keuangan",
             list_limit=500,
         )
     )
@@ -243,9 +243,9 @@ def bootstrap_registry():
             slug="pph21-ter-ptkp",
             model=Pph21TerPtkpMapping,
             form_class=Pph21TerPtkpMappingForm,
-            section="Payroll",
-            title="PTKP → TER",
-            title_plural="PTKP → TER",
+            section="Penggajian",
+            title="Pemetaan PTKP → TER",
+            title_plural="Pemetaan PTKP → TER",
             columns=[
                 Column("PTKP", "ptkp_code"),
                 Column("Kategori TER", "category"),
@@ -254,7 +254,7 @@ def bootstrap_registry():
             select_related=["category"],
             order_by=["ptkp_code"],
             master_data=True,
-            master_group="Finance",
+            master_group="Keuangan",
             list_limit=20,
         )
     )
@@ -263,9 +263,9 @@ def bootstrap_registry():
             slug="employees",
             model=Employee,
             form_class=AdminEmployeeForm,
-            section="Employees",
+            section="Karyawan",
             title="Karyawan",
-            title_plural="Employees",
+            title_plural="Karyawan",
             columns=[
                 Column("Employee ID", "employee_id"),
                 Column("Full Name", "full_name"),
@@ -286,9 +286,9 @@ def bootstrap_registry():
             slug="employee-documents",
             model=EmployeeDocument,
             form_class=EmployeeDocumentForm,
-            section="Employees",
+            section="Karyawan",
             title="Dokumen Karyawan",
-            title_plural="Employee Documents",
+            title_plural="Dokumen Karyawan",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Tipe", "document_type"),
@@ -304,7 +304,7 @@ def bootstrap_registry():
             slug="shifts",
             model=Shift,
             form_class=ShiftForm,
-            section="Shifts",
+            section="Shift",
             title="Master Shift",
             title_plural="Master Shift",
             columns=[
@@ -323,7 +323,7 @@ def bootstrap_registry():
             search_fields=["code", "name", "label", "shift_allowance_code"],
             order_by=["code"],
             master_data=True,
-            master_group="Operations",
+            master_group="Operasional",
             list_limit=500,
         )
     )
@@ -332,9 +332,9 @@ def bootstrap_registry():
             slug="shift-assignments",
             model=ShiftAssignment,
             form_class=AdminShiftAssignmentForm,
-            section="Shifts",
-            title="Shift Assignment",
-            title_plural="Shift Assignment",
+            section="Shift",
+            title="Penugasan Shift",
+            title_plural="Penugasan Shift",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Shift", "shift"),
@@ -351,9 +351,9 @@ def bootstrap_registry():
             slug="attendance-codes",
             model=AttendanceCode,
             form_class=AttendanceCodeForm,
-            section="Attendance",
+            section="Absensi",
             title="Kode Absensi",
-            title_plural="Attendance Codes",
+            title_plural="Kode Absensi",
             columns=[
                 Column("Kode", "code"),
                 Column("Label", "label"),
@@ -363,7 +363,7 @@ def bootstrap_registry():
             search_fields=["code", "label"],
             order_by=["code"],
             master_data=True,
-            master_group="Operations",
+            master_group="Operasional",
             list_limit=500,
         )
     )
@@ -372,9 +372,9 @@ def bootstrap_registry():
             slug="overtime-types",
             model=OvertimeType,
             form_class=OvertimeTypeForm,
-            section="Attendance",
+            section="Absensi",
             title="Jenis Lembur",
-            title_plural="Overtime Types",
+            title_plural="Jenis Lembur",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -386,7 +386,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["day_category", "hour_from", "code"],
             master_data=True,
-            master_group="Operations",
+            master_group="Operasional",
             list_limit=500,
         )
     )
@@ -395,9 +395,9 @@ def bootstrap_registry():
             slug="attendance-records",
             model=AttendanceRecord,
             form_class=AttendanceRecordForm,
-            section="Attendance",
+            section="Absensi",
             title="Record Absensi",
-            title_plural="Attendance Records",
+            title_plural="Rekam Absensi",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Tanggal", "work_date"),
@@ -414,9 +414,9 @@ def bootstrap_registry():
             slug="daily-timesheets",
             model=DailyTimesheet,
             form_class=DailyTimesheetForm,
-            section="Attendance",
-            title="Daily Timesheet",
-            title_plural="Daily Timesheet",
+            section="Absensi",
+            title="Timesheet Harian",
+            title_plural="Timesheet Harian",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Tanggal", "work_date"),
@@ -434,9 +434,9 @@ def bootstrap_registry():
             slug="leave-types",
             model=LeaveType,
             form_class=LeaveTypeForm,
-            section="Leave",
+            section="Cuti",
             title="Jenis Cuti",
-            title_plural="Leave Types",
+            title_plural="Jenis Cuti",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -446,7 +446,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Operations",
+            master_group="Operasional",
             list_limit=500,
         )
     )
@@ -455,9 +455,9 @@ def bootstrap_registry():
             slug="leave-balances",
             model=LeaveBalance,
             form_class=LeaveBalanceForm,
-            section="Leave",
+            section="Cuti",
             title="Saldo Cuti",
-            title_plural="Leave Balances",
+            title_plural="Saldo Cuti",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Jenis", "leave_type"),
@@ -474,9 +474,9 @@ def bootstrap_registry():
             slug="leave-requests",
             model=LeaveRequest,
             form_class=AdminLeaveRequestForm,
-            section="Leave",
+            section="Cuti",
             title="Pengajuan Cuti",
-            title_plural="Leave Requests",
+            title_plural="Pengajuan Cuti",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Jenis", "leave_type"),
@@ -494,9 +494,9 @@ def bootstrap_registry():
             slug="salary-components",
             model=SalaryComponent,
             form_class=SalaryComponentForm,
-            section="Payroll",
+            section="Penggajian",
             title="Komponen Gaji",
-            title_plural="Salary Components",
+            title_plural="Komponen Gaji",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -506,7 +506,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Finance",
+            master_group="Keuangan",
             list_limit=500,
         )
     )
@@ -515,9 +515,9 @@ def bootstrap_registry():
             slug="shift-allowance-rates",
             model=ShiftAllowanceRate,
             form_class=ShiftAllowanceRateForm,
-            section="Payroll",
+            section="Penggajian",
             title="Tunjangan Shift",
-            title_plural="Shift Allowances",
+            title_plural="Tunjangan Shift",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -527,7 +527,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Finance",
+            master_group="Keuangan",
             tenant_scoped=True,
         )
     )
@@ -536,9 +536,9 @@ def bootstrap_registry():
             slug="payroll-runs",
             model=PayrollRun,
             form_class=AdminPayrollRunForm,
-            section="Payroll",
-            title="Payroll Run",
-            title_plural="Payroll Run",
+            section="Penggajian",
+            title="Proses Penggajian",
+            title_plural="Proses Penggajian",
             columns=[
                 Column("Plant", "plant"),
                 Column("Periode", "period_start"),
@@ -555,9 +555,9 @@ def bootstrap_registry():
             slug="payslips",
             model=Payslip,
             form_class=PayslipForm,
-            section="Payroll",
-            title="Payslip",
-            title_plural="Payslip",
+            section="Penggajian",
+            title="Slip Gaji",
+            title_plural="Slip Gaji",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Payroll", "payroll_run"),
@@ -574,9 +574,9 @@ def bootstrap_registry():
             slug="audit-logs",
             model=AuditLog,
             form_class=NotificationAdminForm,
-            section="Core",
-            title="Audit Log",
-            title_plural="Audit Logs",
+            section="Inti",
+            title="Log Audit",
+            title_plural="Log Audit",
             columns=[
                 Column("Waktu", "created_at"),
                 Column("User", "user"),
@@ -598,9 +598,9 @@ def bootstrap_registry():
             slug="announcements",
             model=Announcement,
             form_class=AnnouncementForm,
-            section="Core",
+            section="Inti",
             title="Pengumuman",
-            title_plural="Announcements",
+            title_plural="Pengumuman",
             columns=[
                 Column("Judul", "title"),
                 Column("Kategori", "category"),
@@ -625,9 +625,9 @@ def bootstrap_registry():
             slug="admin-notifications",
             model=Notification,
             form_class=NotificationAdminForm,
-            section="Core",
+            section="Inti",
             title="Notifikasi (Admin)",
-            title_plural="Notifications",
+            title_plural="Notifikasi",
             columns=[
                 Column("User", "user"),
                 Column("Judul", "title"),
@@ -646,9 +646,9 @@ def bootstrap_registry():
             slug="job-levels",
             model=JobLevel,
             form_class=JobLevelForm,
-            section="Organization",
-            title="Job Level",
-            title_plural="Job Level",
+            section="Organisasi",
+            title="Tingkat Jabatan",
+            title_plural="Tingkat Jabatan",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -658,7 +658,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["rank", "code"],
             master_data=True,
-            master_group="Organization Structure",
+            master_group="Struktur Organisasi",
             tenant_scoped=True,
         )
     )
@@ -667,9 +667,9 @@ def bootstrap_registry():
             slug="talenta-masters",
             model=TalentaMaster,
             form_class=TalentaMasterForm,
-            section="Employees",
-            title="Talenta Reference",
-            title_plural="Talenta Reference",
+            section="Karyawan",
+            title="Referensi Talenta",
+            title_plural="Referensi Talenta",
             columns=[
                 Column("Category", "category"),
                 Column("Code", "code"),
@@ -679,7 +679,7 @@ def bootstrap_registry():
             search_fields=["code", "name", "category"],
             order_by=["category", "name"],
             master_data=True,
-            master_group="Organization Structure",
+            master_group="Struktur Organisasi",
             tenant_scoped=True,
             list_limit=500,
         )
@@ -689,9 +689,9 @@ def bootstrap_registry():
             slug="punch-locations",
             model=PunchLocation,
             form_class=PunchLocationForm,
-            section="Core",
+            section="Inti",
             title="Lokasi Absen",
-            title_plural="Punch Locations",
+            title_plural="Lokasi Absen",
             columns=[
                 Column("Plant", "plant"),
                 Column("Nama", "name"),
@@ -704,7 +704,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["plant__code", "name"],
             master_data=True,
-            master_group="Attendance",
+            master_group="Absensi",
             tenant_scoped=True,
         )
     )
@@ -713,9 +713,9 @@ def bootstrap_registry():
             slug="holidays",
             model=HolidayCalendar,
             form_class=HolidayCalendarForm,
-            section="Core",
+            section="Inti",
             title="Kalender Libur",
-            title_plural="Holiday Calendar",
+            title_plural="Kalender Libur",
             columns=[
                 Column("Tanggal", "holiday_date"),
                 Column("Nama", "name"),
@@ -727,7 +727,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["-holiday_date"],
             master_data=True,
-            master_group="Attendance",
+            master_group="Absensi",
             tenant_scoped=True,
         )
     )
@@ -736,9 +736,9 @@ def bootstrap_registry():
             slug="approval-lines",
             model=ApprovalLine,
             form_class=ApprovalLineForm,
-            section="Core",
-            title="Approval Line",
-            title_plural="Approval Lines",
+            section="Inti",
+            title="Alur Persetujuan",
+            title_plural="Alur Persetujuan",
             columns=[
                 Column("Jenis", "request_type"),
                 Column("Step", "step_order"),
@@ -748,7 +748,7 @@ def bootstrap_registry():
             search_fields=["request_type"],
             order_by=["request_type", "step_order"],
             master_data=True,
-            master_group="Workflow",
+            master_group="Alur Persetujuan",
             tenant_scoped=True,
         )
     )

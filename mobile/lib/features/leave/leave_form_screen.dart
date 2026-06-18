@@ -94,9 +94,8 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
     final types = ref.watch(leaveTypesProvider);
     final fmt = DateFormat('dd MMM yyyy');
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Submit Leave')),
+    return HrisScaffold(
+      appBar: hrisAppBar(title: 'Ajukan Cuti'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

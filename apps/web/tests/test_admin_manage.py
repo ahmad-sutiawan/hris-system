@@ -30,7 +30,7 @@ class AdminManageTests(TestCase):
         self.client.login(username="admin-manage", password="TestPassword123!")
         response = self.client.get(reverse("web:manage_hub"))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Admin Console")
+        self.assertContains(response, "Konsol Admin")
 
     def test_superuser_can_access_manage_hub(self):
         superuser = User.objects.create_superuser(
@@ -48,17 +48,17 @@ class AdminManageTests(TestCase):
     def test_admin_sidebar_lists_all_apps(self):
         self.client.login(username="admin-manage", password="TestPassword123!")
         response = self.client.get(reverse("web:dashboard"))
-        self.assertContains(response, "Administration")
-        self.assertContains(response, "Master Data")
-        self.assertContains(response, "Organization")
-        self.assertContains(response, "Plants")
-        self.assertContains(response, "Branch Name")
-        self.assertContains(response, "Job Position")
-        self.assertContains(response, "Salary Components")
-        self.assertContains(response, "Shift Scheduling")
-        self.assertContains(response, "Leave Requests")
-        self.assertNotContains(response, "Organization Structure")
-        self.assertContains(response, "Audit Logs")
+        self.assertContains(response, "Administrasi")
+        self.assertContains(response, "Data Master")
+        self.assertContains(response, "Organisasi")
+        self.assertContains(response, "Plant")
+        self.assertContains(response, "Cabang")
+        self.assertContains(response, "Jabatan")
+        self.assertContains(response, "Komponen Gaji")
+        self.assertContains(response, "Penjadwalan Shift")
+        self.assertContains(response, "Pengajuan Cuti")
+        self.assertNotContains(response, "Struktur Organisasi")
+        self.assertContains(response, "Log Audit")
         self.assertNotContains(response, "/manage/employees/")
 
     def test_hr_cannot_access_manage_hub(self):

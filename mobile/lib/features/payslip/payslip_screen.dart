@@ -17,9 +17,8 @@ class PayslipScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final payslips = ref.watch(payslipsProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Payslips')),
+    return HrisScaffold(
+      appBar: hrisAppBar(title: 'Slip Gaji'),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(payslipsProvider),

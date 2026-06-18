@@ -17,9 +17,8 @@ class AnnouncementDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(_announcementDetailProvider(id));
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Announcement Detail')),
+    return HrisScaffold(
+      appBar: hrisAppBar(title: 'Detail Pengumuman'),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(

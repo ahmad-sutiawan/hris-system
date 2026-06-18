@@ -49,7 +49,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     return action == 'out';
   }
 
-  String get _title => _isClockOut ? 'Clock Out' : 'Clock In';
+  String get _title => _isClockOut ? 'Absen Pulang' : 'Absen Masuk';
 
   @override
   void initState() {
@@ -263,13 +263,13 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     final employee = ref.watch(authProvider).employee;
 
     return dashboard.when(
-      loading: () => const Scaffold(
+      loading: () => const HrisScaffold(
         body: HrisSafeBody(
           child: Center(child: CircularProgressIndicator(color: AppColors.chinaRed)),
         ),
       ),
-      error: (e, _) => Scaffold(
-        appBar: AppBar(title: Text(_title)),
+      error: (e, _) => HrisScaffold(
+        appBar: hrisAppBar(title: _title),
         body: Center(child: Text('$e')),
       ),
       data: (data) {
@@ -279,8 +279,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         final workDate = shift?['work_date'] as String? ?? data['today'] as String?;
         final dateLabel = _formatShiftDate(workDate, timeRange);
 
-        return Scaffold(
-          backgroundColor: AppColors.surface,
+        return HrisScaffold(
           body: HrisSafeBody(
             bottom: false,
             child: Column(

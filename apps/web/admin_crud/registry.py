@@ -34,13 +34,13 @@ REGISTRY: dict[str, AdminResource] = {}
 _BOOTSTRAPPED = False
 
 APP_SECTION_ORDER = [
-    "Employees",
-    "Organization",
-    "Attendance",
-    "Shifts",
-    "Leave",
-    "Payroll",
-    "Core",
+    "Karyawan",
+    "Organisasi",
+    "Absensi",
+    "Shift",
+    "Cuti",
+    "Penggajian",
+    "Inti",
 ]
 
 
@@ -63,11 +63,11 @@ def resources_by_section() -> dict[str, list[AdminResource]]:
 
 
 MASTER_GROUP_ORDER = [
-    "Organization Structure",
-    "Attendance",
-    "Operations",
-    "Finance",
-    "Workflow",
+    "Struktur Organisasi",
+    "Absensi",
+    "Operasional",
+    "Keuangan",
+    "Alur Persetujuan",
 ]
 
 MASTER_SLUG_ORDER = [

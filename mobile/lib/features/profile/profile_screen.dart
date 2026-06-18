@@ -19,9 +19,8 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Employee Profile')),
+    return HrisScaffold(
+      appBar: hrisAppBar(title: 'Profil Karyawan'),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(profileProvider),
@@ -90,17 +89,17 @@ class ProfileScreen extends ConsumerWidget {
                     OutlinedButton.icon(
                       onPressed: () => context.push('/payslips'),
                       icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                      label: const Text('Payslips'),
+                      label: const Text('Slip Gaji'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => context.go('/attendance'),
                       icon: const Icon(Icons.history_rounded, size: 18),
-                      label: const Text('Attendance History'),
+                      label: const Text('Riwayat Absensi'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => context.push('/punch?action=in'),
                       icon: const Icon(Icons.fingerprint_rounded, size: 18),
-                      label: const Text('Clock In/Out'),
+                      label: const Text('Absen Masuk/Pulang'),
                     ),
                   ],
                 ),

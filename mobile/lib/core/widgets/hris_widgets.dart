@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -23,7 +25,7 @@ class HrisSafeBody extends StatelessWidget {
   }
 }
 
-/// Latar belakang cerah dengan aksen purple-blue & gold.
+/// Latar belakang gradient + aksen radial (selalu terisi, hindari blank BG).
 class HrisPageBackground extends StatelessWidget {
   const HrisPageBackground({super.key, required this.child});
 
@@ -34,50 +36,42 @@ class HrisPageBackground extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
             const Color(0xFFF8F9FE),
             AppColors.bg,
-            AppColors.brandBlue.withValues(alpha: 0.06),
+            AppColors.brandBlue.withValues(alpha: 0.10),
+            AppColors.brandPurple.withValues(alpha: 0.05),
           ],
+          stops: const [0.0, 0.45, 0.78, 1.0],
         ),
       ),
       child: Stack(
         fit: StackFit.expand,
         children: [
           Positioned(
-            top: -100,
-            right: -60,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.brandGold.withValues(alpha: 0.14),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
+            top: -120,
+            right: -80,
+            child: _GlowOrb(
+              size: 300,
+              color: AppColors.brandGold.withValues(alpha: 0.16),
             ),
           ),
           Positioned(
-            top: -40,
-            left: -80,
-            child: Container(
-              width: 220,
-              height: 220,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    AppColors.brandPurple.withValues(alpha: 0.10),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
+            top: 80,
+            left: -100,
+            child: _GlowOrb(
+              size: 260,
+              color: AppColors.brandPurple.withValues(alpha: 0.12),
+            ),
+          ),
+          Positioned(
+            bottom: -60,
+            right: -40,
+            child: _GlowOrb(
+              size: 220,
+              color: AppColors.brandBlue.withValues(alpha: 0.10),
             ),
           ),
           child,
@@ -85,6 +79,93 @@ class HrisPageBackground extends StatelessWidget {
       ),
     );
   }
+}
+
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
+
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
+      ),
+    );
+  }
+}
+
+/// Scaffold standar — latar gradient + AppBar glass opsional.
+class HrisScaffold extends StatelessWidget {
+  const HrisScaffold({
+    super.key,
+    required this.body,
+    this.appBar,
+    this.floatingActionButton,
+    this.bottomNavigationBar,
+    this.extendBodyBehindAppBar = false,
+    this.withBackground = true,
+  });
+
+  final Widget body;
+  final PreferredSizeWidget? appBar;
+  final Widget? floatingActionButton;
+  final Widget? bottomNavigationBar;
+  final bool extendBodyBehindAppBar;
+  /// `false` bila sudah dibungkus `AppShell` / `HrisPageBackground`.
+  final bool withBackground;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaffold = Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBodyBehindAppBar: extendBodyBehindAppBar,
+      appBar: appBar,
+      body: body,
+      floatingActionButton: floatingActionButton,
+      bottomNavigationBar: bottomNavigationBar,
+    );
+
+    if (!withBackground) {
+      return ColoredBox(
+        color: Colors.transparent,
+        child: scaffold,
+      );
+    }
+    return HrisPageBackground(child: scaffold);
+  }
+}
+
+/// AppBar semi-transparan dengan blur (glassmorphism).
+PreferredSizeWidget hrisAppBar({
+  required String title,
+  List<Widget>? actions,
+  Widget? leading,
+  bool centerTitle = false,
+}) {
+  return PreferredSize(
+    preferredSize: const Size.fromHeight(kToolbarHeight),
+    child: ClipRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: AppBar(
+          title: Text(title),
+          actions: actions,
+          leading: leading,
+          centerTitle: centerTitle,
+          backgroundColor: AppColors.surface.withValues(alpha: 0.72),
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+        ),
+      ),
+    ),
+  );
 }
 
 class HrisCard extends StatelessWidget {
@@ -106,36 +187,51 @@ class HrisCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = accentColor ?? AppColors.accent;
-    final card = Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 20,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          if (showAccentBar)
-            Positioned(
-              left: 0,
-              top: 12,
-              bottom: 12,
-              child: Container(
-                width: 4,
-                decoration: BoxDecoration(
-                  color: accent,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
+    final card = ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.border.withValues(alpha: 0.65),
             ),
-          Padding(padding: padding, child: child),
-        ],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.surface.withValues(alpha: 0.88),
+                AppColors.surface.withValues(alpha: 0.72),
+              ],
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.cardShadow,
+                blurRadius: 24,
+                offset: Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              if (showAccentBar)
+                Positioned(
+                  left: 0,
+                  top: 12,
+                  bottom: 12,
+                  child: Container(
+                    width: 4,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+              Padding(padding: padding, child: child),
+            ],
+          ),
+        ),
       ),
     );
 
@@ -413,14 +509,19 @@ class QuickActionTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(
-            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.surface.withValues(alpha: 0.9),
+                AppColors.surface.withValues(alpha: 0.75),
+              ],
+            ),
             boxShadow: const [
               BoxShadow(
                 color: AppColors.cardShadow,
-                blurRadius: 12,
-                offset: Offset(0, 4),
+                blurRadius: 16,
+                offset: Offset(0, 6),
               ),
             ],
           ),

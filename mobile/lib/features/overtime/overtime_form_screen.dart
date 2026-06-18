@@ -122,9 +122,8 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
     final types = ref.watch(overtimeTypesProvider);
     final fmt = DateFormat('dd MMM yyyy');
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Submit Overtime')),
+    return HrisScaffold(
+      appBar: hrisAppBar(title: 'Ajukan Lembur'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

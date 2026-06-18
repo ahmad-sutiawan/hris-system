@@ -31,10 +31,9 @@ class LeaveScreen extends ConsumerWidget {
     final myEmployeeId = ref.watch(authProvider).employee?['id'] as int?;
     final fmt = DateFormat('dd MMM yyyy');
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        title: const Text('Leave Requests'),
+    return HrisScaffold(
+      appBar: hrisAppBar(
+        title: 'Pengajuan Cuti',
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

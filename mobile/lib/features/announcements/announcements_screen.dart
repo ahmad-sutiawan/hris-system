@@ -19,9 +19,8 @@ class AnnouncementsScreen extends ConsumerWidget {
     final announcements = ref.watch(announcementsProvider);
     final fmt = DateFormat('dd MMM yyyy');
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Announcements')),
+    return HrisScaffold(
+      appBar: hrisAppBar(title: 'Pengumuman'),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(announcementsProvider),

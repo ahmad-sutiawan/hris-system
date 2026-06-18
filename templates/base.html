@@ -25,48 +25,48 @@
       </div>
 
       <div class="hris-sidebar-search">
-        <label class="hris-sidebar-search-label" for="hris-sidebar-search">Search menu</label>
+        <label class="hris-sidebar-search-label" for="hris-sidebar-search">Cari menu</label>
         <div class="hris-sidebar-search-wrap">
           <svg class="hris-sidebar-search-icon" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <input type="search" id="hris-sidebar-search" class="hris-sidebar-search-input" placeholder="Search submenu…" autocomplete="off" enterkeyhint="search">
+          <input type="search" id="hris-sidebar-search" class="hris-sidebar-search-input" placeholder="Cari submenu…" autocomplete="off" enterkeyhint="search">
         </div>
       </div>
 
       <nav class="hris-nav" id="hris-nav">
-        <p id="hris-sidebar-search-empty" class="hris-sidebar-search-empty" hidden>No menu found.</p>
+        <p id="hris-sidebar-search-empty" class="hris-sidebar-search-empty" hidden>Menu tidak ditemukan.</p>
         <div class="hris-nav-section">
-          <div class="hris-nav-label">Main</div>
+          <div class="hris-nav-label">Utama</div>
           <a href="{% url 'web:dashboard' %}" class="hris-nav-link{% if request.path == '/' %} is-active{% endif %}">
             {% nav_icon "dashboard" %}
-            Dashboard
+            Dasbor
           </a>
           <a href="{% url 'web:announcement_list' %}" class="hris-nav-link{% if '/announcements' in request.path %} is-active{% endif %}">
             {% nav_icon "announcements" %}
-            Announcements
+            Pengumuman
             {% if active_announcement_count %}<span class="hris-notif-badge" style="position:static;margin-left:auto;min-width:1.25rem;height:1.25rem;line-height:1.25rem">{{ active_announcement_count }}</span>{% endif %}
           </a>
           <a href="{% url 'web:notification_list' %}" class="hris-nav-link{% if '/notifications' in request.path %} is-active{% endif %}">
             {% nav_icon "notifications" %}
-            Notifications
+            Notifikasi
             {% if unread_notifications %}<span class="hris-notif-badge" style="position:static;margin-left:auto;min-width:1.25rem;height:1.25rem;line-height:1.25rem">{{ unread_notifications }}</span>{% endif %}
           </a>
           {% if user.role != 'admin' and user.role != 'hr' %}
           <a href="{% url 'web:employee_profile' %}" class="hris-nav-link{% nav_is_active 'employee_profile' %}">
             {% nav_icon "profile" %}
-            Employee Profile
+            Profil Karyawan
           </a>
           {% endif %}
         </div>
 
         {% if show_master_nav %}
         <div class="hris-nav-section">
-          <div class="hris-nav-label">Master Data</div>
+          <div class="hris-nav-label">Data Master</div>
           {% include "components/master_sidebar_nav.html" %}
         </div>
         {% endif %}
 
         <div class="hris-nav-section">
-          <div class="hris-nav-label">Operations</div>
+          <div class="hris-nav-label">Operasional</div>
           {% if show_employee_nav %}
           <a href="{% url 'web:employee_list' %}" class="hris-nav-link{% nav_is_active 'employee_list' 'employee_create' 'employee_edit' 'employee_import' 'employee_import_template' %}">
             {% nav_icon "employees" %}
@@ -75,59 +75,59 @@
           {% endif %}
           <a href="{% url 'web:leave_list' %}" class="hris-nav-link{% nav_is_active 'leave_list' 'leave_create' 'leave_approve' 'leave_reject' 'leave_cancel' %}">
             {% nav_icon "leave" %}
-            Leave Requests
+            Pengajuan Cuti
           </a>
           <a href="{% url 'web:overtime_list' %}" class="hris-nav-link{% nav_is_active 'overtime_list' 'overtime_create' 'overtime_approve' 'overtime_reject' 'overtime_cancel' %}">
             {% nav_icon "overtime" %}
-            Overtime Requests
+            Pengajuan Lembur
           </a>
           {% if user.is_hr %}
           <a href="{% url 'web:shift_assignment_list' %}" class="hris-nav-link{% nav_is_active 'shift_assignment_list' 'shift_assign' 'shift_edit' 'shift_delete' %}">
             {% nav_icon "shift-schedule" %}
-            Shift Scheduling
+            Penjadwalan Shift
           </a>
           {% endif %}
           <a href="{% url 'web:attendance_list' %}" class="hris-nav-link{% nav_is_active 'attendance_list' 'attendance_export' 'attendance_correct' 'attendance_import' %}">
             {% nav_icon "attendance" %}
-            Attendance Summary
+            Ringkasan Absensi
           </a>
           {% if user.is_hr %}
           <a href="{% url 'web:attendance_import' %}" class="hris-nav-link{% nav_is_active 'attendance_import' 'attendance_import_template' %}">
             {% nav_icon "attendance" %}
-            Import Attendance
+            Impor Absensi
           </a>
           {% endif %}
         </div>
 
         <div class="hris-nav-section">
-          <div class="hris-nav-label">Finance</div>
+          <div class="hris-nav-label">Keuangan</div>
           <a href="{% url 'web:payslip_list' %}" class="hris-nav-link{% nav_is_active 'payslip_list' 'payslip_download' %}">
             {% nav_icon "payslip" %}
-            Payslips
+            Slip Gaji
           </a>
           {% if user.is_hr %}
           <a href="{% url 'web:payroll_list' %}" class="hris-nav-link{% nav_is_active 'payroll_list' 'payroll_create' 'payroll_detail' 'payroll_edit' 'payroll_cancel' 'payroll_calculate' 'payroll_finalize' 'payroll_bank_export' %}">
             {% nav_icon "payroll" %}
-            Payroll
+            Penggajian
           </a>
           <a href="{% url 'web:employee_compensation_list' %}" class="hris-nav-link{% nav_is_active 'employee_compensation_list' 'employee_compensation_edit' %}">
             {% nav_icon "payroll" %}
-            Employee Compensation
+            Kompensasi Karyawan
           </a>
           {% endif %}
         </div>
 
         {% if show_admin_nav %}
         <div class="hris-nav-section">
-          <div class="hris-nav-label">Administration</div>
+          <div class="hris-nav-label">Administrasi</div>
           {% include "components/admin_sidebar_nav.html" %}
         </div>
         {% elif user.is_hr %}
         <div class="hris-nav-section">
-          <div class="hris-nav-label">Governance</div>
+          <div class="hris-nav-label">Tata Kelola</div>
           <a href="{% url 'web:audit_log_list' %}" class="hris-nav-link{% if '/audit' in request.path %} is-active{% endif %}">
             {% nav_icon "audit" %}
-            Audit Logs
+            Log Audit
           </a>
         </div>
         {% endif %}
@@ -149,25 +149,25 @@
           <button type="button" id="hris-menu-toggle" class="hris-menu-toggle" aria-label="Menu">
             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
-          <h2 class="hris-page-title">{% block page_title %}Dashboard{% endblock %}</h2>
+          <h2 class="hris-page-title">{% block page_title %}Dasbor{% endblock %}</h2>
         </div>
 
         <div class="hris-topbar-right">
           <div style="position:relative">
-            <button type="button" id="hris-notif-btn" class="hris-icon-btn" aria-label="Notifications">
+            <button type="button" id="hris-notif-btn" class="hris-icon-btn" aria-label="Notifikasi">
               <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
               {% if unread_notifications %}<span class="hris-notif-badge">{{ unread_notifications }}</span>{% endif %}
             </button>
             {% if recent_notifications %}
             <div id="hris-notif-panel" class="hris-notif-panel">
-              <div class="hris-notif-panel-head">Recent Notifications</div>
+              <div class="hris-notif-panel-head">Notifikasi Terbaru</div>
               {% for n in recent_notifications %}
               <a href="{% if n.link %}{{ n.link }}{% else %}{% url 'web:notification_list' %}{% endif %}" class="hris-notif-item{% if not n.is_read %} is-unread{% endif %}">
                 <strong>{{ n.title }}</strong>
                 <p>{{ n.message }}</p>
               </a>
               {% endfor %}
-              <a href="{% url 'web:notification_list' %}" class="hris-notif-panel-foot">View all notifications</a>
+              <a href="{% url 'web:notification_list' %}" class="hris-notif-panel-foot">Lihat semua notifikasi</a>
             </div>
             {% endif %}
           </div>
@@ -188,14 +188,14 @@
               </div>
               <a href="{% url 'web:dashboard' %}" class="hris-user-menu-link">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-                Dashboard
+                Dasbor
               </a>
               <a href="{% url 'web:notification_list' %}" class="hris-user-menu-link">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                Notifications
+                Notifikasi
               </a>
               <div class="hris-user-menu-divider"></div>
-              {% include "components/logout_form.html" with button_class="hris-user-menu-logout" label="Sign Out" %}
+              {% include "components/logout_form.html" with button_class="hris-user-menu-logout" label="Keluar" %}
             </div>
           </div>
         </div>
