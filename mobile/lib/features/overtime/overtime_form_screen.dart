@@ -124,7 +124,7 @@ class _OvertimeFormScreenState extends ConsumerState<OvertimeFormScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Ajukan Lembur')),
+      appBar: AppBar(title: const Text('Submit Overtime')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

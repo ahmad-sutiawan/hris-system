@@ -34,7 +34,7 @@ class LeaveScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Pengajuan Cuti'),
+        title: const Text('Leave Requests'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

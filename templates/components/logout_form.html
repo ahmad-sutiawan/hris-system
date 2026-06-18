@@ -1,6 +1,6 @@
 <form method="post" action="{% url 'web:logout' %}" class="hris-logout-form">
   {% csrf_token %}
   <button type="submit" class="{{ button_class|default:'hris-btn hris-btn-ghost hris-btn-sm' }}">
-    {{ label|default:"Keluar" }}
+    {{ label|default:"Sign Out" }}
   </button>
 </form>

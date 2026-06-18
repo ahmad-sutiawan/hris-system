@@ -19,7 +19,7 @@ class CalendarScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
-          'Kalender Shift',
+          'Shift Calendar',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
         ),
       ),

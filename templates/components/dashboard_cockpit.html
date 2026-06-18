@@ -289,13 +289,13 @@
     <section class="hx-panel hx-span-{% if profile and profile_summary %}4{% else %}8{% endif %}">
       <header class="hx-panel-head"><span class="hx-tag hx-tag--cyan">Actions</span><h2>Quick Actions</h2></header>
       <div class="hx-actions">
-        <a href="{% url 'web:leave_create' %}" class="hx-action">Ajukan Cuti</a>
-        <a href="{% url 'web:overtime_create' %}" class="hx-action">Ajukan Lembur</a>
-        <a href="{% url 'web:payslip_list' %}" class="hx-action">Slip Gaji</a>
-        <a href="{% url 'web:attendance_list' %}" class="hx-action">Riwayat Absensi</a>
+        <a href="{% url 'web:leave_create' %}" class="hx-action">Submit Leave</a>
+        <a href="{% url 'web:overtime_create' %}" class="hx-action">Submit Overtime</a>
+        <a href="{% url 'web:payslip_list' %}" class="hx-action">Payslips</a>
+        <a href="{% url 'web:attendance_list' %}" class="hx-action">Attendance History</a>
         {% if user.role == 'admin' or user.role == 'hr' %}
-        <a href="{% url 'web:employee_list' %}" class="hx-action">Daftar Karyawan</a>
-        <a href="{% url 'web:payroll_create' %}" class="hx-action">Buat Payroll</a>
+        <a href="{% url 'web:employee_list' %}" class="hx-action">Employee List</a>
+        <a href="{% url 'web:payroll_create' %}" class="hx-action">Create Payroll</a>
         {% endif %}
       </div>
       {% if latest_payroll %}<p class="hx-footnote">Payroll terakhir: {% if latest_payroll.plant %}{{ latest_payroll.plant.code }}{% else %}—{% endif %} · {{ latest_payroll.period_start|local_date:"M Y" }}</p>{% endif %}

@@ -21,7 +21,7 @@ class AnnouncementsScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Pengumuman')),
+      appBar: AppBar(title: const Text('Announcements')),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(announcementsProvider),

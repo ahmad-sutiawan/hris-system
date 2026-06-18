@@ -19,7 +19,7 @@ class PayslipScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Slip Gaji')),
+      appBar: AppBar(title: const Text('Payslips')),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(payslipsProvider),

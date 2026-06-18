@@ -96,7 +96,7 @@ class _LeaveFormScreenState extends ConsumerState<LeaveFormScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Ajukan Cuti')),
+      appBar: AppBar(title: const Text('Submit Leave')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

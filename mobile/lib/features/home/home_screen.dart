@@ -169,7 +169,7 @@ class HomeScreen extends ConsumerWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const GoldSectionTitle(title: 'Menu cepat'),
+                    const GoldSectionTitle(title: 'Quick Menu'),
                     GoldPanel(
                       padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
                       child: TalentaAppGrid(items: _homeQuickApps(context)),
@@ -263,8 +263,8 @@ class HomeScreen extends ConsumerWidget {
                   Column(
                     children: [
                       GoldSectionTitle(
-                        title: 'Jadwal mendatang',
-                        actionLabel: 'Kalender',
+                        title: 'Upcoming Schedule',
+                        actionLabel: 'Calendar',
                         onAction: () => context.push('/calendar'),
                       ),
                       UpcomingShiftsPreview(
@@ -309,49 +309,49 @@ class HomeScreen extends ConsumerWidget {
   static List<TalentaAppGridItem> _homeQuickApps(BuildContext context) => [
         TalentaAppGridItem(
           icon: Icons.beach_access_rounded,
-          label: 'Cuti',
+          label: 'Leave',
           color: AppColors.chinaRed,
           onTap: () => context.push('/leave/new'),
         ),
         TalentaAppGridItem(
           icon: Icons.more_time_rounded,
-          label: 'Lembur',
+          label: 'Overtime',
           color: AppColors.darkGold,
           onTap: () => context.push('/overtime/new'),
         ),
         TalentaAppGridItem(
           icon: Icons.location_on_rounded,
-          label: 'Absen Live',
+          label: 'Live Punch',
           color: AppColors.chinaRedDark,
           onTap: () => context.push('/punch?action=in'),
         ),
         TalentaAppGridItem(
           icon: Icons.history_rounded,
-          label: 'Log Absensi',
+          label: 'Attendance Log',
           color: AppColors.darkGoldRich,
           onTap: () => context.go('/attendance'),
         ),
         TalentaAppGridItem(
           icon: Icons.receipt_long_rounded,
-          label: 'Slip Gaji',
+          label: 'Payslips',
           color: AppColors.success,
           onTap: () => context.push('/payslips'),
         ),
         TalentaAppGridItem(
           icon: Icons.calendar_month_rounded,
-          label: 'Kalender',
+          label: 'Calendar',
           color: AppColors.darkGold,
           onTap: () => context.push('/calendar'),
         ),
         TalentaAppGridItem(
           icon: Icons.campaign_rounded,
-          label: 'Pengumuman',
+          label: 'Announcements',
           color: AppColors.chinaRed,
           onTap: () => context.push('/announcements'),
         ),
         TalentaAppGridItem(
           icon: Icons.apps_rounded,
-          label: 'Semua App',
+          label: 'All Apps',
           color: AppColors.textMuted,
           onTap: () => context.push('/all-apps'),
         ),

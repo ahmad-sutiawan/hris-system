@@ -21,7 +21,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Detail Karyawan')),
+      appBar: AppBar(title: const Text('Employee Profile')),
       body: RefreshIndicator(
         color: AppColors.accent,
         onRefresh: () async => ref.invalidate(profileProvider),
@@ -90,12 +90,12 @@ class ProfileScreen extends ConsumerWidget {
                     OutlinedButton.icon(
                       onPressed: () => context.push('/payslips'),
                       icon: const Icon(Icons.receipt_long_outlined, size: 18),
-                      label: const Text('Slip Gaji'),
+                      label: const Text('Payslips'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => context.go('/attendance'),
                       icon: const Icon(Icons.history_rounded, size: 18),
-                      label: const Text('Riwayat Absensi'),
+                      label: const Text('Attendance History'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => context.push('/punch?action=in'),

@@ -31,7 +31,7 @@ class NotificationsScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
-          embedded ? 'Kotak Masuk' : 'Notifikasi',
+          embedded ? 'Inbox' : 'Notifications',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
         ),
         actions: [

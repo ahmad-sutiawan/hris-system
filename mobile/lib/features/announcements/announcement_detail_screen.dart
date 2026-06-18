@@ -19,7 +19,7 @@ class AnnouncementDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Detail Pengumuman')),
+      appBar: AppBar(title: const Text('Announcement Detail')),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => EmptyState(

@@ -83,7 +83,7 @@ def bootstrap_registry():
             order_by=["code"],
             tenant_scoped=False,
             master_data=True,
-            master_group="Struktur Organisasi",
+            master_group="Organization Structure",
             list_limit=500,
         )
     )
@@ -94,7 +94,7 @@ def bootstrap_registry():
             form_class=AdminUserForm,
             section="Core",
             title="Pengguna",
-            title_plural="Pengguna",
+            title_plural="Users",
             columns=[
                 Column("Username", "username"),
                 Column("Email", "email"),
@@ -144,7 +144,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["name"],
             master_data=True,
-            master_group="Struktur Organisasi",
+            master_group="Organization Structure",
             list_limit=500,
         )
     )
@@ -166,7 +166,7 @@ def bootstrap_registry():
             select_related=["department", "plant"],
             order_by=["title"],
             master_data=True,
-            master_group="Struktur Organisasi",
+            master_group="Organization Structure",
             list_limit=500,
         )
     )
@@ -177,7 +177,7 @@ def bootstrap_registry():
             form_class=Pph21TerCategoryForm,
             section="Payroll",
             title="Kategori TER PPh 21",
-            title_plural="Kategori TER PPh 21",
+            title_plural="PPh 21 TER Categories",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -186,7 +186,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Keuangan",
+            master_group="Finance",
             list_limit=10,
         )
     )
@@ -197,7 +197,7 @@ def bootstrap_registry():
             form_class=Pph21TerBracketForm,
             section="Payroll",
             title="Lapisan TER PPh 21",
-            title_plural="Lapisan TER PPh 21",
+            title_plural="PPh 21 TER Brackets",
             columns=[
                 Column("Kategori", "category"),
                 Column("No", "bracket_no"),
@@ -209,7 +209,7 @@ def bootstrap_registry():
             select_related=["category"],
             order_by=["category__code", "bracket_no"],
             master_data=True,
-            master_group="Keuangan",
+            master_group="Finance",
             list_limit=500,
         )
     )
@@ -229,7 +229,7 @@ def bootstrap_registry():
             select_related=["category"],
             order_by=["ptkp_code"],
             master_data=True,
-            master_group="Keuangan",
+            master_group="Finance",
             list_limit=20,
         )
     )
@@ -240,7 +240,7 @@ def bootstrap_registry():
             form_class=AdminEmployeeForm,
             section="Employees",
             title="Karyawan",
-            title_plural="Karyawan",
+            title_plural="Employees",
             columns=[
                 Column("Employee ID", "employee_id"),
                 Column("Full Name", "full_name"),
@@ -263,7 +263,7 @@ def bootstrap_registry():
             form_class=EmployeeDocumentForm,
             section="Employees",
             title="Dokumen Karyawan",
-            title_plural="Dokumen Karyawan",
+            title_plural="Employee Documents",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Tipe", "document_type"),
@@ -292,7 +292,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["code"],
             master_data=True,
-            master_group="Operasional",
+            master_group="Operations",
             list_limit=500,
         )
     )
@@ -322,7 +322,7 @@ def bootstrap_registry():
             form_class=AttendanceCodeForm,
             section="Attendance",
             title="Kode Absensi",
-            title_plural="Kode Absensi",
+            title_plural="Attendance Codes",
             columns=[
                 Column("Kode", "code"),
                 Column("Label", "label"),
@@ -332,7 +332,7 @@ def bootstrap_registry():
             search_fields=["code", "label"],
             order_by=["code"],
             master_data=True,
-            master_group="Operasional",
+            master_group="Operations",
             list_limit=500,
         )
     )
@@ -343,7 +343,7 @@ def bootstrap_registry():
             form_class=OvertimeTypeForm,
             section="Attendance",
             title="Jenis Lembur",
-            title_plural="Jenis Lembur",
+            title_plural="Overtime Types",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -355,7 +355,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["day_category", "hour_from", "code"],
             master_data=True,
-            master_group="Operasional",
+            master_group="Operations",
             list_limit=500,
         )
     )
@@ -366,7 +366,7 @@ def bootstrap_registry():
             form_class=AttendanceRecordForm,
             section="Attendance",
             title="Record Absensi",
-            title_plural="Record Absensi",
+            title_plural="Attendance Records",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Tanggal", "work_date"),
@@ -405,7 +405,7 @@ def bootstrap_registry():
             form_class=LeaveTypeForm,
             section="Leave",
             title="Jenis Cuti",
-            title_plural="Jenis Cuti",
+            title_plural="Leave Types",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -415,7 +415,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Operasional",
+            master_group="Operations",
             list_limit=500,
         )
     )
@@ -426,7 +426,7 @@ def bootstrap_registry():
             form_class=LeaveBalanceForm,
             section="Leave",
             title="Saldo Cuti",
-            title_plural="Saldo Cuti",
+            title_plural="Leave Balances",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Jenis", "leave_type"),
@@ -445,7 +445,7 @@ def bootstrap_registry():
             form_class=AdminLeaveRequestForm,
             section="Leave",
             title="Pengajuan Cuti",
-            title_plural="Pengajuan Cuti",
+            title_plural="Leave Requests",
             columns=[
                 Column("Karyawan", "employee"),
                 Column("Jenis", "leave_type"),
@@ -465,7 +465,7 @@ def bootstrap_registry():
             form_class=SalaryComponentForm,
             section="Payroll",
             title="Komponen Gaji",
-            title_plural="Komponen Gaji",
+            title_plural="Salary Components",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -475,7 +475,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Keuangan",
+            master_group="Finance",
             list_limit=500,
         )
     )
@@ -486,7 +486,7 @@ def bootstrap_registry():
             form_class=ShiftAllowanceRateForm,
             section="Payroll",
             title="Tunjangan Shift",
-            title_plural="Tunjangan Shift",
+            title_plural="Shift Allowances",
             columns=[
                 Column("Kode", "code"),
                 Column("Nama", "name"),
@@ -496,7 +496,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["code"],
             master_data=True,
-            master_group="Keuangan",
+            master_group="Finance",
             tenant_scoped=True,
         )
     )
@@ -569,7 +569,7 @@ def bootstrap_registry():
             form_class=AnnouncementForm,
             section="Core",
             title="Pengumuman",
-            title_plural="Pengumuman",
+            title_plural="Announcements",
             columns=[
                 Column("Judul", "title"),
                 Column("Kategori", "category"),
@@ -596,7 +596,7 @@ def bootstrap_registry():
             form_class=NotificationAdminForm,
             section="Core",
             title="Notifikasi (Admin)",
-            title_plural="Notifikasi",
+            title_plural="Notifications",
             columns=[
                 Column("User", "user"),
                 Column("Judul", "title"),
@@ -627,7 +627,7 @@ def bootstrap_registry():
             search_fields=["code", "name"],
             order_by=["rank", "code"],
             master_data=True,
-            master_group="Struktur Organisasi",
+            master_group="Organization Structure",
             tenant_scoped=True,
         )
     )
@@ -638,7 +638,7 @@ def bootstrap_registry():
             form_class=PunchLocationForm,
             section="Core",
             title="Lokasi Absen",
-            title_plural="Lokasi Absen",
+            title_plural="Punch Locations",
             columns=[
                 Column("Plant", "plant"),
                 Column("Nama", "name"),
@@ -651,7 +651,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["plant__code", "name"],
             master_data=True,
-            master_group="Absensi",
+            master_group="Attendance",
             tenant_scoped=True,
         )
     )
@@ -662,7 +662,7 @@ def bootstrap_registry():
             form_class=HolidayCalendarForm,
             section="Core",
             title="Kalender Libur",
-            title_plural="Kalender Libur",
+            title_plural="Holiday Calendar",
             columns=[
                 Column("Tanggal", "holiday_date"),
                 Column("Nama", "name"),
@@ -674,7 +674,7 @@ def bootstrap_registry():
             select_related=["plant"],
             order_by=["-holiday_date"],
             master_data=True,
-            master_group="Absensi",
+            master_group="Attendance",
             tenant_scoped=True,
         )
     )

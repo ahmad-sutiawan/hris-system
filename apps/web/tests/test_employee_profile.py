@@ -62,4 +62,4 @@ class EmployeeProfileViewTests(TestCase):
         self.client.login(username="emp-profile", password="TestPassword123!")
         response = self.client.get(reverse("web:dashboard"))
         self.assertContains(response, reverse("web:employee_profile"))
-        self.assertContains(response, "Detail Karyawan")
+        self.assertContains(response, "Employee Profile")

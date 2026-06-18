@@ -48,11 +48,11 @@ class MasterDataTests(TestCase):
         self.assertIn("Job Position", content)
         self.assertIn("Branch Name", content)
         self.assertIn("Master Shift", content)
-        self.assertIn("Komponen Gaji", content)
-        self.assertIn("Penjadwalan Shift", content)
-        self.assertIn("Pengajuan Cuti", content)
-        self.assertIn("Rekap Absensi", content)
-        self.assertNotIn("Struktur Organisasi", content)
+        self.assertIn("Salary Components", content)
+        self.assertIn("Shift Scheduling", content)
+        self.assertIn("Leave Requests", content)
+        self.assertIn("Attendance Summary", content)
+        self.assertNotIn("Organization Structure", content)
 
     def test_hr_cannot_access_manage_hub(self):
         self.client.login(username="hr-master", password="TestPassword123!")

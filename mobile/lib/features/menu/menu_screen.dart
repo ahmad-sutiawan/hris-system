@@ -55,7 +55,7 @@ class MenuScreen extends ConsumerWidget {
               ),
             ),
             SliverToBoxAdapter(
-              child: HomeSectionHeader(title: 'Menu akun'),
+              child: HomeSectionHeader(title: 'Account Menu'),
             ),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -63,54 +63,54 @@ class MenuScreen extends ConsumerWidget {
                 delegate: SliverChildListDelegate([
                   _MenuTile(
                     icon: Icons.person_outline_rounded,
-                    label: 'Detail Karyawan',
+                    label: 'Employee Profile',
                     onTap: () => context.push('/profile'),
                   ),
                   _MenuTile(
                     icon: Icons.mail_outline_rounded,
-                    label: 'Kotak Masuk',
+                    label: 'Inbox',
                     badge: unread > 0 ? '$unread' : null,
                     onTap: () => context.go('/inbox'),
                   ),
                   _MenuTile(
                     icon: Icons.campaign_outlined,
-                    label: 'Pengumuman',
+                    label: 'Announcements',
                     badge: announcements > 0 ? '$announcements' : null,
                     onTap: () => context.push('/announcements'),
                   ),
                   _MenuTile(
                     icon: Icons.apps_rounded,
-                    label: 'Semua Aplikasi',
+                    label: 'All Apps',
                     onTap: () => context.push('/all-apps'),
                   ),
                   _MenuTile(
                     icon: Icons.calendar_month_outlined,
-                    label: 'Rekap Absensi',
+                    label: 'Attendance Summary',
                     onTap: () => context.go('/attendance'),
                   ),
                   _MenuTile(
                     icon: Icons.beach_access_outlined,
-                    label: 'Pengajuan Cuti',
+                    label: 'Leave Requests',
                     onTap: () => context.push('/leave'),
                   ),
                   _MenuTile(
                     icon: Icons.more_time_outlined,
-                    label: 'Pengajuan Lembur',
+                    label: 'Overtime Requests',
                     onTap: () => context.push('/overtime'),
                   ),
                   _MenuTile(
                     icon: Icons.receipt_long_outlined,
-                    label: 'Slip Gaji',
+                    label: 'Payslips',
                     onTap: () => context.push('/payslips'),
                   ),
                   _MenuTile(
                     icon: Icons.add_circle_outline_rounded,
-                    label: 'Buat Pengajuan',
+                    label: 'New Request',
                     onTap: () => context.go('/request'),
                   ),
                   const SizedBox(height: 20),
                   PrimaryButton(
-                    label: 'Keluar',
+                    label: 'Sign Out',
                     secondary: true,
                     icon: Icons.logout,
                     onPressed: () async {

@@ -72,14 +72,14 @@ class _ChinaBottomNav extends StatelessWidget {
                       selected: currentIndex == 0,
                       icon: Icons.home_outlined,
                       selectedIcon: Icons.home_rounded,
-                      label: 'Beranda',
+                      label: 'Home',
                       onTap: () => onTap(0),
                     ),
                     _NavItem(
                       selected: currentIndex == 1,
                       icon: Icons.calendar_month_outlined,
                       selectedIcon: Icons.calendar_month_rounded,
-                      label: 'Absensi',
+                      label: 'Attendance',
                       onTap: () => onTap(1),
                     ),
                     const Expanded(child: SizedBox(width: 52)),
@@ -94,7 +94,7 @@ class _ChinaBottomNav extends StatelessWidget {
                       selected: currentIndex == 4,
                       icon: Icons.person_outline_rounded,
                       selectedIcon: Icons.person_rounded,
-                      label: 'Akun',
+                      label: 'Account',
                       onTap: () => onTap(4),
                     ),
                   ],
@@ -130,7 +130,7 @@ class _ChinaBottomNav extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Pengajuan',
+                          'Requests',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 9,
                             fontWeight: currentIndex == _centerIndex

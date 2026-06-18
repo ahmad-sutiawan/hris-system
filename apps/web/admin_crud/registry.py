@@ -63,10 +63,10 @@ def resources_by_section() -> dict[str, list[AdminResource]]:
 
 
 MASTER_GROUP_ORDER = [
-    "Struktur Organisasi",
-    "Absensi",
-    "Operasional",
-    "Keuangan",
+    "Organization Structure",
+    "Attendance",
+    "Operations",
+    "Finance",
     "Workflow",
 ]
 
@@ -103,7 +103,7 @@ def resources_master_data() -> list[tuple[str, list[AdminResource]]]:
     for resource in REGISTRY.values():
         if not resource.master_data:
             continue
-        grouped.setdefault(resource.master_group or "Lainnya", []).append(resource)
+        grouped.setdefault(resource.master_group or "Other", []).append(resource)
     ordered = []
     for group in MASTER_GROUP_ORDER:
         if group in grouped:

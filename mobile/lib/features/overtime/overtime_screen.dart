@@ -25,7 +25,7 @@ class OvertimeScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Pengajuan Lembur'),
+        title: const Text('Overtime Requests'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

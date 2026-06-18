@@ -123,7 +123,7 @@ class AttendanceScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: Text(
-          'Rekap Absensi',
+          'Attendance Summary',
           style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
         ),
         actions: [
