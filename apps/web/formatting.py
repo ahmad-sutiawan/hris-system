@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 
 MONEY_FIELD_HINTS = (
@@ -94,12 +95,18 @@ def is_money_field(attr_path: str) -> bool:
 def format_cell_value(value, attr_path: str = "") -> str:
     if value is None:
         return "-"
+    if isinstance(value, str) and value == "":
+        return "-"
     if hasattr(value, "all"):
         return str(value)
-    if hasattr(value, "strftime"):
-        return value.strftime("%Y-%m-%d %H:%M") if hasattr(value, "hour") else value.strftime("%Y-%m-%d")
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d %H:%M")
+    if isinstance(value, time):
+        return value.strftime("%H:%M")
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
     if isinstance(value, bool):
-        return "Ya" if value else "Tidak"
+        return "Yes" if value else "No"
     if isinstance(value, (Decimal, int, float)) and not isinstance(value, bool):
         if is_money_field(attr_path):
             return format_rupiah(value)

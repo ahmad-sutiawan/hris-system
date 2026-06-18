@@ -23,7 +23,10 @@ class Shift(TenantScopedModel):
         decimal_places=2,
         default=Decimal("8.00"),
     )
-    cross_day = models.BooleanField(default=False)
+    cross_day = models.BooleanField(
+        default=False,
+        help_text="Night shift: clock in on work date, clock out the next calendar day.",
+    )
     shift_allowance_code = models.CharField(max_length=32, blank=True)
     is_active = models.BooleanField(default=True)
 
@@ -33,6 +36,12 @@ class Shift(TenantScopedModel):
 
     def __str__(self):
         return f"{self.code} — {self.name}"
+
+    def save(self, *args, **kwargs):
+        if self.scheduled_check_in and self.scheduled_check_out:
+            if self.scheduled_check_out <= self.scheduled_check_in:
+                self.cross_day = True
+        super().save(*args, **kwargs)
 
 
 class ShiftAssignment(TenantScopedModel):

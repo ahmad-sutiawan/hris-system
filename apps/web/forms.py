@@ -12,7 +12,7 @@ from apps.shifts.models import Shift, ShiftAssignment
 
 
 from apps.employees.talenta_vocabulary import STATUS_EMPLOYEE_VALUES
-from apps.web.widgets import apply_date_fields
+from apps.web.widgets import apply_date_fields, apply_time_fields
 
 
 HRIS_INPUT_CLASS = "hris-input"
@@ -450,6 +450,7 @@ class ShiftAssignmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _style_fields(self)
         apply_date_fields(self, "work_date")
+        apply_time_fields(self, "scheduled_check_in", "scheduled_check_out")
         self.fields["scheduled_check_in"].required = False
         self.fields["scheduled_check_out"].required = False
         self.fields["scheduled_check_in"].help_text = (

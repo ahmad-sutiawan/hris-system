@@ -24,7 +24,7 @@ from apps.web.forms import (
     _filter_plant_queryset,
     _style_fields,
 )
-from apps.web.widgets import apply_date_fields
+from apps.web.widgets import apply_date_fields, apply_time_fields
 from apps.employees.services.user_link import available_users_for_employee
 
 User = get_user_model()
@@ -331,14 +331,32 @@ class ShiftForm(forms.ModelForm):
             "is_active",
         ]
         widgets = {
-            "scheduled_check_in": forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
-            "scheduled_check_out": forms.TimeInput(attrs={"type": "time", "class": HRIS_INPUT_CLASS}),
+            "schedule_working_hours": forms.NumberInput(
+                attrs={"class": HRIS_INPUT_CLASS, "step": "0.01", "min": "0"}
+            ),
+        }
+        labels = {
+            "break_minutes": "Break minutes",
+            "grace_period_minutes": "Grace period (minutes)",
+            "schedule_working_hours": "Scheduled working hours",
+            "cross_day": "Cross-day shift (night)",
+            "shift_allowance_code": "Shift allowance code",
+            "scheduled_check_in": "Scheduled check-in",
+            "scheduled_check_out": "Scheduled check-out",
+        }
+        help_texts = {
+            "break_minutes": "Unpaid break deducted from actual hours (e.g. 60 = 1 hour lunch).",
+            "grace_period_minutes": "Tolerance before late-in / early-out penalties apply.",
+            "schedule_working_hours": "Paid hours cap per shift; leave blank to auto-calculate from schedule.",
+            "cross_day": "Auto-enabled when check-out time is earlier than check-in (night shift).",
+            "shift_allowance_code": "Code for shift allowance payroll component (e.g. MALAM, PAGI).",
         }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         _style_fields(self)
         _base_init(self, tenant, user)
+        apply_time_fields(self, "scheduled_check_in", "scheduled_check_out")
 
 
 class AdminShiftAssignmentForm(forms.ModelForm):
@@ -354,6 +372,7 @@ class AdminShiftAssignmentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         _style_fields(self)
         apply_date_fields(self, "work_date")
+        apply_time_fields(self, "scheduled_check_in", "scheduled_check_out")
         if tenant:
             self.fields["employee"].queryset = Employee.objects.filter(tenant=tenant)
             self.fields["shift"].queryset = Shift.objects.filter(tenant=tenant, is_active=True)

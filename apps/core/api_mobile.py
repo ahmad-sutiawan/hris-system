@@ -437,6 +437,7 @@ def _serialize_shift_preview(employee: Employee, shift, work_date) -> dict:
         "plant_code": plant.code if plant else None,
         "scheduled_check_in": _shift_datetime(work_date, check_in),
         "scheduled_check_out": _shift_datetime(check_out_date, check_out),
+        "cross_day": bool(check_out and check_in and check_out <= check_in),
         "is_preview": True,
     }
 
@@ -462,6 +463,7 @@ def _serialize_shift(assignment):
         "plant_code": plant.code if plant else None,
         "scheduled_check_in": _shift_datetime(work_date, check_in),
         "scheduled_check_out": _shift_datetime(check_out_date, check_out),
+        "cross_day": bool(shift.cross_day if shift else check_out and check_in and check_out <= check_in),
     }
 
 

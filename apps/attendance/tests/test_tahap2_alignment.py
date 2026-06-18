@@ -72,6 +72,39 @@ class CrossDayShiftTests(TestCase):
         self.assertIsNotNone(ts.check_in)
         self.assertIsNotNone(ts.check_out)
 
+    def test_night_shift_20_to_08_same_work_date(self):
+        """Masuk 20:00 tgl 1, pulang 08:00 tgl 2 → satu work_date (tgl 1)."""
+        self.night_shift.scheduled_check_in = time(20, 0)
+        self.night_shift.scheduled_check_out = time(8, 0)
+        self.night_shift.save()
+        assignment = ShiftAssignment.objects.get(employee=self.employee, work_date=self.work_date)
+        assignment.scheduled_check_in = time(20, 0)
+        assignment.scheduled_check_out = time(8, 0)
+        assignment.save()
+        self.assertTrue(self.night_shift.cross_day)
+
+        tz = timezone.get_current_timezone()
+        ci = timezone.make_aware(datetime(2026, 6, 1, 20, 0), tz)
+        co = timezone.make_aware(datetime(2026, 6, 2, 8, 0), tz)
+
+        clock_in(self.employee, when=ci, photo=_photo())
+        record = clock_out(self.employee, when=co, photo=_photo())
+
+        self.assertEqual(record.work_date, self.work_date)
+        self.assertEqual(timezone.localtime(record.check_in).date(), date(2026, 6, 1))
+        self.assertEqual(timezone.localtime(record.check_out).date(), date(2026, 6, 2))
+
+    def test_clock_out_grace_after_scheduled_morning(self):
+        self.night_shift.grace_period_minutes = 15
+        self.night_shift.save()
+        tz = timezone.get_current_timezone()
+        ci = timezone.make_aware(datetime(2026, 6, 1, 22, 0), tz)
+        co = timezone.make_aware(datetime(2026, 6, 2, 6, 10), tz)
+
+        clock_in(self.employee, when=ci, photo=_photo())
+        record = clock_out(self.employee, when=co, photo=_photo())
+        self.assertEqual(record.work_date, self.work_date)
+
     def test_resolve_work_date_morning_tail_without_prior_check_in(self):
         tz = timezone.get_current_timezone()
         when = timezone.make_aware(datetime(2026, 6, 2, 0, 30), tz)
