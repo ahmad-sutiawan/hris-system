@@ -1,0 +1,786 @@
+/*
+ * HRIS Industrial Glassmorphism
+ * — sidebar & konten satu canvas (bg sama)
+ * — panel kaca (blur + transparansi), sudut tajam (radius 0)
+ * — palet adem: biru industrial, ungu, merah, gold
+ */
+
+:root {
+  /* Industrial brand */
+  --hris-brand-navy: #1a2744;
+  --hris-brand-purple: #5b4b9e;
+  --hris-brand-blue: #3d6a9e;
+  --hris-brand-red: #c4475a;
+  --hris-brand-gold: #d4ad4a;
+  --hris-brand-gold-dark: #b8922e;
+  --hris-brand-gold-light: #f5ecd4;
+  --hris-brand-orange: #c46b3a;
+  --hris-brand-purple-light: #ebe8f8;
+
+  /* Satu canvas — sidebar & konten */
+  --hris-bg: #d4deec;
+  --hris-bg-elevated: transparent;
+  --hris-surface: rgba(255, 255, 255, 0.48);
+  --hris-surface-hover: rgba(255, 255, 255, 0.62);
+  --hris-surface-muted: rgba(255, 255, 255, 0.34);
+  --hris-border: rgba(255, 255, 255, 0.65);
+  --hris-border-strong: rgba(91, 75, 158, 0.22);
+
+  --hris-text: #1a2744;
+  --hris-text-muted: #3d4f6e;
+  --hris-text-dim: #5c6d88;
+
+  --hris-accent: #5b4b9e;
+  --hris-accent-hover: #3d6a9e;
+  --hris-accent-glow: rgba(91, 75, 158, 0.22);
+  --hris-gold: #d4ad4a;
+  --hris-gold-dark: #b8922e;
+  --hris-gold-glow: rgba(212, 173, 74, 0.28);
+  --hris-amber: #d4ad4a;
+
+  --hris-cyan: #3d6a9e;
+  --hris-cyan-dim: rgba(61, 106, 158, 0.12);
+
+  --hris-success: #2d8a6e;
+  --hris-success-dim: rgba(45, 138, 110, 0.12);
+  --hris-danger: #c4475a;
+  --hris-danger-dim: rgba(196, 71, 90, 0.12);
+  --hris-warning: #c46b3a;
+  --hris-warning-dim: rgba(196, 107, 58, 0.12);
+  --hris-info: #3d6a9e;
+  --hris-info-dim: rgba(61, 106, 158, 0.12);
+
+  --hris-purple-soft: rgba(91, 75, 158, 0.1);
+  --hris-purple-border: rgba(91, 75, 158, 0.28);
+  --hris-purple-glow-strong: rgba(91, 75, 158, 0.14);
+  --hris-gold-soft: rgba(212, 173, 74, 0.12);
+  --hris-gold-border: rgba(212, 173, 74, 0.42);
+  --hris-gold-soft-strong: rgba(212, 173, 74, 0.16);
+  --hris-gold-ring: rgba(212, 173, 74, 0.24);
+  --hris-blue-soft: rgba(61, 106, 158, 0.1);
+  --hris-blue-border: rgba(61, 106, 158, 0.28);
+  --hris-blue-soft-strong: rgba(61, 106, 158, 0.14);
+  --hris-red-soft: rgba(196, 71, 90, 0.1);
+  --hris-red-border: rgba(196, 71, 90, 0.28);
+  --hris-success-border: rgba(45, 138, 110, 0.28);
+  --hris-success-soft: rgba(45, 138, 110, 0.1);
+  --hris-danger-border: rgba(196, 71, 90, 0.28);
+  --hris-danger-soft: rgba(196, 71, 90, 0.1);
+  --hris-danger-critical: rgba(196, 71, 90, 0.14);
+  --hris-overlay: rgba(26, 39, 68, 0.45);
+  --hris-overlay-light: rgba(236, 242, 252, 0.55);
+  --hris-row-hover: rgba(255, 255, 255, 0.42);
+  --hris-table-head: rgba(255, 255, 255, 0.38);
+
+  /* Sidebar = konten (satu warna, satu teks) */
+  --hris-sidebar-bg-start: transparent;
+  --hris-sidebar-bg-end: transparent;
+  --hris-sidebar-text: var(--hris-text);
+  --hris-sidebar-text-muted: var(--hris-text-muted);
+  --hris-sidebar-text-dim: var(--hris-text-dim);
+  --hris-sidebar-border: var(--hris-border-strong);
+  --hris-sidebar-hover: var(--hris-surface-hover);
+  --hris-sidebar-active-bg: var(--hris-purple-soft);
+  --hris-sidebar-active-text: var(--hris-brand-purple);
+
+  --hris-on-primary: #ffffff;
+  --hris-on-gold: #1a2744;
+
+  /* Glass tokens */
+  --hris-glass-blur: blur(22px) saturate(1.45);
+  --hris-glass-bg: rgba(236, 242, 252, 0.52);
+  --hris-glass-panel: rgba(255, 255, 255, 0.46);
+  --hris-glass-panel-strong: rgba(255, 255, 255, 0.62);
+  --hris-glass-input: rgba(255, 255, 255, 0.55);
+  --hris-glass-border: rgba(255, 255, 255, 0.78);
+  --hris-glass-shadow: 0 8px 32px rgba(26, 39, 68, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.65);
+
+  --hris-radius: 0;
+  --hris-radius-sm: 0;
+  --hris-shadow: var(--hris-glass-shadow);
+
+  /* Chart / dashboard accents */
+  --neo-cyan: #4a8eb8;
+  --neo-cyan-end: #3d6a9e;
+  --neo-magenta: #c4475a;
+  --neo-magenta-end: #9e3a52;
+  --neo-gold: #d4ad4a;
+  --neo-gold-end: #c46b3a;
+  --neo-purple: #7b6cb8;
+  --neo-purple-end: #5b4b9e;
+  --neo-orange: #c46b3a;
+  --neo-green: #2d8a6e;
+  --neo-gradient: linear-gradient(
+    90deg,
+    var(--neo-cyan),
+    var(--neo-purple-end),
+    var(--neo-magenta),
+    var(--neo-gold)
+  );
+}
+
+/* ── Canvas industri — mesh biru · ungu · merah · gold ── */
+
+body.hris-body {
+  background: var(--hris-bg);
+  letter-spacing: -0.01em;
+}
+
+body.hris-body::before {
+  opacity: 1;
+  background:
+    radial-gradient(ellipse 72% 58% at 4% 6%, rgba(61, 106, 158, 0.38), transparent 62%),
+    radial-gradient(ellipse 68% 54% at 96% 8%, rgba(91, 75, 158, 0.32), transparent 60%),
+    radial-gradient(ellipse 58% 48% at 92% 94%, rgba(196, 71, 90, 0.22), transparent 58%),
+    radial-gradient(ellipse 54% 46% at 6% 92%, rgba(212, 173, 74, 0.28), transparent 56%),
+    radial-gradient(ellipse 42% 36% at 50% 48%, rgba(91, 75, 158, 0.12), transparent 62%),
+    linear-gradient(155deg, #c5d4e8 0%, #d0daea 40%, #d8e0ee 100%);
+}
+
+body.hris-body::after {
+  opacity: 0.55;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28) 0%, transparent 32%),
+    radial-gradient(ellipse 120% 80% at 50% 100%, rgba(61, 106, 158, 0.1), transparent 55%);
+}
+
+.hris-app,
+.hris-main,
+.hris-content {
+  background: transparent;
+}
+
+/* ── Glass panel mixin (sidebar = topbar = kartu) ── */
+
+.hris-sidebar,
+.hris-topbar,
+.hris-card,
+.hris-stat-card,
+.hris-form-card,
+.hris-table-wrap,
+.hris-list-toolbar,
+.hris-pagination,
+.hris-notif-panel,
+.hris-user-menu,
+.hris-manage-link,
+.hris-announcement-card,
+.hris-announcement-banner,
+.hris-notif-card,
+.hris-feed-item,
+.hris-login-box,
+.hris-alert,
+.hris-plant-badge,
+.hris-punch-detail-card,
+.hris-punch-bar {
+  border-radius: 0;
+  backdrop-filter: var(--hris-glass-blur);
+  -webkit-backdrop-filter: var(--hris-glass-blur);
+  box-shadow: var(--hris-glass-shadow);
+}
+
+/* ── Sidebar — kaca, bg sama dengan konten ── */
+
+.hris-sidebar {
+  color: var(--hris-text-muted);
+  border-right: 1px solid var(--hris-border-strong);
+  background: var(--hris-glass-bg);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.35), var(--hris-glass-shadow);
+}
+
+.hris-sidebar::before {
+  background: none;
+}
+
+.hris-sidebar .hris-brand-text strong,
+.hris-sidebar .hris-nav-link:hover,
+.hris-sidebar .hris-nav-link.is-active {
+  color: var(--hris-text);
+}
+
+.hris-sidebar .hris-brand-text span,
+.hris-sidebar .hris-nav-label,
+.hris-sidebar .hris-sidebar-search-empty {
+  color: var(--hris-text-dim);
+}
+
+.hris-sidebar .hris-nav-link {
+  color: var(--hris-text-muted);
+  border-radius: 0;
+}
+
+.hris-sidebar .hris-nav-link:hover {
+  background: var(--hris-surface-hover);
+}
+
+.hris-sidebar .hris-nav-link.is-active {
+  color: var(--hris-brand-purple);
+  background: var(--hris-purple-soft);
+  box-shadow: inset 3px 0 0 var(--hris-brand-gold);
+}
+
+.hris-sidebar .hris-sidebar-search-input {
+  background: var(--hris-glass-input);
+  border-color: var(--hris-border-strong);
+  color: var(--hris-text);
+  border-radius: 0;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hris-sidebar .hris-sidebar-search-input:focus {
+  border-color: var(--hris-brand-purple);
+  box-shadow: 0 0 0 1px var(--hris-gold-ring);
+}
+
+.hris-sidebar .hris-sidebar-search-icon {
+  color: var(--hris-text-dim);
+}
+
+.hris-sidebar .hris-brand,
+.hris-sidebar .hris-sidebar-search,
+.hris-sidebar .hris-sidebar-footer {
+  border-color: var(--hris-border-strong);
+}
+
+.hris-sidebar .hris-plant-badge {
+  background: var(--hris-glass-panel);
+  border-color: var(--hris-border-strong);
+  color: var(--hris-text-muted);
+}
+
+.hris-sidebar .hris-plant-badge::before {
+  background: var(--hris-brand-blue);
+  box-shadow: 0 0 8px rgba(61, 106, 158, 0.45);
+}
+
+.hris-sidebar .hris-sidebar-logout-btn {
+  border-color: var(--hris-red-border);
+  color: var(--hris-brand-red);
+  background: var(--hris-red-soft);
+  border-radius: 0;
+}
+
+.hris-brand-logo--sidebar {
+  filter: none;
+}
+
+/* ── Topbar — kaca sama dengan sidebar ── */
+
+.hris-topbar {
+  background: var(--hris-glass-bg);
+  border-bottom: 1px solid var(--hris-border-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 4px 24px rgba(26, 39, 68, 0.05);
+}
+
+.hris-page-title {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--hris-text);
+}
+
+.hris-menu-toggle,
+.hris-icon-btn,
+.hris-user-chip {
+  border-radius: 0;
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.hris-icon-btn:hover,
+.hris-menu-toggle:hover,
+.hris-user-chip:hover {
+  border-color: var(--hris-brand-purple);
+  background: var(--hris-surface-hover);
+}
+
+.hris-user-avatar {
+  border-radius: 0;
+  background: linear-gradient(135deg, var(--hris-brand-blue), var(--hris-brand-purple));
+  color: var(--hris-brand-gold);
+  font-weight: 700;
+}
+
+.hris-user-menu {
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-panel-strong);
+}
+
+.hris-notif-panel {
+  background: var(--hris-glass-panel-strong);
+  border-color: var(--hris-border-strong);
+}
+
+.hris-notif-item:hover {
+  background: var(--hris-surface-hover);
+}
+
+/* ── Buttons ── */
+
+.hris-btn {
+  border-radius: 0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hris-btn-primary {
+  background: linear-gradient(135deg, var(--hris-brand-blue) 0%, var(--hris-brand-purple) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--hris-on-primary);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 16px rgba(91, 75, 158, 0.25);
+}
+
+.hris-btn-primary:hover {
+  background: linear-gradient(135deg, var(--hris-brand-purple) 0%, var(--hris-brand-navy) 100%);
+  box-shadow: inset 0 -2px 0 var(--hris-brand-gold), 0 6px 20px rgba(91, 75, 158, 0.3);
+  transform: none;
+}
+
+.hris-btn-secondary {
+  background: var(--hris-glass-panel);
+  border-color: var(--hris-border-strong);
+  color: var(--hris-text);
+}
+
+.hris-btn-secondary:hover {
+  border-color: var(--hris-brand-blue);
+  background: var(--hris-surface-hover);
+}
+
+.hris-btn-success {
+  background: var(--hris-success);
+  border-color: transparent;
+}
+
+.hris-btn-danger {
+  background: var(--hris-brand-red);
+  border-color: transparent;
+}
+
+.hris-btn-ghost {
+  background: transparent;
+}
+
+.hris-btn-ghost:hover {
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+/* ── Cards & stat ── */
+
+.hris-card,
+.hris-form-card,
+.hris-manage-link,
+.hris-notif-card,
+.hris-feed-item {
+  border: 1px solid var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+.hris-stat-card {
+  border: 1px solid var(--hris-border-strong);
+  border-top: 2px solid var(--hris-brand-gold);
+  background: var(--hris-glass-panel);
+}
+
+.hris-stat-card--amber { --stat-accent: var(--hris-brand-gold); }
+.hris-stat-card--cyan { --stat-accent: var(--hris-brand-blue); }
+.hris-stat-card--green { --stat-accent: var(--hris-success); }
+.hris-stat-card--rose { --stat-accent: var(--hris-brand-red); }
+
+/* ── Tables ── */
+
+.hris-table-wrap {
+  border: 1px solid var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+.hris-table thead {
+  background: var(--hris-table-head);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hris-table th {
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hris-text-muted);
+  border-bottom: 2px solid var(--hris-border-strong);
+}
+
+.hris-table td {
+  border-bottom: 1px solid var(--hris-border);
+}
+
+.hris-table tbody tr:hover {
+  background: var(--hris-row-hover);
+}
+
+.hris-row-unread {
+  background: var(--hris-purple-soft);
+}
+
+/* ── Forms ── */
+
+.hris-input,
+.hris-select,
+.hris-textarea {
+  border-radius: 0;
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-input);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--hris-text);
+}
+
+.hris-input:focus,
+.hris-select:focus,
+.hris-textarea:focus {
+  border-color: var(--hris-brand-purple);
+  box-shadow: 0 0 0 1px var(--hris-gold-ring);
+  outline: none;
+  background: var(--hris-glass-panel-strong);
+}
+
+.hris-field label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hris-text-muted);
+}
+
+/* ── Badges & alerts ── */
+
+.hris-badge {
+  border-radius: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hris-badge--pending {
+  background: var(--hris-gold-soft);
+  border-color: var(--hris-gold-border);
+  color: var(--hris-brand-gold-dark);
+}
+
+.hris-badge--approved,
+.hris-badge--active {
+  background: var(--hris-success-soft);
+  border-color: var(--hris-success-border);
+  color: var(--hris-success);
+}
+
+.hris-badge--rejected,
+.hris-badge--cancelled {
+  background: var(--hris-red-soft);
+  border-color: var(--hris-red-border);
+  color: var(--hris-brand-red);
+}
+
+.hris-alert {
+  border-radius: 0;
+  border-left-width: 3px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.hris-alert--info {
+  border-left-color: var(--hris-brand-blue);
+  background: var(--hris-blue-soft);
+}
+
+.hris-alert--error {
+  border-left-color: var(--hris-brand-red);
+  background: var(--hris-red-soft);
+}
+
+.hris-alert--success {
+  border-left-color: var(--hris-success);
+  background: var(--hris-success-soft);
+}
+
+.hris-notif-badge {
+  border-radius: 0;
+  background: var(--hris-brand-red);
+}
+
+/* ── Toolbar & pagination ── */
+
+.hris-list-toolbar {
+  border: 1px solid var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+.hris-pagination {
+  background: var(--hris-glass-panel);
+  border: 1px solid var(--hris-border-strong);
+}
+
+.hris-pagination a:hover {
+  background: var(--hris-purple-soft);
+  color: var(--hris-brand-purple);
+}
+
+.hris-pagination-current {
+  background: var(--hris-brand-purple);
+  color: var(--hris-on-primary);
+}
+
+/* ── Login ── */
+
+.hris-login-page {
+  background: var(--hris-bg);
+}
+
+.hris-login-page::before,
+.hris-login-page::after {
+  content: none;
+}
+
+.hris-login-hero-overlay {
+  background:
+    linear-gradient(135deg, rgba(26, 39, 68, 0.82) 0%, rgba(91, 75, 158, 0.72) 50%, rgba(61, 106, 158, 0.78) 100%),
+    linear-gradient(180deg, rgba(196, 71, 90, 0.15) 0%, transparent 40%);
+}
+
+.hris-login-panel {
+  background: transparent;
+}
+
+.hris-login-box {
+  border: 1px solid var(--hris-border-strong);
+  background: var(--hris-glass-panel-strong);
+  backdrop-filter: var(--hris-glass-blur);
+  -webkit-backdrop-filter: var(--hris-glass-blur);
+}
+
+.hris-brand-mark {
+  border-radius: 0;
+  background: linear-gradient(135deg, var(--hris-brand-blue), var(--hris-brand-purple));
+  color: var(--hris-brand-gold);
+  box-shadow: var(--hris-glass-shadow);
+}
+
+/* ── Nav accents ── */
+
+.hris-nav-link--admin-hub.is-active,
+.hris-nav-link--admin.is-active {
+  color: var(--hris-brand-gold-dark);
+  background: var(--hris-gold-soft);
+  box-shadow: inset 3px 0 0 var(--hris-brand-gold);
+}
+
+.hris-nav-link--master-hub.is-active,
+.hris-nav-link--master.is-active {
+  color: var(--hris-brand-blue);
+  background: var(--hris-blue-soft);
+  box-shadow: inset 3px 0 0 var(--hris-brand-blue);
+}
+
+.hris-dashboard-link,
+.hris-quick-link:hover,
+.hris-link {
+  color: var(--hris-brand-blue);
+}
+
+.hris-notif-item.is-unread strong {
+  color: var(--hris-brand-purple);
+}
+
+.hris-feed-item.is-unread,
+.hris-notif-card.is-unread {
+  border-color: var(--hris-purple-border);
+  background: var(--hris-purple-soft);
+}
+
+/* ── Announcements ── */
+
+.hris-announcement-banner {
+  border-left: 3px solid var(--hris-brand-gold);
+  background: var(--hris-glass-panel);
+}
+
+.hris-announcement-card {
+  background: var(--hris-glass-panel);
+  border-color: var(--hris-border-strong);
+}
+
+/* ── Dashboard shell ── */
+
+.hris-dashboard-shell .hris-stat-card {
+  border-top-color: var(--hris-brand-gold);
+}
+
+.hris-dashboard-shell .hris-card {
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+.hris-quick-link {
+  border-radius: 0;
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+.hris-quick-link:hover {
+  border-color: var(--hris-brand-purple);
+  background: var(--hris-purple-soft);
+  transform: none;
+}
+
+.hris-manage-link:hover {
+  border-color: var(--hris-brand-blue);
+  background: var(--hris-blue-soft);
+  transform: none;
+}
+
+.hris-salary-preview-card {
+  border-left: 3px solid var(--hris-brand-gold);
+  background: var(--hris-glass-panel);
+}
+
+/* ── Layout polish ── */
+
+.hris-content {
+  padding: 1.5rem 1.75rem 2.5rem;
+}
+
+.hris-page-header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--hris-border-strong);
+}
+
+.hris-page-header h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.hris-form-page .hris-card,
+.hris-form-layout__aside .hris-card {
+  border-color: var(--hris-border-strong);
+  background: var(--hris-glass-panel);
+}
+
+.hris-pagination a,
+.hris-pagination span,
+.hris-pagination button {
+  border-radius: 0;
+}
+
+.hris-feed,
+.hris-notif-list {
+  border-radius: 0;
+}
+
+.hris-sidebar-backdrop {
+  background: var(--hris-overlay);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Scrollbar */
+.hris-nav::-webkit-scrollbar,
+.hris-table-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.hris-nav::-webkit-scrollbar-thumb,
+.hris-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(91, 75, 158, 0.35);
+  border-radius: 0;
+}
+
+.hris-nav::-webkit-scrollbar-track,
+.hris-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Neo analytics (jika dipakai) */
+.hris-neo-panel,
+.hris-fx-card {
+  border-radius: 0 !important;
+  background: var(--hris-glass-panel) !important;
+  border-color: var(--hris-border-strong) !important;
+  backdrop-filter: var(--hris-glass-blur);
+  -webkit-backdrop-filter: var(--hris-glass-blur);
+}
+
+/* ── Pastikan sidebar = konten (override legacy hris.css) ── */
+
+.hris-app .hris-sidebar {
+  background: var(--hris-glass-bg) !important;
+  backdrop-filter: var(--hris-glass-blur) !important;
+  -webkit-backdrop-filter: var(--hris-glass-blur) !important;
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.35), var(--hris-glass-shadow) !important;
+}
+
+.hris-app .hris-sidebar::before {
+  display: none !important;
+}
+
+.hris-app .hris-topbar {
+  background: var(--hris-glass-bg) !important;
+  backdrop-filter: var(--hris-glass-blur) !important;
+  -webkit-backdrop-filter: var(--hris-glass-blur) !important;
+}
+
+@media (max-width: 1023px) {
+  .hris-app .hris-sidebar.is-open {
+    background: var(--hris-glass-bg) !important;
+    backdrop-filter: var(--hris-glass-blur) !important;
+    -webkit-backdrop-filter: var(--hris-glass-blur) !important;
+  }
+}
+
+.hris-app .hris-sidebar .hris-sidebar-search-input {
+  background: var(--hris-glass-input) !important;
+  border-color: var(--hris-border-strong) !important;
+  color: var(--hris-text) !important;
+}
+
+.hris-app .hris-sidebar .hris-plant-badge {
+  background: var(--hris-glass-panel) !important;
+  border-color: var(--hris-border-strong) !important;
+  color: var(--hris-text-muted) !important;
+}
+
+.hris-punch-detail-card,
+.hris-punch-bar {
+  border-radius: 0 !important;
+  background: var(--hris-glass-panel) !important;
+  border: 1px solid var(--hris-border-strong) !important;
+  backdrop-filter: var(--hris-glass-blur) !important;
+  -webkit-backdrop-filter: var(--hris-glass-blur) !important;
+}
+
+/* Dropdowns & modal glass */
+.hris-dropdown-menu,
+.hris-modal-box,
+.hris-punch-modal-panel {
+  border-radius: 0 !important;
+  background: var(--hris-glass-panel-strong) !important;
+  border: 1px solid var(--hris-border-strong) !important;
+  backdrop-filter: var(--hris-glass-blur) !important;
+  -webkit-backdrop-filter: var(--hris-glass-blur) !important;
+  box-shadow: var(--hris-glass-shadow) !important;
+}
+
+/* Punch camera overlay */
+.hris-punch-modal {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
