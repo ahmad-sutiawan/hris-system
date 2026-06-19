@@ -46,13 +46,19 @@ class AllAppsScreen extends StatelessWidget {
           icon: Icons.history_rounded,
           label: 'Riwayat Absensi',
           color: AppColors.warning,
-          onTap: () => context.go('/attendance'),
+          onTap: () => context.push('/attendance'),
         ),
         TalentaAppGridItem(
           icon: Icons.receipt_long_rounded,
           label: 'Slip Gaji',
           color: AppColors.success,
           onTap: () => context.push('/payslips'),
+        ),
+        TalentaAppGridItem(
+          icon: Icons.people_rounded,
+          label: 'Karyawan',
+          color: AppColors.cyan,
+          onTap: () => context.go('/employees'),
         ),
         TalentaAppGridItem(
           icon: Icons.person_rounded,

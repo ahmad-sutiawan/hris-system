@@ -10,7 +10,7 @@ from apps.core.api_auth import (
     ThrottledTokenObtainPairView,
     ThrottledTokenRefreshView,
 )
-from apps.core.api_mobile import MobileDashboardView, MobileProfileView
+from apps.core.api_mobile import MobileDashboardView, MobileEmployeeFiltersView, MobileProfileView
 from apps.core.api_media import MediaFileView
 from apps.core.api_views import AuditLogViewSet, NotificationViewSet
 from apps.core.views import HealthCheckView
@@ -46,5 +46,6 @@ urlpatterns = [
     path("auth/logout/", AuthLogoutView.as_view(), name="token_logout"),
     path("mobile/dashboard/", MobileDashboardView.as_view(), name="mobile_dashboard"),
     path("mobile/profile/", MobileProfileView.as_view(), name="mobile_profile"),
+    path("mobile/employees/filters/", MobileEmployeeFiltersView.as_view(), name="mobile_employee_filters"),
     path("media/<path:path>", MediaFileView.as_view(), name="api_media"),
 ]

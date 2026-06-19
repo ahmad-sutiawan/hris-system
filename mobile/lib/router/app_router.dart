@@ -8,6 +8,8 @@ import '../features/announcements/announcements_screen.dart';
 import '../features/apps/all_apps_screen.dart';
 import '../features/attendance/attendance_screen.dart';
 import '../features/attendance/punch_screen.dart';
+import '../features/employees/employee_detail_screen.dart';
+import '../features/employees/employees_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/leave/leave_form_screen.dart';
 import '../features/leave/leave_screen.dart';
@@ -57,8 +59,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/attendance',
-                builder: (context, state) => const AttendanceScreen(),
+                path: '/employees',
+                builder: (context, state) => const EmployeesScreen(),
               ),
             ],
           ),
@@ -89,6 +91,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/attendance',
+        builder: (context, state) => const AttendanceScreen(),
+      ),
+      GoRoute(
+        path: '/employees/:id',
+        builder: (context, state) => EmployeeDetailScreen(
+          employeeId: int.parse(state.pathParameters['id']!),
+        ),
       ),
       GoRoute(path: '/punch', builder: (_, __) => const PunchScreen()),
       GoRoute(path: '/leave', builder: (_, __) => const LeaveScreen()),

@@ -249,11 +249,11 @@ class HomeScreen extends ConsumerWidget {
                       GoldSectionTitle(
                         title: teamTitle,
                         actionLabel: 'Lihat aktivitas',
-                        onAction: () => context.go('/attendance'),
+                        onAction: () => context.push('/attendance'),
                       ),
                       DirectReportsRow(
                         members: teamMembers,
-                        onTap: () => context.go('/attendance'),
+                        onTap: () => context.push('/attendance'),
                       ),
                     ],
                   ),
@@ -308,6 +308,12 @@ class HomeScreen extends ConsumerWidget {
 
   static List<TalentaAppGridItem> _homeQuickApps(BuildContext context) => [
         TalentaAppGridItem(
+          icon: Icons.calendar_month_rounded,
+          label: 'Absensi',
+          color: AppColors.success,
+          onTap: () => context.push('/attendance'),
+        ),
+        TalentaAppGridItem(
           icon: Icons.beach_access_rounded,
           label: 'Cuti',
           color: AppColors.chinaRed,
@@ -324,12 +330,6 @@ class HomeScreen extends ConsumerWidget {
           label: 'Absen Langsung',
           color: AppColors.chinaRedDark,
           onTap: () => context.push('/punch?action=in'),
-        ),
-        TalentaAppGridItem(
-          icon: Icons.history_rounded,
-          label: 'Riwayat Absensi',
-          color: AppColors.darkGoldRich,
-          onTap: () => context.go('/attendance'),
         ),
         TalentaAppGridItem(
           icon: Icons.receipt_long_rounded,

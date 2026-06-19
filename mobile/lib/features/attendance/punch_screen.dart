@@ -263,7 +263,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
             backgroundColor: AppColors.success,
           ),
         );
-        context.go('/attendance');
+        context.push('/attendance');
       }
     } catch (e) {
       if (mounted) {

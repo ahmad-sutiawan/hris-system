@@ -86,7 +86,7 @@ class MenuScreen extends ConsumerWidget {
                   _MenuTile(
                     icon: Icons.calendar_month_outlined,
                     label: 'Ringkasan Absensi',
-                    onTap: () => context.go('/attendance'),
+                    onTap: () => context.push('/attendance'),
                   ),
                   _MenuTile(
                     icon: Icons.beach_access_outlined,

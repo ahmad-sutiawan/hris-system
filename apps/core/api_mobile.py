@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 from apps.attendance.models import AttendanceRecord, OvertimeRequest
 from apps.attendance.serializers import AttendanceRecordSerializer
 from apps.attendance.services.punch_ui import get_punch_ui_state
-from apps.core.models import Notification, User
+from apps.core.models import Notification, Plant, User
 from apps.core.approval import can_approve_request
 from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
@@ -17,6 +17,7 @@ from apps.employees.services.onboarding import resolve_default_shift
 from apps.employees.services.profile import build_employee_profile_context
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.leave.models import LeaveRequest
+from apps.organization.models import JobPosition
 from apps.shifts.models import ShiftAssignment
 from apps.payroll.services.salary_preview import build_salary_preview
 from apps.payroll.services.ter import seed_ter_master
@@ -495,3 +496,40 @@ def _serialize_payslip(payslip):
         "net_amount": str(payslip.net_amount),
         "gross_amount": str(payslip.gross_amount),
     }
+
+
+class MobileEmployeeFiltersView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        tenant = request.user.tenant
+        plants = (
+            Plant.objects.filter(tenant=tenant, is_active=True)
+            .order_by("code")
+            .values("id", "code", "name")
+        )
+        positions = (
+            JobPosition.objects.filter(tenant=tenant, is_active=True)
+            .select_related("plant")
+            .order_by("title")
+            .values("id", "title", "code", "plant_id", "plant__code")
+        )
+        return Response(
+            {
+                "plants": [
+                    {"id": row["id"], "code": row["code"], "name": row["name"]}
+                    for row in plants
+                ],
+                "job_positions": [
+                    {
+                        "id": row["id"],
+                        "title": row["title"],
+                        "code": row["code"],
+                        "plant_id": row["plant_id"],
+                        "plant_code": row["plant__code"],
+                    }
+                    for row in positions
+                ],
+            }
+        )
+

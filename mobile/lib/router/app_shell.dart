@@ -31,6 +31,24 @@ class AppShell extends StatelessWidget {
   }
 }
 
+class _NavSpec {
+  const _NavSpec({
+    required this.index,
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+    required this.accent,
+    required this.accentSoft,
+  });
+
+  final int index;
+  final IconData icon;
+  final IconData selectedIcon;
+  final String label;
+  final Color accent;
+  final Color accentSoft;
+}
+
 class _AuroraBottomNav extends StatelessWidget {
   const _AuroraBottomNav({
     required this.currentIndex,
@@ -44,6 +62,44 @@ class _AuroraBottomNav extends StatelessWidget {
   static const _barHeight = 58.0;
   static const _fabSize = 52.0;
   static const _fabOverhang = 24.0;
+
+  static const _leftItems = [
+    _NavSpec(
+      index: 0,
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home_rounded,
+      label: 'Beranda',
+      accent: AppColors.brandPurple,
+      accentSoft: AppColors.chinaRedLight,
+    ),
+    _NavSpec(
+      index: 1,
+      icon: Icons.people_outline_rounded,
+      selectedIcon: Icons.people_rounded,
+      label: 'Karyawan',
+      accent: AppColors.cyan,
+      accentSoft: AppColors.cyanDim,
+    ),
+  ];
+
+  static const _rightItems = [
+    _NavSpec(
+      index: 3,
+      icon: Icons.mail_outline_rounded,
+      selectedIcon: Icons.mail_rounded,
+      label: 'Inbox',
+      accent: AppColors.info,
+      accentSoft: AppColors.infoDim,
+    ),
+    _NavSpec(
+      index: 4,
+      icon: Icons.person_outline_rounded,
+      selectedIcon: Icons.person_rounded,
+      label: 'Akun',
+      accent: AppColors.brandOrange,
+      accentSoft: AppColors.warningDim,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -98,35 +154,27 @@ class _AuroraBottomNav extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _NavItem(
-                  selected: currentIndex == 0,
-                  icon: Icons.home_outlined,
-                  selectedIcon: Icons.home_rounded,
-                  label: 'Beranda',
-                  onTap: () => onTap(0),
-                ),
-                _NavItem(
-                  selected: currentIndex == 1,
-                  icon: Icons.calendar_month_outlined,
-                  selectedIcon: Icons.calendar_month_rounded,
-                  label: 'Absensi',
-                  onTap: () => onTap(1),
-                ),
+                for (final item in _leftItems)
+                  _NavItem(
+                    selected: currentIndex == item.index,
+                    icon: item.icon,
+                    selectedIcon: item.selectedIcon,
+                    label: item.label,
+                    accent: item.accent,
+                    accentSoft: item.accentSoft,
+                    onTap: () => onTap(item.index),
+                  ),
                 const Expanded(child: SizedBox(width: _fabSize)),
-                _NavItem(
-                  selected: currentIndex == 3,
-                  icon: Icons.mail_outline_rounded,
-                  selectedIcon: Icons.mail_rounded,
-                  label: 'Kotak Masuk',
-                  onTap: () => onTap(3),
-                ),
-                _NavItem(
-                  selected: currentIndex == 4,
-                  icon: Icons.person_outline_rounded,
-                  selectedIcon: Icons.person_rounded,
-                  label: 'Akun',
-                  onTap: () => onTap(4),
-                ),
+                for (final item in _rightItems)
+                  _NavItem(
+                    selected: currentIndex == item.index,
+                    icon: item.icon,
+                    selectedIcon: item.selectedIcon,
+                    label: item.label,
+                    accent: item.accent,
+                    accentSoft: item.accentSoft,
+                    onTap: () => onTap(item.index),
+                  ),
               ],
             ),
           ),
@@ -211,14 +259,20 @@ class _NavItem extends StatelessWidget {
     required this.icon,
     required this.selectedIcon,
     required this.label,
+    required this.accent,
+    required this.accentSoft,
     required this.onTap,
+    this.compact = false,
   });
 
   final bool selected;
   final IconData icon;
   final IconData selectedIcon;
   final String label;
+  final Color accent;
+  final Color accentSoft;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +281,7 @@ class _NavItem extends StatelessWidget {
         onTap: onTap,
         scale: 0.92,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 1 : 2),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
@@ -235,21 +289,27 @@ class _NavItem extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 7 : 10,
+                  vertical: compact ? 5 : 6,
+                ),
                 decoration: BoxDecoration(
                   gradient: selected
                       ? LinearGradient(
                           colors: [
-                            AppColors.brandPurple.withValues(alpha: 0.14),
-                            AppColors.brandBlue.withValues(alpha: 0.08),
+                            accent.withValues(alpha: 0.18),
+                            accentSoft.withValues(alpha: 0.9),
                           ],
                         )
                       : null,
                   borderRadius: BorderRadius.circular(14),
+                  border: selected
+                      ? Border.all(color: accent.withValues(alpha: 0.28))
+                      : null,
                   boxShadow: selected
                       ? [
                           BoxShadow(
-                            color: AppColors.brandPurple.withValues(alpha: 0.12),
+                            color: accent.withValues(alpha: 0.16),
                             blurRadius: 10,
                             offset: const Offset(0, 2),
                           ),
@@ -258,21 +318,23 @@ class _NavItem extends StatelessWidget {
                 ),
                 child: Icon(
                   selected ? selectedIcon : icon,
-                  color: selected ? AppColors.brandPurple : AppColors.textDim,
-                  size: 22,
+                  color: selected ? accent : AppColors.textDim,
+                  size: compact ? 20 : 22,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 9,
-                  fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? AppColors.brandPurple : AppColors.textDim,
-                  height: 1.1,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: compact ? 8.5 : 9,
+                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                    color: selected ? accent : AppColors.textDim,
+                    height: 1.1,
+                  ),
                 ),
               ),
             ],

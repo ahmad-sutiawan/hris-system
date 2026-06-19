@@ -247,3 +247,114 @@ class MobileProfileApiTests(TestCase):
         data = response.json()
         self.assertEqual(data["today_shift"]["shift_code"], "SORE")
         self.assertTrue(data["today_shift"].get("is_preview"))
+
+
+class MobileEmployeeDirectoryApiTests(TestCase):
+    def setUp(self):
+        self.tenant = Tenant.objects.create(slug="mobile-dir", name="Mobile Dir Co")
+        self.plant_a = Plant.objects.create(tenant=self.tenant, code="BPS", name="Plant BPS")
+        self.plant_b = Plant.objects.create(tenant=self.tenant, code="SHS", name="Plant SHS")
+        self.dept_a = Department.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_a,
+            code="OPS",
+            name="Operations",
+        )
+        self.dept_b = Department.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_b,
+            code="WH",
+            name="Warehouse",
+        )
+        self.job_a = JobPosition.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_a,
+            department=self.dept_a,
+            code="STF",
+            title="Staff A",
+        )
+        self.job_b = JobPosition.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_b,
+            department=self.dept_b,
+            code="OPR",
+            title="Operator B",
+        )
+        self.user = User.objects.create_user(
+            username="emp-dir",
+            password="TestPassword123!",
+            tenant=self.tenant,
+            role=User.Role.EMPLOYEE,
+        )
+        self.viewer = Employee.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_a,
+            department=self.dept_a,
+            job_position=self.job_a,
+            employee_id="DIR-001",
+            full_name="Viewer Mobile",
+            user=self.user,
+        )
+        self.peer_a = Employee.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_a,
+            department=self.dept_a,
+            job_position=self.job_a,
+            employee_id="DIR-002",
+            full_name="Alpha Worker",
+        )
+        self.peer_b = Employee.objects.create(
+            tenant=self.tenant,
+            plant=self.plant_b,
+            department=self.dept_b,
+            job_position=self.job_b,
+            employee_id="DIR-003",
+            full_name="Beta Worker",
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_employee_can_list_directory_without_salary_fields(self):
+        response = self.client.get("/api/v1/employees/")
+        self.assertEqual(response.status_code, 200)
+        rows = response.json()["results"]
+        self.assertGreaterEqual(len(rows), 3)
+        sample = rows[0]
+        self.assertIn("full_name", sample)
+        self.assertIn("plant_code", sample)
+        self.assertIn("job_title", sample)
+        self.assertNotIn("base_salary", sample)
+
+    def test_directory_search_and_filters(self):
+        response = self.client.get("/api/v1/employees/", {"search": "Beta"})
+        self.assertEqual(response.status_code, 200)
+        names = [row["full_name"] for row in response.json()["results"]]
+        self.assertEqual(names, ["Beta Worker"])
+
+        response = self.client.get("/api/v1/employees/", {"plant": self.plant_a.pk})
+        self.assertEqual(response.status_code, 200)
+        names = {row["full_name"] for row in response.json()["results"]}
+        self.assertIn("Alpha Worker", names)
+        self.assertNotIn("Beta Worker", names)
+
+        response = self.client.get(
+            "/api/v1/employees/",
+            {"job_position": self.job_b.pk},
+        )
+        self.assertEqual(response.status_code, 200)
+        names = [row["full_name"] for row in response.json()["results"]]
+        self.assertEqual(names, ["Beta Worker"])
+
+    def test_mobile_employee_filter_options(self):
+        response = self.client.get("/api/v1/mobile/employees/filters/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertGreaterEqual(len(data["plants"]), 2)
+        self.assertGreaterEqual(len(data["job_positions"]), 2)
+
+    def test_employee_can_retrieve_directory_profile(self):
+        response = self.client.get(f"/api/v1/employees/{self.peer_b.pk}/")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["full_name"], "Beta Worker")
+        self.assertNotIn("base_salary", data)

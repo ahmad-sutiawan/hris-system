@@ -4,6 +4,38 @@ from apps.employees.models import Employee
 from apps.payroll.services.calculator import effective_daily_wage, hourly_rate
 
 
+class EmployeeDirectorySerializer(serializers.ModelSerializer):
+    """Safe employee list for mobile directory — no compensation fields."""
+
+    plant_code = serializers.CharField(source="plant.code", read_only=True)
+    plant_name = serializers.CharField(source="plant.name", read_only=True)
+    department_name = serializers.CharField(source="department.name", read_only=True)
+    job_title = serializers.CharField(source="job_position.title", read_only=True)
+    manager_name = serializers.CharField(source="manager.full_name", read_only=True)
+
+    class Meta:
+        model = Employee
+        fields = [
+            "id",
+            "employee_id",
+            "full_name",
+            "email",
+            "phone",
+            "plant",
+            "plant_code",
+            "plant_name",
+            "department",
+            "department_name",
+            "job_position",
+            "job_title",
+            "manager",
+            "manager_name",
+            "status",
+            "join_date",
+        ]
+        read_only_fields = fields
+
+
 class EmployeeSerializer(serializers.ModelSerializer):
     """Full employee record — HR/Admin only."""
     plant_code = serializers.CharField(source="plant.code", read_only=True)

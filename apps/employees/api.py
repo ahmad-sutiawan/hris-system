@@ -6,7 +6,11 @@ from apps.core.permissions import IsAdminOrHR, IsTenantUser
 from apps.core.querysets import employee_list_qs
 from apps.core.viewsets import TenantScopedViewSet
 from apps.employees.models import Employee
-from apps.employees.serializers import EmployeeSelfSerializer, EmployeeSerializer
+from apps.employees.serializers import (
+    EmployeeDirectorySerializer,
+    EmployeeSelfSerializer,
+    EmployeeSerializer,
+)
 from apps.employees.services.import_csv import template_csv
 from apps.employees.services.import_dispatch import import_employees_file
 
@@ -15,7 +19,7 @@ class EmployeeViewSet(TenantScopedViewSet):
     queryset = employee_list_qs(Employee.objects.all())
     serializer_class = EmployeeSerializer
     search_fields = ["employee_id", "full_name", "nik", "email"]
-    filterset_fields = ["plant", "department", "status"]
+    filterset_fields = ["plant", "department", "job_position", "status"]
 
     def get_permissions(self):
         if self.action in ("list", "retrieve", "me"):
@@ -24,13 +28,24 @@ class EmployeeViewSet(TenantScopedViewSet):
 
     def get_serializer_class(self):
         user = self.request.user
+        if self.action in ("list", "retrieve") and not (user.is_hr or user.is_admin):
+            return EmployeeDirectorySerializer
         if user.is_hr or user.is_admin:
             return EmployeeSerializer
         return EmployeeSelfSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
         user = self.request.user
+        qs = employee_list_qs(Employee.objects.filter(tenant=user.tenant))
+        inactive = [Employee.Status.INACTIVE, Employee.Status.RESIGNED]
+
+        if self.action == "list":
+            return qs.exclude(status__in=inactive)
+        if self.action == "retrieve":
+            qs = qs.exclude(status__in=inactive)
+            if user.is_hr or user.is_admin:
+                return qs
+            return qs
         if user.is_hr or user.is_admin:
             return qs
         profile = getattr(user, "employee_profile", None)

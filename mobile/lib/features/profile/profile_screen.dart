@@ -92,7 +92,7 @@ class ProfileScreen extends ConsumerWidget {
                       label: const Text('Slip Gaji'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: () => context.go('/attendance'),
+                      onPressed: () => context.push('/attendance'),
                       icon: const Icon(Icons.history_rounded, size: 18),
                       label: const Text('Riwayat Absensi'),
                     ),
