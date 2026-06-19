@@ -392,9 +392,8 @@ class AttendanceCorrectionForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.timesheet = timesheet
         if tenant and timesheet:
-            plant = timesheet.employee.plant
             self.fields["shift"].queryset = Shift.objects.filter(
-                tenant=tenant, plant=plant, is_active=True
+                tenant=tenant, is_active=True
             )
             self.fields["attendance_code"].queryset = AttendanceCode.objects.filter(
                 tenant=tenant, is_active=True

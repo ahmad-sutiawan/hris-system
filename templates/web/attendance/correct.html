@@ -12,6 +12,19 @@
     </div>
   </div>
 
+  <div class="hris-card" style="margin-bottom:1rem">
+    <div class="hris-card-body">
+      <dl class="hris-dl">
+        <div><dt>Karyawan</dt><dd class="hris-strong">{{ timesheet.employee.full_name }}</dd></div>
+        <div><dt>Employee ID</dt><dd><span class="hris-mono">{{ timesheet.employee.employee_id }}</span></dd></div>
+        <div><dt>Cabang</dt><dd>{{ timesheet.employee.plant.code }}</dd></div>
+        <div><dt>Tanggal kerja</dt><dd>{{ timesheet.work_date|local_date }}</dd></div>
+        <div><dt>Clock in saat ini</dt><dd>{% if timesheet.check_in %}{{ timesheet.check_in|local_datetime:"d M Y H:i" }}{% else %}—{% endif %}</dd></div>
+        <div><dt>Clock out saat ini</dt><dd>{% if timesheet.check_out %}{{ timesheet.check_out|local_datetime:"d M Y H:i" }}{% else %}—{% endif %}</dd></div>
+      </dl>
+    </div>
+  </div>
+
   <div class="hris-card">
     <div class="hris-card-body">
       <form method="post" class="hris-form-grid">

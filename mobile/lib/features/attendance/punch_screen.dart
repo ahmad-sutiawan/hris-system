@@ -18,6 +18,7 @@ import '../../core/utils/shift_utils.dart';
 import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/hris_widgets.dart';
 import '../home/home_screen.dart';
+import 'attendance_screen.dart';
 
 enum _PunchStep { location, selfie }
 
@@ -216,6 +217,14 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       }
       return;
     }
+
+    final capturedAt = DateTime.now();
+    final confirmed = await _showPunchPreviewDialog(
+      photoBytes: _photoBytes!,
+      capturedAt: capturedAt,
+    );
+    if (!confirmed || !mounted) return;
+
     setState(() => _loading = true);
     try {
       final encoded = ApiClient.imageToBase64DataUrl(_photoBytes!);
@@ -223,15 +232,16 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       final lat = _position?.latitude;
       final lng = _position?.longitude;
       final notes = _notesController.text.trim();
+      final Map<String, dynamic> result;
       if (_isClockOut) {
-        await api.clockOut(
+        result = await api.clockOut(
           encoded,
           latitude: lat,
           longitude: lng,
           notes: notes.isEmpty ? null : notes,
         );
       } else {
-        await api.clockIn(
+        result = await api.clockIn(
           encoded,
           latitude: lat,
           longitude: lng,
@@ -239,14 +249,21 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         );
       }
       ref.invalidate(dashboardProvider);
+      ref.invalidate(timesheetsProvider);
       if (mounted) {
+        final whenRaw = _isClockOut ? result['check_out'] : result['check_in'];
+        final whenLabel = _formatPunchTime(whenRaw) ?? _formatPunchTime(capturedAt.toIso8601String());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_isClockOut ? 'Absen pulang berhasil.' : 'Absen masuk berhasil.'),
+            content: Text(
+              whenLabel == null
+                  ? (_isClockOut ? 'Absen pulang berhasil.' : 'Absen masuk berhasil.')
+                  : '${_isClockOut ? 'Absen pulang' : 'Absen masuk'} berhasil — $whenLabel',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
-        context.pop();
+        context.go('/attendance');
       }
     } catch (e) {
       if (mounted) {
@@ -254,6 +271,35 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       }
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<bool> _showPunchPreviewDialog({
+    required Uint8List photoBytes,
+    required DateTime capturedAt,
+  }) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _PunchPreviewDialog(
+        photoBytes: photoBytes,
+        capturedAt: capturedAt,
+        isClockOut: _isClockOut,
+        onRetake: () {
+          setState(() => _photoBytes = null);
+        },
+      ),
+    );
+    return confirmed == true;
+  }
+
+  String? _formatPunchTime(Object? raw) {
+    if (raw == null) return null;
+    try {
+      final parsed = DateTime.parse(raw.toString()).toLocal();
+      return DateFormat('dd MMM yyyy HH:mm').format(parsed);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -869,6 +915,142 @@ class _TalentaBottomPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PunchPreviewDialog extends StatelessWidget {
+  const _PunchPreviewDialog({
+    required this.photoBytes,
+    required this.capturedAt,
+    required this.isClockOut,
+    required this.onRetake,
+  });
+
+  final Uint8List photoBytes;
+  final DateTime capturedAt;
+  final bool isClockOut;
+  final VoidCallback onRetake;
+
+  @override
+  Widget build(BuildContext context) {
+    final timeLabel = DateFormat('EEEE, dd MMM yyyy HH:mm').format(capturedAt.toLocal());
+    final title = isClockOut ? 'Preview Absen Pulang' : 'Preview Absen Masuk';
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: AppColors.successDim,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_rounded, color: AppColors.success, size: 30),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Periksa hasil selfie dan waktu sebelum melanjutkan ke rekap absensi.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: AppColors.textMuted,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: AspectRatio(
+                aspectRatio: 4 / 3,
+                child: Image.memory(photoBytes, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.schedule_rounded, size: 18, color: AppColors.darkGold),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      timeLabel,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      onRetake();
+                      Navigator.of(context).pop(false);
+                    },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.text,
+                      side: const BorderSide(color: AppColors.border),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      'Ambil Ulang',
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      'Konfirmasi',
+                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

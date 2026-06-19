@@ -1,7 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.html import format_html
@@ -192,23 +192,58 @@ def dashboard(request):
     )
 
 
+def _punch_wants_json(request) -> bool:
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return True
+    accept = request.headers.get("Accept", "")
+    return "application/json" in accept
+
+
+def _punch_json_error(detail: str, *, status: int = 400) -> JsonResponse:
+    return JsonResponse({"ok": False, "detail": detail}, status=status)
+
+
+def _punch_json_success(action: str, record: AttendanceRecord) -> JsonResponse:
+    when = timezone.localtime(record.check_out if action == "out" else record.check_in)
+    label = "Clock out" if action == "out" else "Clock in"
+    return JsonResponse(
+        {
+            "ok": True,
+            "action": action,
+            "when": when.isoformat(),
+            "when_display": when.strftime("%d %b %Y %H:%M"),
+            "message": f"{label} berhasil — {when.strftime('%d %b %Y %H:%M')}.",
+            "redirect_url": reverse("web:attendance_list"),
+        }
+    )
+
+
 @login_required
 @require_POST
 def punch_action(request):
+    wants_json = _punch_wants_json(request)
     profile = _employee_profile(request.user)
     if not profile:
-        messages.error(request, "Akun tidak terhubung ke data karyawan.")
+        detail = "Akun tidak terhubung ke data karyawan."
+        if wants_json:
+            return _punch_json_error(detail, status=403)
+        messages.error(request, detail)
         return redirect("web:dashboard")
 
-    action = request.POST.get("action")
+    action = request.POST.get("punch_action") or request.POST.get("action")
     photo_data = request.POST.get("photo", "").strip()
     if not photo_data:
-        messages.error(request, "Foto selfie wajib. Buka kamera dan ambil foto sebelum absen.")
+        detail = "Foto selfie wajib. Buka kamera dan ambil foto sebelum absen."
+        if wants_json:
+            return _punch_json_error(detail)
+        messages.error(request, detail)
         return redirect("web:dashboard")
 
     try:
         photo = decode_selfie(photo_data)
     except PhotoError as exc:
+        if wants_json:
+            return _punch_json_error(str(exc))
         messages.error(request, str(exc))
         return redirect("web:dashboard")
 
@@ -216,22 +251,28 @@ def punch_action(request):
         if action == "in":
             record = clock_in(profile, source=AttendanceRecord.Source.WEB, photo=photo)
             when = timezone.localtime(record.check_in)
-            messages.success(
-                request,
-                f"Clock in berhasil — {when.strftime('%d %b %Y %H:%M')}.",
-            )
+            message = f"Clock in berhasil — {when.strftime('%d %b %Y %H:%M')}."
         elif action == "out":
             record = clock_out(profile, photo=photo)
             when = timezone.localtime(record.check_out)
-            messages.success(
-                request,
-                f"Clock out berhasil — {when.strftime('%d %b %Y %H:%M')}.",
-            )
+            message = f"Clock out berhasil — {when.strftime('%d %b %Y %H:%M')}."
         else:
-            messages.error(request, "Aksi absensi tidak valid.")
+            detail = "Aksi absensi tidak valid."
+            if wants_json:
+                return _punch_json_error(detail)
+            messages.error(request, detail)
+            return redirect("web:dashboard")
     except PunchError as exc:
+        if wants_json:
+            return _punch_json_error(str(exc))
         messages.error(request, str(exc))
-    return redirect("web:dashboard")
+        return redirect("web:dashboard")
+
+    if wants_json:
+        return _punch_json_success(action, record)
+
+    messages.success(request, message)
+    return redirect("web:attendance_list")
 
 
 @login_required
@@ -733,7 +774,7 @@ def attendance_correct(request, pk):
     )
     if (
         request.user.plant_id
-        and not request.user.is_admin
+        and not request.user.is_hr
         and timesheet.employee.plant_id != request.user.plant_id
     ):
         messages.error(request, "Akses ditolak.")

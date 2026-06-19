@@ -12,31 +12,48 @@
   {% include "components/dashboard_cockpit.html" %}
 
   {% if profile %}
-  <form id="hris-punch-form" method="post" action="{% url 'web:punch' %}" hidden>
+  <form id="hris-punch-form" method="post" action="{% url 'web:punch' %}" data-redirect-url="{% url 'web:attendance_list' %}" hidden>
     {% csrf_token %}
-    <input type="hidden" name="action" id="hris-punch-action" value="">
+    <input type="hidden" name="punch_action" id="hris-punch-action" value="">
     <input type="hidden" name="photo" id="hris-punch-photo" value="">
   </form>
   <div id="hris-punch-modal" class="hris-punch-modal" hidden aria-hidden="true">
     <div class="hris-punch-modal-backdrop" data-punch-close></div>
     <div class="hris-punch-modal-panel" role="dialog" aria-modal="true" aria-labelledby="hris-punch-modal-title">
-      <div class="hris-punch-modal-head">
-        <div>
-          <h2 id="hris-punch-modal-title">Verifikasi Selfie</h2>
-          <p id="hris-punch-modal-subtitle">Ambil foto wajah Anda untuk clock in/out</p>
+      <div id="hris-punch-capture-view">
+        <div class="hris-punch-modal-head">
+          <div>
+            <h2 id="hris-punch-modal-title">Verifikasi Selfie</h2>
+            <p id="hris-punch-modal-subtitle">Ambil foto wajah Anda untuk clock in/out</p>
+          </div>
+          <button type="button" class="hris-punch-modal-close" data-punch-close aria-label="Tutup">&times;</button>
         </div>
-        <button type="button" class="hris-punch-modal-close" data-punch-close aria-label="Tutup">&times;</button>
+        <div class="hris-punch-camera-wrap">
+          <video id="hris-punch-video" class="hris-punch-video" autoplay playsinline muted></video>
+          <canvas id="hris-punch-canvas" hidden></canvas>
+        </div>
+        <p id="hris-punch-camera-error" class="hris-punch-camera-error" hidden role="alert"></p>
+        <div class="hris-punch-modal-actions">
+          <button type="button" id="hris-punch-capture" class="hris-btn hris-btn-primary">Ambil Foto</button>
+        </div>
       </div>
-      <div class="hris-punch-camera-wrap">
-        <video id="hris-punch-video" class="hris-punch-video" autoplay playsinline muted></video>
-        <img id="hris-punch-preview" class="hris-punch-preview" alt="Preview selfie" hidden>
-        <canvas id="hris-punch-canvas" hidden></canvas>
-      </div>
-      <p id="hris-punch-camera-error" class="hris-punch-camera-error" hidden role="alert"></p>
-      <div class="hris-punch-modal-actions">
-        <button type="button" id="hris-punch-capture" class="hris-btn hris-btn-primary">Ambil Foto</button>
-        <button type="button" id="hris-punch-retake" class="hris-btn hris-btn-outline" hidden>Ambil Ulang</button>
-        <button type="button" id="hris-punch-submit" class="hris-btn hris-btn-success" hidden>Konfirmasi &amp; Absen</button>
+      <div id="hris-punch-confirm-view" class="hris-punch-confirm-view" hidden>
+        <div class="hris-punch-confirm-card">
+          <div class="hris-punch-confirm-badge" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <h2 id="hris-punch-confirm-title" class="hris-punch-confirm-title">Foto Berhasil Diambil</h2>
+          <p id="hris-punch-confirm-subtitle" class="hris-punch-confirm-subtitle">Periksa hasil selfie dan waktu absensi sebelum konfirmasi.</p>
+          <div class="hris-punch-confirm-photo-wrap">
+            <img id="hris-punch-confirm-photo" class="hris-punch-confirm-photo" alt="Preview selfie">
+          </div>
+          <p id="hris-punch-confirm-time" class="hris-punch-confirm-time"></p>
+          <p id="hris-punch-confirm-error" class="hris-punch-confirm-error" hidden role="alert"></p>
+          <div class="hris-punch-confirm-actions">
+            <button type="button" id="hris-punch-confirm-retake" class="hris-btn hris-btn-outline">Ambil Ulang</button>
+            <button type="button" id="hris-punch-confirm-btn" class="hris-btn hris-btn-success">Konfirmasi</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

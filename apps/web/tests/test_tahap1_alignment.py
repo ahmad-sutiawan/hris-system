@@ -125,3 +125,42 @@ class Tahap1PolicyTests(TestCase):
         self.assertContains(response, "OT Before")
         self.assertContains(response, "OT After")
         self.assertContains(response, "Tampilkan foto")
+
+    def test_attendance_correct_page_loads_for_admin(self):
+        work_date = timezone.localdate()
+        ts = DailyTimesheet.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            employee=self.employee,
+            work_date=work_date,
+            shift_code="S1",
+        )
+        self.client.login(username="tahap1admin", password="TestPassword123!")
+        response = self.client.get(reverse("web:attendance_correct", args=[ts.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Koreksi Absensi")
+        self.assertContains(response, "Budi Santoso")
+        self.assertContains(response, "Jam masuk")
+
+    def test_attendance_correct_post_updates_record(self):
+        work_date = timezone.localdate()
+        ts = DailyTimesheet.objects.create(
+            tenant=self.tenant,
+            plant=self.plant,
+            employee=self.employee,
+            work_date=work_date,
+            shift_code="S1",
+        )
+        self.client.login(username="tahap1admin", password="TestPassword123!")
+        response = self.client.post(
+            reverse("web:attendance_correct", args=[ts.pk]),
+            {
+                "check_in_time": "08:00",
+                "check_out_time": "17:00",
+                "shift": str(self.shift.pk),
+            },
+        )
+        self.assertRedirects(response, reverse("web:attendance_list"))
+        record = AttendanceRecord.objects.get(employee=self.employee, work_date=work_date)
+        self.assertIsNotNone(record.check_in)
+        self.assertIsNotNone(record.check_out)
