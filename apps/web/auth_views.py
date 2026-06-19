@@ -31,7 +31,7 @@ class HRISLoginView(LoginView):
         if remember:
             self.request.session.set_expiry(60 * 60 * 24 * 14)
         else:
-            self.request.session.set_expiry(0)
+            self.request.session.set_expiry(None)
 
         response = super().form_valid(form)
         display_name = user.get_full_name() or user.username

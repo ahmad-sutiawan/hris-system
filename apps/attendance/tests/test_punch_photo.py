@@ -8,6 +8,7 @@ from django.utils import timezone
 from apps.attendance.models import AttendanceRecord
 from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch import clock_in, clock_out
+from apps.core.auth_login import apply_employee_credentials
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 
@@ -55,19 +56,25 @@ class PunchPhotoTests(TestCase):
             plant=self.plant,
             employee_id="P1-001",
             full_name="Punch Tester",
+            nik="3201010101900001",
             user=self.user,
         )
-        self.photo = decode_selfie(_sample_photo_data_url())
+        apply_employee_credentials(self.employee, role=User.Role.EMPLOYEE)
         self.client = Client()
 
+    def _login_employee(self):
+        return self.client.login(username="P1-001", password="P1-001")
+
     def test_clock_in_saves_photo(self):
-        record = clock_in(self.employee, photo=self.photo)
+        photo = decode_selfie(_sample_photo_data_url())
+        record = clock_in(self.employee, photo=photo)
         record.refresh_from_db()
         self.assertTrue(record.check_in_photo.name)
         self.assertTrue(record.check_in_photo.storage.exists(record.check_in_photo.name))
 
     def test_clock_out_saves_photo(self):
-        clock_in(self.employee, photo=self.photo)
+        photo = decode_selfie(_sample_photo_data_url())
+        clock_in(self.employee, photo=photo)
         out_photo = decode_selfie(_sample_photo_data_url())
         record = clock_out(self.employee, photo=out_photo)
         record.refresh_from_db()
@@ -75,7 +82,7 @@ class PunchPhotoTests(TestCase):
 
     @override_settings(ALLOWED_HOSTS=["testserver"])
     def test_web_punch_requires_photo(self):
-        self.client.login(username="puncher", password="TestPassword123!")
+        self.assertTrue(self._login_employee())
         response = self.client.post(reverse("web:punch"), {"action": "in"})
         self.assertEqual(response.status_code, 302)
         self.assertFalse(
@@ -84,7 +91,7 @@ class PunchPhotoTests(TestCase):
 
     @override_settings(ALLOWED_HOSTS=["testserver"])
     def test_web_punch_with_photo(self):
-        self.client.login(username="puncher", password="TestPassword123!")
+        self.assertTrue(self._login_employee())
         response = self.client.post(
             reverse("web:punch"),
             {"action": "in", "photo": _sample_photo_data_url()},

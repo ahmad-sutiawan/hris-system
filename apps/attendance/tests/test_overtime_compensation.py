@@ -37,7 +37,6 @@ class OvertimeCompensationTests(TestCase):
             username="hr-otcomp",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.HR,
         )
         self.employee = Employee.objects.create(
@@ -51,7 +50,6 @@ class OvertimeCompensationTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in=time(7, 0),
@@ -155,6 +153,7 @@ class OvertimeCompensationTests(TestCase):
 
         approve_leave_request(leave_req, self.hr)
         balance.refresh_from_db()
+        leave_req.refresh_from_db()
         self.assertEqual(balance.used, Decimal("1"))
         self.assertEqual(balance.pending, Decimal("0"))
         self.assertEqual(leave_req.status, LeaveRequest.Status.APPROVED)

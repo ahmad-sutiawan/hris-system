@@ -244,7 +244,7 @@ def import_employees_csv(tenant, file_content, *, dry_run=False):
             obj.save()
             if was_created:
                 created += 1
-                provision_new_employee(obj, assign_shift=True)
+                provision_new_employee(obj, assign_shift=True, sync_credentials=True)
             else:
                 updated += 1
         except ImportErrorRow as exc:

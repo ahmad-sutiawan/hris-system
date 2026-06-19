@@ -6,6 +6,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.attendance.models import AttendanceCode, OvertimeType
+from apps.core.auth_login import apply_employee_credentials
 from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.leave.models import LeaveType
@@ -21,9 +22,6 @@ class Command(BaseCommand):
 
     DEMO_PASSWORDS = {
         "admin": "Admin123456!",
-        "manager": "Manager123!",
-        "budi": "Employee123!",
-        "ayub": "Employee123!",
     }
 
     def _ensure_demo_user(self, username, *, defaults):
@@ -69,7 +67,6 @@ class Command(BaseCommand):
 
         shift, _ = Shift.objects.get_or_create(
             tenant=tenant,
-            plant=plant,
             code="PAGI",
             defaults={
                 "name": "Shift Pagi",
@@ -84,7 +81,6 @@ class Command(BaseCommand):
 
         Shift.objects.get_or_create(
             tenant=tenant,
-            plant=plant,
             code="MALAM",
             defaults={
                 "name": "Shift Malam",
@@ -98,7 +94,7 @@ class Command(BaseCommand):
                 "shift_allowance_code": "MALAM",
             },
         )
-        night_shift = Shift.objects.filter(tenant=tenant, plant=plant, code="MALAM").first()
+        night_shift = Shift.objects.filter(tenant=tenant, code="MALAM").first()
         if night_shift and night_shift.shift_allowance_code != "MALAM":
             night_shift.shift_allowance_code = "MALAM"
             night_shift.save(update_fields=["shift_allowance_code"])
@@ -274,16 +270,6 @@ class Command(BaseCommand):
             },
         )
 
-        mgr_user = self._ensure_demo_user(
-            "manager",
-            defaults={
-                "email": "manager@demo.local",
-                "tenant": tenant,
-                "plant": plant,
-                "role": User.Role.MANAGER,
-            },
-        )
-
         manager_employee, _ = Employee.objects.update_or_create(
             tenant=tenant,
             employee_id="PLT01-2026-MGR",
@@ -292,16 +278,14 @@ class Command(BaseCommand):
                 "department": dept,
                 "job_position": job,
                 "full_name": "Siti Manager",
+                "nik": "3201010101900099",
                 "email": "manager@demo.local",
                 "join_date": timezone.localdate(),
                 "status": Employee.Status.PERMANENT,
                 "base_salary": Decimal("8000000"),
-                "user": mgr_user,
             },
         )
-        if not manager_employee.user_id:
-            manager_employee.user = mgr_user
-            manager_employee.save(update_fields=["user"])
+        apply_employee_credentials(manager_employee, role=User.Role.MANAGER)
 
         employee, _ = Employee.objects.update_or_create(
             tenant=tenant,
@@ -325,6 +309,7 @@ class Command(BaseCommand):
                 "bank_account_name": "Budi Santoso",
             },
         )
+        apply_employee_credentials(employee, role=User.Role.EMPLOYEE)
 
         ct = LeaveType.objects.get(tenant=tenant, code="CT")
         get_or_create_balance(employee, ct)
@@ -341,28 +326,6 @@ class Command(BaseCommand):
             },
         )
 
-        emp_user = self._ensure_demo_user(
-            "budi",
-            defaults={
-                "email": "budi@demo.local",
-                "tenant": tenant,
-                "plant": plant,
-                "role": User.Role.EMPLOYEE,
-            },
-        )
-        if not employee.user_id:
-            employee.user = emp_user
-            employee.save(update_fields=["user"])
-
-        ayub_user = self._ensure_demo_user(
-            "ayub",
-            defaults={
-                "tenant": tenant,
-                "plant": plant,
-                "role": User.Role.EMPLOYEE,
-            },
-        )
-
         ayub_employee, _ = Employee.objects.update_or_create(
             tenant=tenant,
             employee_id="PLT01-2026-002",
@@ -372,15 +335,13 @@ class Command(BaseCommand):
                 "job_position": job,
                 "manager": manager_employee,
                 "full_name": "Ayub",
+                "nik": "3201010101900002",
                 "join_date": timezone.localdate(),
                 "status": Employee.Status.PERMANENT,
                 "base_salary": Decimal("5000000"),
-                "user": ayub_user,
             },
         )
-        if not ayub_employee.user_id:
-            ayub_employee.user = ayub_user
-            ayub_employee.save(update_fields=["user"])
+        apply_employee_credentials(ayub_employee, role=User.Role.EMPLOYEE)
         get_or_create_balance(ayub_employee, ct)
 
         from apps.employees.services.mandatory_defaults import backfill_all_employees
@@ -388,3 +349,8 @@ class Command(BaseCommand):
         backfill_all_employees(tenant=tenant)
 
         self.stdout.write(self.style.SUCCESS(f"Seed complete for tenant '{tenant.slug}'"))
+        self.stdout.write("Login admin (web & mobile): admin / Admin123456!")
+        self.stdout.write("Login karyawan — username: NIK atau Employee ID, password: Employee ID")
+        self.stdout.write("  Budi: NIK 3201010101900001 atau PLT01-2026-001 / PLT01-2026-001")
+        self.stdout.write("  Ayub: NIK 3201010101900002 atau PLT01-2026-002 / PLT01-2026-002")
+        self.stdout.write("  Manager: NIK 3201010101900099 atau PLT01-2026-MGR / PLT01-2026-MGR")

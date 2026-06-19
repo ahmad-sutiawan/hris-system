@@ -10,6 +10,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../core/config/app_config.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/brand_logo.dart';
 import '../../core/widgets/hris_widgets.dart';
 
@@ -24,7 +25,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _serverCtrl = TextEditingController();
-  bool _obscure = true;
   bool _submitting = false;
   bool _showServer = false;
   String? _validationError;
@@ -84,10 +84,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (_submitting) return;
 
-    final username = _userCtrl.text.trim();
-    final password = _passCtrl.text;
-    if (username.isEmpty || password.isEmpty) {
-      setState(() => _validationError = 'Username dan password wajib diisi.');
+    final nik = _userCtrl.text.trim();
+    final employeeId = _passCtrl.text.trim();
+    if (nik.isEmpty || employeeId.isEmpty) {
+      setState(() => _validationError = 'NIK dan Employee ID wajib diisi.');
       return;
     }
     setState(() => _validationError = null);
@@ -97,7 +97,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref.read(apiClientProvider).resolveBaseUrl();
       await ref
           .read(authProvider.notifier)
-          .login(username, password)
+          .login(nik, employeeId)
           .timeout(const Duration(seconds: 45));
       if (!mounted) return;
       final auth = ref.read(authProvider);
@@ -147,73 +147,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    ClipRect(
-                      child: Stack(
-                        children: [
-                          Image.asset(
-                            'assets/images/login-hero.jpg',
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                          ),
-                          Container(
-                            height: 160,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  AppColors.bg.withValues(alpha: 0.35),
-                                  AppColors.bg.withValues(alpha: 0.92),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(
-                            height: 160,
-                            child: Center(
-                              child: BrandLogo(
-                                size: BrandLogoSize.panel,
-                                showHrisLabel: true,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.only(top: 20),
-                      decoration: const BoxDecoration(
-                        border: Border(
-                          top: BorderSide(color: AppColors.accentBorder, width: 2),
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            'Transformasi Digital HR',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.text,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Dukung Pertumbuhan Perusahaan.',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              color: AppColors.textMuted,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    HrisCard(
+                    FadeSlideIn(
+                      index: 0,
+                      child: HrisCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -231,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 6),
                           const Text(
-                            'Gunakan akun yang diberikan HR atau IT',
+                            'Masuk dengan NIK dan Employee ID Anda',
                             style: TextStyle(
                               color: AppColors.textMuted,
                               fontSize: 13,
@@ -243,30 +179,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _userCtrl,
                             style: const TextStyle(color: AppColors.text),
                             decoration: const InputDecoration(
-                              labelText: 'Username',
-                              prefixIcon: Icon(Icons.person_outline),
+                              labelText: 'NIK',
+                              hintText: 'Nomor Induk Kependudukan',
+                              prefixIcon: Icon(Icons.badge_outlined),
                             ),
                             textInputAction: TextInputAction.next,
                             autocorrect: false,
+                            keyboardType: TextInputType.number,
                           ),
                           const SizedBox(height: 14),
                           TextField(
                             controller: _passCtrl,
-                            obscureText: _obscure,
                             style: const TextStyle(color: AppColors.text),
-                            decoration: InputDecoration(
-                              labelText: 'Password',
-                              prefixIcon: const Icon(Icons.lock_outline),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscure
-                                      ? Icons.visibility_outlined
-                                      : Icons.visibility_off_outlined,
-                                ),
-                                onPressed: () =>
-                                    setState(() => _obscure = !_obscure),
-                              ),
+                            decoration: const InputDecoration(
+                              labelText: 'Employee ID',
+                              hintText: 'Nomor Employee ID',
+                              prefixIcon: Icon(Icons.fingerprint_outlined),
                             ),
+                            textInputAction: TextInputAction.done,
+                            autocorrect: false,
                             onSubmitted: (_) => _submit(),
                           ),
                           if (_validationError != null || auth.error != null) ...[
@@ -341,7 +272,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       _serverReachable == true
                                           ? 'Terhubung: $_serverUrl'
                                           : _serverReachable == false
-                                              ? 'Server tidak terjangkau. Periksa koneksi ke 148.230.98.125:8080'
+                                              ? 'Server tidak terjangkau. Dev lokal: http://127.0.0.1:8000'
                                               : 'Mencari backend…',
                                       style: TextStyle(
                                         fontSize: 11,
@@ -374,7 +305,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     const Padding(
                                       padding: EdgeInsets.only(top: 8),
                                       child: Text(
-                                        'Production: 148.230.98.125:8080 · lokal: :8000',
+                                        'Backend default: 148.230.98.125:8080 (dev & release pakai server yang sama)',
                                         style: TextStyle(fontSize: 11, color: AppColors.textDim),
                                         textAlign: TextAlign.center,
                                       ),
@@ -395,6 +326,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
+                    ),
                     ),
                   ],
                 ),

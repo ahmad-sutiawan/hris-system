@@ -516,7 +516,7 @@ def import_employees_talenta_xlsx(tenant, file_bytes: bytes, *, dry_run=False):
             obj.save()
             if was_created:
                 created += 1
-                provision_new_employee(obj, assign_shift=True)
+                provision_new_employee(obj, assign_shift=True, sync_credentials=True)
             else:
                 updated += 1
         except ImportErrorRow as exc:

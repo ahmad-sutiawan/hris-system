@@ -65,7 +65,9 @@ class Employee(TenantScopedModel):
     )
     plant = models.ForeignKey(
         "core.Plant",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="employees",
     )
     legal_entity = models.ForeignKey(
@@ -121,6 +123,13 @@ class Employee(TenantScopedModel):
         validators=[FileExtensionValidator(["jpg", "jpeg", "png", "webp"])],
     )
     nik = EncryptedCharField(max_length=512, blank=True)
+    nik_lookup = models.CharField(
+        max_length=64,
+        blank=True,
+        db_index=True,
+        editable=False,
+        help_text="SHA-256 hash NIK untuk login (bukan data sensitif).",
+    )
     npwp_16_digit = EncryptedCharField(max_length=512, blank=True)
     email = models.EmailField(blank=True)
     phone = models.CharField(max_length=32, blank=True, help_text="Mobile Phone (Talenta)")
@@ -347,6 +356,12 @@ class Employee(TenantScopedModel):
                 )
         if self.manager_id and self.manager.tenant_id != self.tenant_id:
             raise ValidationError({"manager": "Manager harus dalam tenant yang sama."})
+
+    def save(self, *args, **kwargs):
+        from apps.employees.nik_lookup import compute_nik_lookup
+
+        self.nik_lookup = compute_nik_lookup(self.nik or "")
+        super().save(*args, **kwargs)
 
     @staticmethod
     def _talenta_scalar(value: str | None) -> str:

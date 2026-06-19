@@ -55,13 +55,11 @@ def assign_default_shift(employee: Employee, *, work_date=None) -> ShiftAssignme
     return sync_employee_default_shift(employee, work_date=work_date)
 
 
-def provision_new_employee(
+def ensure_leave_balances(
     employee: Employee,
     year: int | None = None,
-    *,
-    assign_shift: bool = False,
 ) -> list[LeaveBalance]:
-    """Initialize leave balances and optionally assign default shift for new hires."""
+    """Pastikan saldo cuti tahun berjalan ada (tanpa menyentuh akun login)."""
     if employee.status in {Employee.Status.INACTIVE, Employee.Status.RESIGNED}:
         return []
 
@@ -72,9 +70,30 @@ def provision_new_employee(
     )
     for leave_type in leave_types:
         balances.append(get_or_create_balance(employee, leave_type, year=year))
+    return balances
+
+
+def provision_new_employee(
+    employee: Employee,
+    year: int | None = None,
+    *,
+    assign_shift: bool = False,
+    sync_credentials: bool = False,
+) -> list[LeaveBalance]:
+    """Initialize leave balances and optionally assign default shift for new hires."""
+    balances = ensure_leave_balances(employee, year=year)
 
     if assign_shift:
         assign_default_shift(employee)
+
+    if sync_credentials and employee.employee_id:
+        from apps.core.auth_login import apply_employee_credentials
+        from apps.core.models import User
+
+        role = None
+        if employee.user_id and employee.user.role == User.Role.MANAGER:
+            role = User.Role.MANAGER
+        apply_employee_credentials(employee, role=role)
 
     return balances
 
@@ -82,7 +101,7 @@ def provision_new_employee(
 def employee_leave_balances_summary(employee: Employee, year: int | None = None) -> list[LeaveBalance]:
     """Ensure balances exist and return current-year rows for UI display."""
     year = year or timezone.localdate().year
-    provision_new_employee(employee, year=year)
+    ensure_leave_balances(employee, year=year)
     return list(
         LeaveBalance.objects.filter(employee=employee, year=year)
         .select_related("leave_type")

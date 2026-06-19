@@ -120,7 +120,7 @@ class OvertimeRequestViewSet(TenantScopedViewSet):
     def approve(self, request, pk=None):
         overtime_req = self.get_object()
         try:
-            approve_overtime_request(overtime_req, request.user)
+            overtime_req = approve_overtime_request(overtime_req, request.user)
             return Response(
                 OvertimeRequestSerializer(
                     overtime_req, context=self.get_serializer_context()

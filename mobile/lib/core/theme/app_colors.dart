@@ -82,6 +82,74 @@ abstract final class AppColors {
 
   static const cardShadow = Color(0x14140B6E);
 
+  // Aurora — soft blurred light gradients
+  static const auroraBgTop = Color(0xFFF9FAFF);
+  static const auroraBgMid = Color(0xFFF3F5FC);
+  static const auroraBgBottom = Color(0xFFEBF0FA);
+  static const glassSurface = Color(0xFFFFFFFF);
+  static const glassBorder = Color(0x99FFFFFF);
+  static const glassBorderMuted = Color(0x66D4DCF0);
+
+  static const auroraLavender = Color(0xFFE8DEFF);
+  static const auroraSky = Color(0xFFD6E8FF);
+  static const auroraRose = Color(0xFFFFE8F5);
+  static const auroraGoldGlow = Color(0xFFFFF3C4);
+
+  static const auroraBaseGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [auroraBgTop, auroraBgMid, auroraBgBottom],
+    stops: [0.0, 0.5, 1.0],
+  );
+
+  static List<Color> get auroraOrbPurple => [
+        brandPurple.withValues(alpha: 0.28),
+        brandPurple.withValues(alpha: 0.10),
+        Colors.transparent,
+      ];
+
+  static List<Color> get auroraOrbBlue => [
+        brandBlue.withValues(alpha: 0.26),
+        brandBlue.withValues(alpha: 0.08),
+        Colors.transparent,
+      ];
+
+  static List<Color> get auroraOrbGold => [
+        brandGold.withValues(alpha: 0.22),
+        brandGold.withValues(alpha: 0.06),
+        Colors.transparent,
+      ];
+
+  static List<Color> get auroraOrbLavender => [
+        auroraLavender.withValues(alpha: 0.55),
+        auroraRose.withValues(alpha: 0.18),
+        Colors.transparent,
+      ];
+
+  static const auroraHeroGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF1A1280),
+      brandPurple,
+      Color(0xFF4A3FD4),
+      brandBlue,
+    ],
+    stops: [0.0, 0.35, 0.72, 1.0],
+  );
+
+  static const auroraButtonGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [brandPurple, Color(0xFF4A38C8), brandBlue],
+  );
+
+  static const auroraBannerGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [brandNavy, brandPurple, Color(0xFF5B4FD8)],
+  );
+
   static const headerGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,

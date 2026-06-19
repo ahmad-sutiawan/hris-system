@@ -55,7 +55,7 @@ class LeaveRequestViewSet(TenantScopedViewSet):
     def approve(self, request, pk=None):
         leave_req = self.get_object()
         try:
-            approve_leave_request(leave_req, request.user)
+            leave_req = approve_leave_request(leave_req, request.user)
             return Response(
                 LeaveRequestSerializer(leave_req, context=self.get_serializer_context()).data
             )

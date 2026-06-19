@@ -50,7 +50,6 @@ class AttendanceExportFormatTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="OFF",
             name="Office",
             label="",

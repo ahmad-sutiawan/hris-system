@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
 
-/// Logo PT BPS — sama dengan `static/img/logo.png` di web.
+/// Logo PT BPS — sama dengan `static/img/main-logo.png` di web.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({
     super.key,
@@ -31,7 +31,7 @@ class BrandLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Image.asset(
-          'assets/images/logo.png',
+          'assets/images/main-logo.png',
           width: _width,
           fit: BoxFit.contain,
           filterQuality: FilterQuality.high,

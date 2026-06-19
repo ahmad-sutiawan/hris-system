@@ -29,14 +29,12 @@ class WebCRUDTests(TestCase):
             username="admincrud",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.ADMIN,
         )
         self.employee_user = User.objects.create_user(
             username="empcrud",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.EMPLOYEE,
             email="emp@crud.local",
         )
@@ -69,7 +67,6 @@ class WebCRUDTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in="07:00",
@@ -147,7 +144,6 @@ class WebCRUDTests(TestCase):
     def test_employee_edit_assigns_default_shift(self):
         evening = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Sore",
             code="SORE",
             scheduled_check_in="15:00",
@@ -222,7 +218,6 @@ class WebCRUDTests(TestCase):
             username="budi-crud",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.EMPLOYEE,
         )
         self.employee.user = emp_user

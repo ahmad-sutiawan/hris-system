@@ -15,16 +15,21 @@
   var titleEl = document.getElementById("hris-punch-modal-title");
   var subtitleEl = document.getElementById("hris-punch-modal-subtitle");
 
+  if (!form || !actionInput || !photoInput || !video || !canvas || !captureBtn || !submitBtn) {
+    return;
+  }
+
   var stream = null;
-  var currentAction = "";
   var capturedDataUrl = "";
 
   function showError(message) {
+    if (!errorBox) return;
     errorBox.textContent = message;
     errorBox.hidden = false;
   }
 
   function clearError() {
+    if (!errorBox) return;
     errorBox.textContent = "";
     errorBox.hidden = true;
   }
@@ -36,20 +41,22 @@
       });
       stream = null;
     }
-    if (video) {
-      video.srcObject = null;
-    }
+    video.srcObject = null;
   }
 
   function resetCaptureUi() {
     capturedDataUrl = "";
     photoInput.value = "";
-    preview.hidden = true;
-    preview.removeAttribute("src");
+    if (preview) {
+      preview.hidden = true;
+      preview.removeAttribute("src");
+    }
     video.hidden = false;
     captureBtn.hidden = false;
-    retakeBtn.hidden = true;
+    if (retakeBtn) retakeBtn.hidden = true;
     submitBtn.hidden = true;
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Konfirmasi & Absen";
   }
 
   function closeModal() {
@@ -83,22 +90,30 @@
         stream = mediaStream;
         video.srcObject = stream;
         video.hidden = false;
+        var playPromise = video.play();
+        if (playPromise && typeof playPromise.catch === "function") {
+          playPromise.catch(function () {
+            showError("Gagal memutar preview kamera. Klik di area video lalu coba lagi.");
+          });
+        }
       })
-      .catch(function () {
-        showError(
-          "Tidak dapat mengakses kamera. Izinkan permission kamera di browser lalu coba lagi."
-        );
+      .catch(function (err) {
+        var detail = err && err.name === "NotAllowedError"
+          ? "Izin kamera ditolak."
+          : "Tidak dapat mengakses kamera.";
+        showError(detail + " Izinkan permission kamera di browser lalu buka ulang modal.");
       });
   }
 
   function openModal(action, label) {
-    currentAction = action;
     actionInput.value = action;
-    titleEl.textContent = label + " — Verifikasi Selfie";
-    subtitleEl.textContent =
-      action === "in"
-        ? "Ambil foto wajah sebelum clock in."
-        : "Ambil foto wajah sebelum clock out.";
+    if (titleEl) titleEl.textContent = label + " — Verifikasi Selfie";
+    if (subtitleEl) {
+      subtitleEl.textContent =
+        action === "in"
+          ? "Ambil foto wajah sebelum clock in."
+          : "Ambil foto wajah sebelum clock out.";
+    }
     modal.hidden = false;
     modal.setAttribute("aria-hidden", "false");
     document.body.classList.add("hris-modal-open");
@@ -117,12 +132,14 @@
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     capturedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
     photoInput.value = capturedDataUrl;
-    preview.src = capturedDataUrl;
-    preview.hidden = false;
+    if (preview) {
+      preview.src = capturedDataUrl;
+      preview.hidden = false;
+    }
     video.hidden = true;
     stopCamera();
     captureBtn.hidden = true;
-    retakeBtn.hidden = false;
+    if (retakeBtn) retakeBtn.hidden = false;
     submitBtn.hidden = false;
   }
 
@@ -139,9 +156,11 @@
 
   captureBtn.addEventListener("click", capturePhoto);
 
-  retakeBtn.addEventListener("click", function () {
-    startCamera();
-  });
+  if (retakeBtn) {
+    retakeBtn.addEventListener("click", function () {
+      startCamera();
+    });
+  }
 
   submitBtn.addEventListener("click", function () {
     if (!capturedDataUrl) {

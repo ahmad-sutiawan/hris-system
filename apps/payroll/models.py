@@ -33,7 +33,9 @@ class PayrollRun(TenantScopedModel):
 
     plant = models.ForeignKey(
         "core.Plant",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="payroll_runs",
     )
     period_start = models.DateField()
@@ -47,7 +49,8 @@ class PayrollRun(TenantScopedModel):
         unique_together = [["tenant", "plant", "period_start", "period_end"]]
 
     def __str__(self):
-        return f"{self.plant.code} — {self.period_start} to {self.period_end}"
+        plant_code = self.plant.code if self.plant_id else "N/A"
+        return f"{plant_code} — {self.period_start} to {self.period_end}"
 
 
 class Payslip(TenantScopedModel):
@@ -151,7 +154,9 @@ class THRRun(TenantScopedModel):
 
     plant = models.ForeignKey(
         "core.Plant",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="thr_runs",
     )
     year = models.PositiveIntegerField()
@@ -163,7 +168,8 @@ class THRRun(TenantScopedModel):
         unique_together = [["tenant", "plant", "year"]]
 
     def __str__(self):
-        return f"THR {self.year} — {self.plant.code}"
+        plant_code = self.plant.code if self.plant_id else "N/A"
+        return f"THR {self.year} — {plant_code}"
 
 
 class THRPayslip(TenantScopedModel):

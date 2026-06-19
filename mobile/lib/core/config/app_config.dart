@@ -1,27 +1,23 @@
+import 'package:flutter/foundation.dart';
+
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
-  /// Server production PT BPS — override: flutter build apk --dart-define=API_BASE_URL=http://host:8080/api/v1
+  /// Backend publik PT BPS — dipakai release APK.
   static const productionBaseUrl = 'http://148.230.98.125:8080$apiPathSuffix';
 
-  /// Dev lokal (runserver) — fallback jika server production tidak terjangkau
-  static const localBaseUrl = 'http://127.0.0.1:8000$apiPathSuffix';
+  /// Dev lokal (Chrome/emulator di mesin yang sama dengan runserver).
+  static const localDevBaseUrl = 'http://127.0.0.1:8000$apiPathSuffix';
 
-  /// Kandidat — server production dulu, lalu dev lokal.
-  static const devProbeUrls = [
-    productionBaseUrl,
-    localBaseUrl,
-    'http://127.0.0.1:8080$apiPathSuffix',
-    'http://10.0.2.2:8000$apiPathSuffix',
-  ];
-
+  /// Override saat build: flutter run --dart-define=API_BASE_URL=http://host:8000/api/v1
   static String get defaultBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
-    if (override.isNotEmpty) return override;
+    if (override.isNotEmpty) return normalizeApiBaseUrl(override);
+    if (kDebugMode) return localDevBaseUrl;
     return productionBaseUrl;
   }
 
-  /// Normalisasi input user: `http://192.168.0.5:8000` → `http://192.168.0.5:8000/api/v1`
+  /// Normalisasi input user: `http://148.230.98.125:8080` → `.../api/v1`
   static String normalizeApiBaseUrl(String input) {
     var url = input.trim();
     if (url.isEmpty) return defaultBaseUrl;

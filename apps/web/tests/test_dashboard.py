@@ -62,7 +62,7 @@ class DashboardContentTests(TestCase):
         response = self.client.get(reverse("web:dashboard"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Operator Produksi")
-        self.assertContains(response, "Profil Saya")
+        self.assertContains(response, "Identitas Saya")
 
     def test_dashboard_shows_on_leave_today_avatars(self):
         dept = Department.objects.create(

@@ -2062,6 +2062,20 @@ body.hris-modal-open {
   object-fit: cover;
 }
 
+.hris-punch-camera-error {
+  margin: 0.75rem 1.25rem 0;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--hris-radius-sm);
+  background: rgba(220, 38, 38, 0.08);
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.hris-punch-camera-error[hidden] {
+  display: none !important;
+}
+
 .hris-punch-modal-actions {
   display: flex;
   flex-wrap: wrap;

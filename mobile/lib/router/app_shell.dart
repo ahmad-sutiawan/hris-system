@@ -22,7 +22,7 @@ class AppShell extends StatelessWidget {
           bottom: false,
           child: navigationShell,
         ),
-        bottomNavigationBar: _ChinaBottomNav(
+        bottomNavigationBar: _AuroraBottomNav(
           currentIndex: navigationShell.currentIndex,
           onTap: navigationShell.goBranch,
         ),
@@ -31,8 +31,8 @@ class AppShell extends StatelessWidget {
   }
 }
 
-class _ChinaBottomNav extends StatelessWidget {
-  const _ChinaBottomNav({
+class _AuroraBottomNav extends StatelessWidget {
+  const _AuroraBottomNav({
     required this.currentIndex,
     required this.onTap,
   });
@@ -42,8 +42,8 @@ class _ChinaBottomNav extends StatelessWidget {
 
   static const _centerIndex = 2;
   static const _barHeight = 58.0;
-  static const _fabSize = 50.0;
-  static const _fabOverhang = 22.0;
+  static const _fabSize = 52.0;
+  static const _fabOverhang = 24.0;
 
   @override
   Widget build(BuildContext context) {
@@ -62,20 +62,27 @@ class _ChinaBottomNav extends StatelessWidget {
             height: _barHeight + bottomInset,
             child: ClipRect(
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.navBar.withValues(alpha: 0.88),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        AppColors.glassSurface.withValues(alpha: 0.82),
+                        AppColors.glassSurface.withValues(alpha: 0.92),
+                      ],
+                    ),
                     border: Border(
                       top: BorderSide(
-                        color: AppColors.darkGold.withValues(alpha: 0.28),
+                        color: Colors.white.withValues(alpha: 0.55),
                       ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.brandNavy.withValues(alpha: 0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, -4),
+                        color: AppColors.brandPurple.withValues(alpha: 0.08),
+                        blurRadius: 24,
+                        offset: const Offset(0, -6),
                       ),
                     ],
                   ),
@@ -149,38 +156,46 @@ class _CenterFab extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedPress(
       onTap: onTap,
-      scale: 0.94,
+      scale: 0.93,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            width: 50,
-            height: 50,
+            duration: const Duration(milliseconds: 260),
+            curve: Curves.easeOutCubic,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              gradient: AppColors.premiumGradient,
+              gradient: AppColors.auroraButtonGradient,
               shape: BoxShape.circle,
               border: Border.all(
-                color: selected ? AppColors.brandGold : AppColors.chinaGold,
+                color: selected
+                    ? AppColors.brandGold
+                    : Colors.white.withValues(alpha: 0.85),
                 width: 2.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.brandNavy.withValues(alpha: selected ? 0.35 : 0.22),
-                  blurRadius: selected ? 16 : 12,
-                  offset: const Offset(0, 6),
+                  color: AppColors.brandPurple.withValues(alpha: selected ? 0.42 : 0.28),
+                  blurRadius: selected ? 22 : 14,
+                  offset: const Offset(0, 8),
+                ),
+                BoxShadow(
+                  color: AppColors.brandGold.withValues(alpha: selected ? 0.25 : 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
-            child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+            child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
           ),
-          const SizedBox(height: 3),
+          const SizedBox(height: 4),
           Text(
             'Pengajuan',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 9,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-              color: selected ? AppColors.brandNavy : AppColors.textDim,
+              color: selected ? AppColors.brandPurple : AppColors.textDim,
               height: 1.1,
             ),
           ),
@@ -218,18 +233,32 @@ class _NavItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutCubic,
-                padding: const EdgeInsets.all(6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.brandGoldLight.withValues(alpha: 0.85)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: selected
+                      ? LinearGradient(
+                          colors: [
+                            AppColors.brandPurple.withValues(alpha: 0.14),
+                            AppColors.brandBlue.withValues(alpha: 0.08),
+                          ],
+                        )
+                      : null,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: selected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.brandPurple.withValues(alpha: 0.12),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Icon(
                   selected ? selectedIcon : icon,
-                  color: selected ? AppColors.brandNavy : AppColors.textDim,
+                  color: selected ? AppColors.brandPurple : AppColors.textDim,
                   size: 22,
                 ),
               ),
@@ -242,7 +271,7 @@ class _NavItem extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 9,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  color: selected ? AppColors.brandNavy : AppColors.textDim,
+                  color: selected ? AppColors.brandPurple : AppColors.textDim,
                   height: 1.1,
                 ),
               ),

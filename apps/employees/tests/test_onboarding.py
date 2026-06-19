@@ -4,7 +4,7 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
-from apps.core.models import Plant, Tenant
+from apps.core.models import Plant, Tenant, User
 from apps.employees.models import Employee
 from apps.employees.services.onboarding import (
     assign_default_shift,
@@ -40,7 +40,6 @@ class OnboardingServiceTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in=time(7, 0),
@@ -89,7 +88,6 @@ class OnboardingServiceTests(TestCase):
     def test_assign_default_shift_prefers_employee_default(self):
         evening = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Sore",
             code="SORE",
             scheduled_check_in=time(15, 0),
@@ -106,3 +104,23 @@ class OnboardingServiceTests(TestCase):
         balances = provision_new_employee(self.employee)
         self.assertEqual(balances, [])
         self.assertFalse(LeaveBalance.objects.filter(employee=self.employee).exists())
+
+    def test_leave_summary_does_not_reset_password(self):
+        from apps.core.auth_login import apply_employee_credentials
+
+        user = User.objects.create_user(
+            username="cred-test",
+            password="P1-001",
+            tenant=self.tenant,
+            plant=self.plant,
+            role=User.Role.EMPLOYEE,
+        )
+        self.employee.user = user
+        self.employee.save(update_fields=["user", "updated_at"])
+        apply_employee_credentials(self.employee, role=User.Role.EMPLOYEE)
+        hash_before = user.get_session_auth_hash()
+
+        employee_leave_balances_summary(self.employee)
+
+        user.refresh_from_db()
+        self.assertEqual(user.get_session_auth_hash(), hash_before)

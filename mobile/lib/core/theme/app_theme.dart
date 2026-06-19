@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 abstract final class AppTheme {
-  static const _radius = 14.0;
+  static const _radius = 16.0;
 
   static ThemeData get light {
     final textTheme = GoogleFonts.plusJakartaSansTextTheme(
@@ -14,24 +14,24 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.bg,
+      scaffoldBackgroundColor: AppColors.auroraBgMid,
       colorScheme: const ColorScheme.light(
         primary: AppColors.brandPurple,
         onPrimary: AppColors.onPrimary,
         secondary: AppColors.brandGold,
         onSecondary: AppColors.onGold,
         tertiary: AppColors.brandBlue,
-        surface: AppColors.surface,
+        surface: AppColors.glassSurface,
         onSurface: AppColors.text,
         error: AppColors.danger,
       ),
-      dividerColor: AppColors.border,
+      dividerColor: AppColors.glassBorderMuted,
       textTheme: textTheme.apply(
         bodyColor: AppColors.text,
         displayColor: AppColors.text,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.transparent,
         foregroundColor: AppColors.text,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -40,29 +40,30 @@ abstract final class AppTheme {
           fontSize: 17,
           fontWeight: FontWeight.w800,
           color: AppColors.text,
+          letterSpacing: -0.3,
         ),
         iconTheme: const IconThemeData(color: AppColors.textMuted),
         surfaceTintColor: Colors.transparent,
       ),
       cardTheme: CardThemeData(
-        color: AppColors.surface,
+        color: AppColors.glassSurface.withValues(alpha: 0.85),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(_radius),
-          side: const BorderSide(color: AppColors.border),
+          side: BorderSide(color: AppColors.glassBorderMuted),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: Colors.white.withValues(alpha: 0.72),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
-          borderSide: const BorderSide(color: AppColors.border),
+          borderSide: BorderSide(color: AppColors.border.withValues(alpha: 0.45)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(_radius),
@@ -76,7 +77,7 @@ abstract final class AppTheme {
           backgroundColor: AppColors.brandPurple,
           foregroundColor: AppColors.onPrimary,
           elevation: 0,
-          minimumSize: const Size.fromHeight(50),
+          minimumSize: const Size.fromHeight(52),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_radius),
@@ -90,8 +91,8 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.brandPurple,
-          minimumSize: const Size.fromHeight(50),
-          side: const BorderSide(color: AppColors.brandPurple),
+          minimumSize: const Size.fromHeight(52),
+          side: BorderSide(color: AppColors.brandPurple.withValues(alpha: 0.45)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(_radius),
           ),
@@ -115,7 +116,7 @@ abstract final class AppTheme {
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.transparent,
         selectedItemColor: AppColors.brandPurple,
         unselectedItemColor: AppColors.textDim,
         type: BottomNavigationBarType.fixed,
@@ -129,10 +130,10 @@ abstract final class AppTheme {
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: AppColors.brandPurple,
       ),
-      sliderTheme: const SliderThemeData(
+      sliderTheme: SliderThemeData(
         activeTrackColor: AppColors.brandGold,
         thumbColor: AppColors.brandGold,
-        inactiveTrackColor: AppColors.border,
+        inactiveTrackColor: AppColors.border.withValues(alpha: 0.5),
       ),
     );
   }

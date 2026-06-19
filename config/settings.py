@@ -134,6 +134,10 @@ HRIS_TIMESHEET_CACHE_TTL = config("HRIS_TIMESHEET_CACHE_TTL", default=600, cast=
 
 AUTH_USER_MODEL = "core.User"
 
+AUTHENTICATION_BACKENDS = [
+    "apps.core.authentication.HRISAuthenticationBackend",
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 12}},

@@ -24,7 +24,6 @@ class Tahap1PolicyTests(TestCase):
             username="tahap1admin",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.ADMIN,
         )
         self.employee = Employee.objects.create(
@@ -36,7 +35,6 @@ class Tahap1PolicyTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="S1",
             name="Shift 1",
             scheduled_check_in=time(8, 0),

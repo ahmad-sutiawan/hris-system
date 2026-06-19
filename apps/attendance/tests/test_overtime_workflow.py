@@ -31,7 +31,6 @@ class OvertimeApprovalGateTests(TestCase):
             username="hr-ot",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.HR,
         )
         self.employee = Employee.objects.create(
@@ -44,7 +43,6 @@ class OvertimeApprovalGateTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in=time(7, 0),

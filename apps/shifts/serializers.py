@@ -8,7 +8,6 @@ class ShiftSerializer(serializers.ModelSerializer):
         model = Shift
         fields = [
             "id",
-            "plant",
             "name",
             "code",
             "label",

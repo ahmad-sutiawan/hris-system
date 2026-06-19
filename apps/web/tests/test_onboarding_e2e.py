@@ -62,7 +62,6 @@ class NewEmployeeOnboardingE2ETest(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in=time(7, 0),
@@ -76,7 +75,6 @@ class NewEmployeeOnboardingE2ETest(TestCase):
             username="hre2e",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.HR,
         )
         self.manager_employee = Employee.objects.create(
@@ -98,7 +96,6 @@ class NewEmployeeOnboardingE2ETest(TestCase):
             username="newhire",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.EMPLOYEE,
             email="newhire@e2e.local",
         )

@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path_provider/path_provider.dart';
@@ -110,26 +110,12 @@ class ApiClient {
   }
 
   Future<String> resolveBaseUrl() async {
-    if (kReleaseMode) {
+    final saved = await _readStorage(_baseUrlKey);
+    if (saved != null && saved.isNotEmpty) {
+      _dio.options.baseUrl = AppConfig.normalizeApiBaseUrl(saved);
+    } else {
       _dio.options.baseUrl = AppConfig.defaultBaseUrl;
-      return _dio.options.baseUrl;
     }
-
-    final stored = await _readStorage(_baseUrlKey);
-    if (stored != null && stored.isNotEmpty && await _probeHealth(stored)) {
-      _dio.options.baseUrl = stored;
-      return stored;
-    }
-
-    for (final candidate in AppConfig.devProbeUrls) {
-      if (await _probeHealth(candidate)) {
-        _dio.options.baseUrl = candidate;
-        await _writeStorage(_baseUrlKey, candidate);
-        return candidate;
-      }
-    }
-
-    _dio.options.baseUrl = stored ?? AppConfig.defaultBaseUrl;
     return _dio.options.baseUrl;
   }
 
@@ -145,7 +131,7 @@ class ApiClient {
 
   Future<void> resetBaseUrl() async {
     await _deleteStorage(_baseUrlKey);
-    _dio.options.baseUrl = AppConfig.defaultBaseUrl;
+    _dio.options.baseUrl = AppConfig.productionBaseUrl;
   }
 
   Future<String> loadBaseUrl() async {
@@ -476,12 +462,10 @@ class ApiClient {
         e.type == DioExceptionType.connectionTimeout ||
         e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
-      final hint = kIsWeb
-          ? ' Periksa koneksi internet dan pastikan server '
-              'http://148.230.98.125:8080 bisa diakses.'
-          : ' Periksa koneksi internet HP dan pastikan server bisa diakses.';
       return ApiException(
-        'Tidak bisa terhubung ke $server.$hint',
+        'Tidak bisa terhubung ke $server. '
+        'Periksa koneksi dan pastikan server bisa diakses '
+        '(dev lokal: http://127.0.0.1:8000).',
         statusCode: status,
       );
     }

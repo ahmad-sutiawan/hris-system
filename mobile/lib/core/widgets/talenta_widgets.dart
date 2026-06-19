@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../utils/shift_utils.dart';
 import 'animated_interactions.dart';
+import 'aurora_background.dart';
 
 const _cardRadius = 16.0;
 
@@ -36,18 +37,18 @@ class HomeGreetingHeader extends StatelessWidget {
       child: Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       decoration: BoxDecoration(
-        gradient: AppColors.headerGradient,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.darkGold.withValues(alpha: 0.45), width: 1),
+        gradient: AppColors.auroraHeroGradient,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.chinaRed.withValues(alpha: 0.22),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppColors.brandPurple.withValues(alpha: 0.28),
+            blurRadius: 28,
+            offset: const Offset(0, 14),
           ),
           BoxShadow(
-            color: AppColors.darkGold.withValues(alpha: 0.12),
-            blurRadius: 12,
+            color: AppColors.brandGold.withValues(alpha: 0.14),
+            blurRadius: 16,
             offset: const Offset(0, 4),
           ),
         ],
@@ -55,12 +56,37 @@ class HomeGreetingHeader extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -20,
-            top: -20,
-            child: Icon(
-              Icons.lens_blur_rounded,
-              size: 120,
-              color: Colors.white.withValues(alpha: 0.06),
+            right: -30,
+            top: -30,
+            child: Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white.withValues(alpha: 0.18),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -20,
+            bottom: -20,
+            child: Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    AppColors.brandGold.withValues(alpha: 0.15),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
           ),
           Padding(
@@ -173,36 +199,27 @@ class ShiftScheduleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AuroraGlass(
       margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: AppColors.darkGold.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkGold.withValues(alpha: 0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
+      padding: EdgeInsets.zero,
+      borderRadius: 22,
+      showTopShine: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
-              gradient: AppColors.headerGradient,
+              gradient: AppColors.auroraHeroGradient,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.schedule_rounded, color: Colors.white, size: 16),
                 ),
@@ -223,11 +240,10 @@ class ShiftScheduleCard extends StatelessWidget {
           Container(
             height: 3,
             decoration: const BoxDecoration(
-              gradient: AppColors.darkGoldGradient,
+              gradient: AppColors.goldGradient,
             ),
           ),
           Container(
-            color: AppColors.darkGoldLight.withValues(alpha: 0.55),
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +264,7 @@ class ShiftScheduleCard extends StatelessWidget {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.chinaRed,
+                    color: AppColors.brandPurple,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -257,13 +273,15 @@ class ShiftScheduleCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: AppColors.brandPurple.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.darkGoldMuted),
+                      border: Border.all(
+                        color: AppColors.brandPurple.withValues(alpha: 0.12),
+                      ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.access_time_rounded, size: 16, color: AppColors.darkGold),
+                        Icon(Icons.access_time_rounded, size: 16, color: AppColors.brandPurple),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -273,7 +291,7 @@ class ShiftScheduleCard extends StatelessWidget {
                             ].join(' · '),
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
-                              color: AppColors.darkGoldRich,
+                              color: AppColors.text,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -288,9 +306,11 @@ class ShiftScheduleCard extends StatelessWidget {
           Container(
             margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             decoration: BoxDecoration(
-              color: AppColors.surfaceMuted,
+              color: AppColors.brandPurple.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: AppColors.darkGoldMuted),
+              border: Border.all(
+                color: AppColors.brandPurple.withValues(alpha: 0.1),
+              ),
             ),
             child: IntrinsicHeight(
               child: Row(
@@ -299,17 +319,21 @@ class ShiftScheduleCard extends StatelessWidget {
                     child: _PunchAction(
                       icon: Icons.login_rounded,
                       label: 'Masuk',
-                      color: AppColors.darkGold,
+                      color: AppColors.brandGoldDark,
                       enabled: canClockIn,
                       onTap: onClockIn,
                     ),
                   ),
-                  Container(width: 1, height: 28, color: AppColors.darkGoldMuted),
+                  Container(
+                    width: 1,
+                    height: 28,
+                    color: AppColors.brandPurple.withValues(alpha: 0.12),
+                  ),
                   Expanded(
                     child: _PunchAction(
                       icon: Icons.logout_rounded,
                       label: 'Pulang',
-                      color: AppColors.chinaRed,
+                      color: AppColors.brandPurple,
                       enabled: canClockOut,
                       onTap: onClockOut,
                     ),
@@ -451,14 +475,21 @@ class _AppGridTile extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.95),
+                  color.withValues(alpha: 0.08),
+                ],
+              ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.darkGold.withValues(alpha: 0.18)),
+              border: Border.all(color: color.withValues(alpha: 0.18)),
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.12),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+                  color: color.withValues(alpha: 0.18),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
                 ),
               ],
             ),
@@ -531,12 +562,15 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
                     child: Ink(
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(_cardRadius),
-                        gradient: AppColors.headerGradient,
+                        gradient: AppColors.auroraBannerGradient,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.2),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.chinaRed.withValues(alpha: 0.25),
-                            blurRadius: 16,
-                            offset: const Offset(0, 8),
+                            color: AppColors.brandPurple.withValues(alpha: 0.28),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
@@ -605,12 +639,14 @@ class _PromoBannerCarouselState extends State<PromoBannerCarousel> {
             children: List.generate(widget.items.length, (i) {
               final active = i == _page;
               return AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
                 margin: const EdgeInsets.symmetric(horizontal: 3),
-                width: active ? 18 : 6,
+                width: active ? 20 : 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: active ? AppColors.darkGold : AppColors.textDim,
+                  gradient: active ? AppColors.auroraButtonGradient : null,
+                  color: active ? null : AppColors.textDim.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(999),
                 ),
               );
@@ -640,6 +676,15 @@ class HomeSectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
       child: Row(
         children: [
+          Container(
+            width: 4,
+            height: 20,
+            decoration: BoxDecoration(
+              gradient: AppColors.auroraButtonGradient,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               title,
@@ -647,19 +692,26 @@ class HomeSectionHeader extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: AppColors.text,
+                letterSpacing: -0.3,
               ),
             ),
           ),
           if (actionLabel != null && onAction != null)
-            TextButton(
-              onPressed: onAction,
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.chinaRed,
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-              ),
-              child: Text(
-                actionLabel!,
-                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w700),
+            AnimatedPress(
+              onTap: onAction,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.brandPurple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  actionLabel!,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brandPurple,
+                  ),
+                ),
               ),
             ),
         ],
@@ -686,28 +738,19 @@ class LeaveBalanceStrip extends StatelessWidget {
           final b = balances[i] as Map<String, dynamic>;
           return AnimatedPress(
             scale: 0.97,
-            child: Container(
-            width: 136,
+            child: SizedBox(
+              width: 136,
+              child: AuroraGlass(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(_cardRadius),
-              border: Border.all(color: AppColors.darkGold.withValues(alpha: 0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.darkGold.withValues(alpha: 0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+            borderRadius: _cardRadius,
+            showTopShine: false,
             child: Row(
               children: [
                 Container(
                   width: 4,
                   height: 44,
                   decoration: BoxDecoration(
-                    gradient: AppColors.darkGoldGradient,
+                    gradient: AppColors.auroraButtonGradient,
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -722,7 +765,7 @@ class LeaveBalanceStrip extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w800,
                           fontSize: 14,
-                          color: AppColors.chinaRed,
+                          color: AppColors.brandPurple,
                         ),
                       ),
                       Text(
@@ -730,7 +773,7 @@ class LeaveBalanceStrip extends StatelessWidget {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.darkGoldRich,
+                          color: AppColors.text,
                         ),
                       ),
                     ],
@@ -738,6 +781,7 @@ class LeaveBalanceStrip extends StatelessWidget {
                 ),
               ],
             ),
+          ),
           ),
           );
         },
@@ -762,63 +806,56 @@ class ProfileInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(_cardRadius),
-          child: Container(
-            padding: const EdgeInsets.all(16),
+    return AuroraGlass(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      borderRadius: 20,
+      onTap: onTap,
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(_cardRadius),
-              border: Border.all(color: AppColors.border),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.brandBlue.withValues(alpha: 0.18),
+                  AppColors.brandPurple.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Row(
+            child: const Icon(Icons.apartment_rounded, color: AppColors.brandBlue),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppColors.cyanDim,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.apartment_rounded, color: AppColors.cyan),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        department ?? '—',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
-                      ),
-                      Text(
-                        jobTitle ?? '',
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                      ),
-                      if (managerName != null && managerName!.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            'Atasan: $managerName',
-                            style: const TextStyle(color: AppColors.textDim, fontSize: 12),
-                          ),
-                        ),
-                    ],
+                Text(
+                  department ?? '—',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: AppColors.textMuted),
+                Text(
+                  jobTitle ?? '',
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                ),
+                if (managerName != null && managerName!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      'Atasan: $managerName',
+                      style: const TextStyle(color: AppColors.textDim, fontSize: 12),
+                    ),
+                  ),
               ],
             ),
           ),
-        ),
+          const Icon(Icons.chevron_right, color: AppColors.textMuted),
+        ],
       ),
     );
   }
@@ -1006,54 +1043,57 @@ class RequestActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(_cardRadius),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(_cardRadius),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: color, size: 26),
+    return AnimatedPress(
+      onTap: onTap,
+      scale: 0.98,
+      child: AuroraGlass(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        borderRadius: 20,
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    color.withValues(alpha: 0.2),
+                    color.withValues(alpha: 0.06),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        subtitle,
-                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
-                      ),
-                    ],
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                ),
-                const Icon(Icons.chevron_right, color: AppColors.textMuted),
-              ],
+                ],
+              ),
+              child: Icon(icon, color: color, size: 26),
             ),
-          ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.textMuted),
+          ],
         ),
       ),
     );

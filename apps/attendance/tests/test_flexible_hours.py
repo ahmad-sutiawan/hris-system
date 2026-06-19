@@ -28,7 +28,6 @@ class FlexibleHoursTests(TestCase):
             username="hr-flex",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.HR,
         )
         self.employee = Employee.objects.create(
@@ -42,7 +41,6 @@ class FlexibleHoursTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in=time(7, 0),
@@ -177,7 +175,6 @@ class FlexiblePayrollTests(TestCase):
             username="hr-pay",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.HR,
         )
         self.monthly_employee = Employee.objects.create(
@@ -202,7 +199,6 @@ class FlexiblePayrollTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             name="Pagi",
             code="PAGI",
             scheduled_check_in=time(7, 0),
@@ -273,7 +269,7 @@ class FlexiblePayrollTests(TestCase):
             DailyTimesheet.objects.create(
                 tenant=self.tenant,
                 plant=self.plant,
-                employee=self.daily_employee,
+                    employee=self.daily_employee,
                 work_date=work_date,
                 check_in=timezone.make_aware(
                     datetime.combine(work_date, time(7, 0)), self.tz

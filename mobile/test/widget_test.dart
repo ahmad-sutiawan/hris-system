@@ -11,8 +11,9 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 800));
 
-    expect(find.text('Transformasi Digital HR'), findsOneWidget);
+    expect(find.text('Masuk dengan NIK dan Employee ID Anda'), findsOneWidget);
     expect(find.text('Masuk'), findsWidgets);
-    expect(find.text('Dukung Pertumbuhan Perusahaan.'), findsOneWidget);
+    expect(find.text('NIK'), findsWidgets);
+    expect(find.text('Employee ID'), findsWidgets);
   });
 }

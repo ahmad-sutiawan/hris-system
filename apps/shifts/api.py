@@ -5,9 +5,9 @@ from apps.shifts.serializers import ShiftAssignmentSerializer, ShiftSerializer
 
 
 class ShiftViewSet(TenantScopedViewSet):
-    queryset = Shift.objects.select_related("plant")
+    queryset = Shift.objects.all()
     serializer_class = ShiftSerializer
-    filterset_fields = ["plant", "is_active"]
+    filterset_fields = ["is_active"]
     search_fields = ["code", "name"]
     http_method_names = ["get", "head", "options"]
 

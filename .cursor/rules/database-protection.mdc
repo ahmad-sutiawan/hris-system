@@ -1,0 +1,46 @@
+---
+description: Protect production MySQL database bps_hris from test/debug pollution
+alwaysApply: true
+---
+
+# Database Protection — bps_hris
+
+## Canonical database (NEVER roll back or overwrite)
+
+- **Database name:** `bps_hris` (MySQL on `127.0.0.1:3306`, ServBay)
+- **Tenant:** `default` (BPS)
+- **Plants (entity):** `BPS`, `SHS`, `BPS_STAFF`, `BPS_HARIAN`, `SPV_UP`, `PLT01`
+- **Punch locations** (tenant `default`, plant BPS / PLT01):
+  - Office, FG, RM - CCM - WH - SCRAP (plant BPS)
+  - Kantor Hybrid BSD (plant PLT01)
+
+This is the user's live development data (~699 employees on tenant `default`). Do **not** run commands that reset or replace it.
+
+## Forbidden on `bps_hris`
+
+Never run against the default `.env` database:
+
+- `python manage.py seed_demo` (overwrites demo data; dangerous on real DB)
+- `python manage.py flush`
+- `migrate` rollback that drops user tables
+- `manage.py shell` that creates `Tenant`, `Plant`, or bulk `Employee` for debugging
+- Django tests without the isolated test database
+
+## Tests and debug
+
+- Django tests use **`test_bps_hris`** automatically (`test_` + `DB_NAME`).
+- For ad-hoc scripts, use `test_bps_hris` or SQLite — never create tenants like `t-rt`, `t4dbg`, `login-test` in `bps_hris`.
+- Before any destructive command, verify: `SELECT DATABASE();` or check `DB_NAME` in `.env`.
+
+## If data looks missing
+
+1. Confirm tenant is **`default`** in the web UI (not a test tenant).
+2. Confirm `.env` has `DB_NAME=bps_hris` (not `test_bps_hris`).
+3. Check plants: `BPS` and `SHS` must both exist under tenant `default`.
+4. Do not assume rollback — inspect MySQL before re-seeding.
+
+## Backup before risky operations
+
+```bash
+mysqldump -h127.0.0.1 -uroot -p bps_hris > bps_hris_backup_$(date +%Y%m%d_%H%M).sql
+```

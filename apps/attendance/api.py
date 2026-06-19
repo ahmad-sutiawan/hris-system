@@ -58,7 +58,14 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
     )
     serializer_class = AttendanceRecordSerializer
     filterset_fields = ["employee", "plant", "work_date", "source"]
-    http_method_names = ["get", "head", "options"]
+    # POST required for @action clock_in/clock_out; direct create blocked below.
+    http_method_names = ["get", "post", "head", "options"]
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"detail": 'Method "POST" not allowed.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
 
     def get_queryset(self):
         qs = super().get_queryset()

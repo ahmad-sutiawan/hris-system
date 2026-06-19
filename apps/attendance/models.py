@@ -45,7 +45,9 @@ class AttendanceRecord(TenantScopedModel):
     )
     plant = models.ForeignKey(
         "core.Plant",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="attendance_records",
     )
     shift_assignment = models.ForeignKey(
@@ -114,7 +116,9 @@ class DailyTimesheet(TenantScopedModel):
     )
     plant = models.ForeignKey(
         "core.Plant",
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="daily_timesheets",
     )
     work_date = models.DateField(db_index=True)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
+import 'aurora_background.dart';
 
 /// Spacing konsisten antar section home.
 abstract final class AppSpacing {
@@ -11,7 +12,7 @@ abstract final class AppSpacing {
   static const bottomNav = 100.0;
 }
 
-/// Tap scale + fade/slide entrance — tanpa dependency ekstra.
+/// Tap scale + fade/slide entrance — fluid & responsif.
 class AnimatedPress extends StatefulWidget {
   const AnimatedPress({
     super.key,
@@ -42,7 +43,7 @@ class _AnimatedPressState extends State<AnimatedPress> {
       onTap: widget.enabled ? widget.onTap : null,
       child: AnimatedScale(
         scale: _pressed ? widget.scale : 1,
-        duration: const Duration(milliseconds: 120),
+        duration: const Duration(milliseconds: 140),
         curve: Curves.easeOutCubic,
         child: AnimatedOpacity(
           opacity: widget.enabled ? 1 : 0.5,
@@ -80,11 +81,11 @@ class _FadeSlideInState extends State<FadeSlideIn> with SingleTickerProviderStat
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 420),
+      duration: const Duration(milliseconds: 480),
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
 
@@ -108,7 +109,7 @@ class _FadeSlideInState extends State<FadeSlideIn> with SingleTickerProviderStat
   }
 }
 
-/// Garis aksen dark gold + judul section.
+/// Garis aksen aurora + judul section.
 class GoldSectionTitle extends StatelessWidget {
   const GoldSectionTitle({
     super.key,
@@ -131,8 +132,14 @@ class GoldSectionTitle extends StatelessWidget {
             width: 4,
             height: 22,
             decoration: BoxDecoration(
-              gradient: AppColors.darkGoldGradient,
+              gradient: AppColors.auroraButtonGradient,
               borderRadius: BorderRadius.circular(4),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.brandPurple.withValues(alpha: 0.25),
+                  blurRadius: 8,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -143,7 +150,7 @@ class GoldSectionTitle extends StatelessWidget {
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 color: AppColors.text,
-                letterSpacing: -0.2,
+                letterSpacing: -0.3,
               ),
             ),
           ),
@@ -151,12 +158,19 @@ class GoldSectionTitle extends StatelessWidget {
             AnimatedPress(
               onTap: onAction,
               scale: 0.98,
-              child: Text(
-                actionLabel!,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.darkGold,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.brandPurple.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  actionLabel!,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.brandPurple,
+                  ),
                 ),
               ),
             ),
@@ -166,7 +180,7 @@ class GoldSectionTitle extends StatelessWidget {
   }
 }
 
-/// Panel putih dengan border dark gold tipis.
+/// Panel kaca aurora dengan margin standar.
 class GoldPanel extends StatelessWidget {
   const GoldPanel({
     super.key,
@@ -179,21 +193,12 @@ class GoldPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AuroraGlass(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.darkGold.withValues(alpha: 0.22)),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.cardShadow,
-            blurRadius: 18,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Padding(padding: padding, child: child),
+      padding: padding,
+      borderRadius: 22,
+      borderColor: AppColors.glassBorder,
+      child: child,
     );
   }
 }

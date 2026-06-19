@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.attendance.models import AttendanceRecord
-from apps.attendance.services.face_check import validate_selfie_face
+from apps.attendance.services.face_check import FaceCheckError, validate_selfie_face
 from apps.attendance.services.geo import GeoFenceError, validate_punch_location
 from apps.attendance.services.punch_recalc import schedule_daily_timesheet_recalc
 from apps.attendance.services.punch_work_date import resolve_punch_work_date
@@ -33,6 +33,8 @@ def _save_photo(record: AttendanceRecord, field_name: str, photo: ContentFile):
 
 
 def _normalize_photo(photo: ContentFile) -> ContentFile:
+    if hasattr(photo, "seek"):
+        photo.seek(0)
     data = photo.read()
     if not data:
         raise PunchError("Foto selfie wajib untuk absensi.")
@@ -49,7 +51,10 @@ def _validate_punch_inputs(
     longitude=None,
 ) -> ContentFile:
     photo = _normalize_photo(photo)
-    validate_selfie_face(photo, employee=employee)
+    try:
+        validate_selfie_face(photo, employee=employee)
+    except FaceCheckError as exc:
+        raise PunchError(str(exc)) from exc
     photo.seek(0)
     if source == AttendanceRecord.Source.MOBILE:
         try:

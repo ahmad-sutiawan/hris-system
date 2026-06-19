@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_colors.dart';
+import 'aurora_background.dart';
 
 /// Wrapper SafeArea standar — top selalu aman; bottom bisa dimatikan jika ada bottom nav.
 class HrisSafeBody extends StatelessWidget {
@@ -25,7 +26,7 @@ class HrisSafeBody extends StatelessWidget {
   }
 }
 
-/// Latar belakang gradient + aksen radial (selalu terisi, hindari blank BG).
+/// Latar aurora animasi — gradien lembut + orbs blur fluid.
 class HrisPageBackground extends StatelessWidget {
   const HrisPageBackground({super.key, required this.child});
 
@@ -33,74 +34,11 @@ class HrisPageBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFF8F9FE),
-            AppColors.bg,
-            AppColors.brandBlue.withValues(alpha: 0.10),
-            AppColors.brandPurple.withValues(alpha: 0.05),
-          ],
-          stops: const [0.0, 0.45, 0.78, 1.0],
-        ),
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Positioned(
-            top: -120,
-            right: -80,
-            child: _GlowOrb(
-              size: 300,
-              color: AppColors.brandGold.withValues(alpha: 0.16),
-            ),
-          ),
-          Positioned(
-            top: 80,
-            left: -100,
-            child: _GlowOrb(
-              size: 260,
-              color: AppColors.brandPurple.withValues(alpha: 0.12),
-            ),
-          ),
-          Positioned(
-            bottom: -60,
-            right: -40,
-            child: _GlowOrb(
-              size: 220,
-              color: AppColors.brandBlue.withValues(alpha: 0.10),
-            ),
-          ),
-          child,
-        ],
-      ),
-    );
+    return AuroraBackground(child: child);
   }
 }
 
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(colors: [color, Colors.transparent]),
-      ),
-    );
-  }
-}
-
-/// Scaffold standar — latar gradient + AppBar glass opsional.
+/// Scaffold standar — latar aurora + AppBar glass opsional.
 class HrisScaffold extends StatelessWidget {
   const HrisScaffold({
     super.key,
@@ -117,7 +55,6 @@ class HrisScaffold extends StatelessWidget {
   final Widget? floatingActionButton;
   final Widget? bottomNavigationBar;
   final bool extendBodyBehindAppBar;
-  /// `false` bila sudah dibungkus `AppShell` / `HrisPageBackground`.
   final bool withBackground;
 
   @override
@@ -141,7 +78,7 @@ class HrisScaffold extends StatelessWidget {
   }
 }
 
-/// AppBar semi-transparan dengan blur (glassmorphism).
+/// AppBar glass aurora — blur halus + highlight atas.
 PreferredSizeWidget hrisAppBar({
   required String title,
   List<Widget>? actions,
@@ -152,16 +89,24 @@ PreferredSizeWidget hrisAppBar({
     preferredSize: const Size.fromHeight(kToolbarHeight),
     child: ClipRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: AppBar(
-          title: Text(title),
-          actions: actions,
-          leading: leading,
-          centerTitle: centerTitle,
-          backgroundColor: AppColors.surface.withValues(alpha: 0.72),
-          surfaceTintColor: Colors.transparent,
-          elevation: 0,
-          scrolledUnderElevation: 0,
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.glassSurface.withValues(alpha: 0.68),
+            border: Border(
+              bottom: BorderSide(color: AppColors.glassBorderMuted),
+            ),
+          ),
+          child: AppBar(
+            title: Text(title),
+            actions: actions,
+            leading: leading,
+            centerTitle: centerTitle,
+            backgroundColor: Colors.transparent,
+            surfaceTintColor: Colors.transparent,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+          ),
         ),
       ),
     ),
@@ -187,63 +132,38 @@ class HrisCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = accentColor ?? AppColors.accent;
-    final card = ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.65),
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppColors.surface.withValues(alpha: 0.88),
-                AppColors.surface.withValues(alpha: 0.72),
-              ],
-            ),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.cardShadow,
-                blurRadius: 24,
-                offset: Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              if (showAccentBar)
-                Positioned(
-                  left: 0,
-                  top: 12,
-                  bottom: 12,
-                  child: Container(
-                    width: 4,
-                    decoration: BoxDecoration(
-                      color: accent,
-                      borderRadius: BorderRadius.circular(4),
+
+    Widget card = AuroraGlass(
+      padding: EdgeInsets.zero,
+      borderRadius: 20,
+      onTap: onTap,
+      child: Stack(
+        children: [
+          if (showAccentBar)
+            Positioned(
+              left: 0,
+              top: 14,
+              bottom: 14,
+              child: Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  gradient: AppColors.auroraButtonGradient,
+                  borderRadius: BorderRadius.circular(4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.35),
+                      blurRadius: 8,
                     ),
-                  ),
+                  ],
                 ),
-              Padding(padding: padding, child: child),
-            ],
-          ),
-        ),
+              ),
+            ),
+          Padding(padding: padding, child: child),
+        ],
       ),
     );
 
-    if (onTap == null) return card;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: card,
-      ),
-    );
+    return card;
   }
 }
 
@@ -264,6 +184,15 @@ class SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        Container(
+          width: 4,
+          height: 20,
+          decoration: BoxDecoration(
+            gradient: AppColors.goldGradient,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +202,7 @@ class SectionHeader extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.4,
                   color: AppColors.textMuted,
                 ),
               ),
@@ -365,16 +294,16 @@ class StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: _bg,
+        color: _bg.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: _color.withValues(alpha: 0.25)),
+        border: Border.all(color: _color.withValues(alpha: 0.22)),
       ),
       child: Text(
         statusLabel(status),
         style: GoogleFonts.plusJakartaSans(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.5,
+          letterSpacing: 0.4,
           color: _color,
         ),
       ),
@@ -402,14 +331,10 @@ class EmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Icon(icon, size: 40, color: AppColors.textDim),
+            AuroraGlass(
+              padding: const EdgeInsets.all(20),
+              borderRadius: 24,
+              child: Icon(icon, size: 40, color: AppColors.brandPurple.withValues(alpha: 0.45)),
             ),
             const SizedBox(height: 16),
             Text(
@@ -456,31 +381,14 @@ class PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final child = Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: expand ? MainAxisSize.max : MainAxisSize.min,
-      children: [
-        if (loading)
-          SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: secondary ? AppColors.chinaRed : AppColors.onPrimary,
-            ),
-          )
-        else if (icon != null) ...[
-          Icon(icon, size: 20),
-          const SizedBox(width: 8),
-        ],
-        Text(label),
-      ],
+    return AuroraButton(
+      label: label,
+      onPressed: onPressed,
+      icon: icon,
+      loading: loading,
+      secondary: secondary,
+      expand: expand,
     );
-
-    if (secondary) {
-      return OutlinedButton(onPressed: loading ? null : onPressed, child: child);
-    }
-    return ElevatedButton(onPressed: loading ? null : onPressed, child: child);
   }
 }
 
@@ -501,55 +409,49 @@ class QuickActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? AppColors.accent;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.6)),
-            gradient: LinearGradient(
-              colors: [
-                AppColors.surface.withValues(alpha: 0.9),
-                AppColors.surface.withValues(alpha: 0.75),
-              ],
+    return AnimatedPressWrapper(
+      onTap: onTap,
+      child: AuroraGlass(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        borderRadius: 18,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    c.withValues(alpha: 0.18),
+                    c.withValues(alpha: 0.06),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: c.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: c, size: 24),
             ),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.cardShadow,
-                blurRadius: 16,
-                offset: Offset(0, 6),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
               ),
-            ],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: c.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: c, size: 24),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

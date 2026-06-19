@@ -62,47 +62,44 @@ Portal web: [http://148.230.98.125:8080/](http://148.230.98.125:8080/)
 
 APK release otomatis terhubung ke server di atas — **tidak perlu** atur server manual di HP.
 
-Untuk development lokal, tap **Pengaturan server** dan isi IP komputer:
+## Server API (dev & release)
+
+Mobile **selalu** connect ke backend publik:
 
 ```
-http://192.168.x.x:8000
+http://148.230.98.125:8080/api/v1
 ```
 
-Pastikan:
-1. Backend: `python manage.py runserver 0.0.0.0:8000`
-2. HP dan PC **satu WiFi**
-3. Firewall PC izinkan port 8000
+Dev (`flutter run`) dan APK release memakai **credential yang sama** — tidak perlu arahkan ke localhost.
 
-Emulator Android (dev): `http://10.0.2.2:8000`.
-
-### Build dengan URL server kustom (opsional)
+Override hanya jika benar-benar perlu (staging):
 
 ```bash
-flutter build apk --release \
-  --dart-define=API_BASE_URL=http://148.230.98.125:8080/api/v1
+flutter run --dart-define=API_BASE_URL=http://148.230.98.125:8080/api/v1
+flutter build apk --release --dart-define=API_BASE_URL=http://148.230.98.125:8080/api/v1
 ```
 
 ## Menjalankan (development)
 
 ```bash
-# Terminal 1 — backend
-cd ..
-source .venv/bin/activate
-python manage.py runserver 0.0.0.0:8000
+# Terminal 1 — backend publik sudah jalan di 148.230.98.125:8080
 
-# Terminal 2 — mobile
+# Terminal 2 — mobile (connect ke backend publik)
 cd mobile
 flutter run -d chrome          # browser
 flutter run                    # pilih emulator/device
 ```
 
-Login demo: `budi` / `Employee123!`
+Login karyawan (mobile & web): **NIK** + **Employee ID** — contoh `3604231902010003` / `1704`. Admin: `admin` / `Admin123456!`
+
+Setelah menambah karyawan baru, jalankan `python manage.py sync_employee_credentials` jika akun login belum otomatis tersinkron.
 
 ## Desain UI
 
 - Tema gelap industrial — **sama dengan web** (`static/css/hris.css`)
 - Palet web/mobile: navy `#140B6E`, purple `#3428A8`, blue `#3269CC`, gold `#FBD02F`, bg `#F3F5FC`
-- Logo & hero login dari `static/img/` (logo.png, login-hero.jpg)
+- Logo & hero login dari `static/img/` (main-logo.png, login-hero.jpg)
+- Icon launcher Android dari `static/img/apk-logo.png` (jalankan `mobile/scripts/generate-app-icons.sh`)
 - Font Plus Jakarta Sans, sudut tajam (radius 0), tombol min 48px
 - Nav: Beranda · Absensi · Cuti · Lembur · Akun
 

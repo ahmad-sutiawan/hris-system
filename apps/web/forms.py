@@ -100,29 +100,29 @@ def _configure_employee_department_shift_fields(form, *, tenant, user, plant_id=
 
 class HRISLoginForm(AuthenticationForm):
     error_messages = {
-        "invalid_login": "Username atau password salah. Periksa kembali kredensial Anda.",
+        "invalid_login": "NIK/ID atau password salah. Periksa kembali kredensial Anda.",
         "inactive": "Akun ini nonaktif. Hubungi administrator HRIS.",
     }
 
     username = forms.CharField(
-        label="Username",
+        label="NIK atau Employee ID",
         max_length=150,
         widget=forms.TextInput(
             attrs={
                 "class": HRIS_INPUT_CLASS,
-                "placeholder": "Masukkan username",
+                "placeholder": "NIK atau Employee ID (admin: username)",
                 "autocomplete": "username",
                 "autofocus": True,
             }
         ),
     )
     password = forms.CharField(
-        label="Password",
+        label="Employee ID",
         strip=False,
         widget=forms.PasswordInput(
             attrs={
                 "class": HRIS_INPUT_CLASS,
-                "placeholder": "Masukkan password",
+                "placeholder": "Employee ID (admin: password akun)",
                 "autocomplete": "current-password",
             }
         ),
@@ -187,6 +187,8 @@ class EmployeeForm(forms.ModelForm):
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if tenant and not self.instance.tenant_id:
+            self.instance.tenant = tenant
         _style_fields(self)
         apply_date_fields(self, "join_date", "contract_end_date", "resign_date", "birth_date")
         if "status_employee" in self.fields:

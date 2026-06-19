@@ -29,10 +29,13 @@
       </div>
       <div class="hris-punch-camera-wrap">
         <video id="hris-punch-video" class="hris-punch-video" autoplay playsinline muted></video>
+        <img id="hris-punch-preview" class="hris-punch-preview" alt="Preview selfie" hidden>
         <canvas id="hris-punch-canvas" hidden></canvas>
       </div>
+      <p id="hris-punch-camera-error" class="hris-punch-camera-error" hidden role="alert"></p>
       <div class="hris-punch-modal-actions">
         <button type="button" id="hris-punch-capture" class="hris-btn hris-btn-primary">Ambil Foto</button>
+        <button type="button" id="hris-punch-retake" class="hris-btn hris-btn-outline" hidden>Ambil Ulang</button>
         <button type="button" id="hris-punch-submit" class="hris-btn hris-btn-success" hidden>Konfirmasi &amp; Absen</button>
       </div>
     </div>

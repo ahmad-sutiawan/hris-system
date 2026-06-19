@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
@@ -180,7 +181,15 @@ def _resource_delete(request, slug, pk, *, scope="manage"):
     qs = get_queryset(request, resource)
     obj = get_object_or_404(qs, pk=pk)
     label = str(obj)
-    obj.delete()
+    try:
+        obj.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"Tidak dapat menghapus «{label}»: masih ada data terkait yang belum bisa "
+            "diputus. Hubungi administrator jika masalah berlanjut.",
+        )
+        return redirect(url_names["list"], slug=slug)
     messages.success(request, f"{resource.title} «{label}» berhasil dihapus.")
     return redirect(url_names["list"], slug=slug)
 

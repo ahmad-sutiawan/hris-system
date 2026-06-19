@@ -41,7 +41,6 @@ class CrossDayShiftTests(TestCase):
         )
         self.night_shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="MALAM",
             name="Shift Malam",
             scheduled_check_in=time(22, 0),
@@ -162,8 +161,8 @@ class RetentionTests(TestCase):
         old_date = timezone.localdate() - timedelta(days=200)
         AttendanceRecord.objects.create(
             tenant=self.tenant,
-            employee=self.employee,
             plant=self.plant,
+            employee=self.employee,
             work_date=old_date,
         )
         DailyTimesheet.objects.create(

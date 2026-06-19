@@ -28,11 +28,16 @@ Login web: `admin` / `Admin123456!`
 
 Demo users:
 
-| User | Password | Role |
-|---|---|---|
-| admin | Admin123456! | Admin |
-| budi | Employee123! | Employee (clock in/out, cuti) |
-| manager | Manager123! | Manager (approve cuti) |
+Karyawan: **username** = NIK atau Employee ID, **password** = Employee ID.
+
+Contoh (setelah `seed_demo` atau `sync_employee_credentials`):
+
+| Karyawan | Employee ID | NIK | Login mobile (NIK + Employee ID) |
+|---|---|---|---|
+| Budi | `PLT01-2026-001` | `3201010101900001` | NIK `3201010101900001` / ID `PLT01-2026-001` |
+| Aan Ansori | `1704` | `3604231902010003` | NIK `3604231902010003` / ID `1704` |
+
+Admin/HR: username `admin` / password `Admin123456!` (bukan NIK/Employee ID).
 
 ## URLs
 

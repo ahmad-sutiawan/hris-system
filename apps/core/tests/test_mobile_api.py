@@ -34,7 +34,6 @@ class MobileDashboardApiTests(TestCase):
             username="mgr-mobile",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.MANAGER,
         )
         self.manager = Employee.objects.create(
@@ -51,7 +50,6 @@ class MobileDashboardApiTests(TestCase):
             username="emp-mobile",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.EMPLOYEE,
         )
         self.employee = Employee.objects.create(
@@ -77,7 +75,6 @@ class MobileDashboardApiTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="D1",
             name="Shift Pagi",
             scheduled_check_in=time(8, 0),
@@ -186,7 +183,6 @@ class MobileProfileApiTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="SORE",
             name="Shift Sore",
             scheduled_check_in=time(15, 0),
@@ -198,7 +194,6 @@ class MobileProfileApiTests(TestCase):
             username="emp-prof",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.EMPLOYEE,
         )
         self.employee = Employee.objects.create(

@@ -144,7 +144,6 @@ class ShiftAllowancePayrollTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="MALAM",
             name="Malam",
             scheduled_check_in=time(22, 0),
@@ -164,7 +163,7 @@ class ShiftAllowancePayrollTests(TestCase):
             DailyTimesheet.objects.create(
                 tenant=self.tenant,
                 plant=self.plant,
-                employee=self.employee,
+                    employee=self.employee,
                 work_date=work_date,
                 shift=self.shift,
                 check_in=timezone.make_aware(datetime.combine(work_date, time(22, 0)), tz),
@@ -202,7 +201,6 @@ class CorrectionAuditTests(TestCase):
             username="t6admin",
             password="TestPassword123!",
             tenant=self.tenant,
-            plant=self.plant,
             role=User.Role.ADMIN,
         )
         self.employee = Employee.objects.create(
@@ -214,7 +212,6 @@ class CorrectionAuditTests(TestCase):
         )
         self.shift = Shift.objects.create(
             tenant=self.tenant,
-            plant=self.plant,
             code="PAGI",
             name="Pagi",
             scheduled_check_in=time(7, 0),

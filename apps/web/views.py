@@ -365,7 +365,7 @@ def employee_create(request):
 
             apply_mandatory_defaults(employee, fill_fk=False)
             employee.save()
-            provision_new_employee(employee, assign_shift=True)
+            provision_new_employee(employee, assign_shift=True, sync_credentials=True)
             sync_employee_default_shift(employee)
             messages.success(
                 request,
@@ -430,7 +430,7 @@ def employee_edit(request, pk):
             apply_mandatory_defaults(updated, fill_fk=False)
             updated.save()
             _save_employee_documents(updated, doc_form)
-            provision_new_employee(updated)
+            provision_new_employee(updated, sync_credentials=True)
             sync_employee_default_shift(updated)
             messages.success(request, "Data karyawan berhasil diperbarui.")
             return redirect("web:employee_list")

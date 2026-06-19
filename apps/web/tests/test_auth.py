@@ -31,7 +31,7 @@ class AuthFlowTests(TestCase):
             {"username": "authuser", "password": "wrong-password"},
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Username atau password salah")
+        self.assertContains(response, "NIK/ID atau password salah")
 
     def test_authenticated_login_redirects_dashboard(self):
         self.client.login(username="authuser", password="TestPassword123!")
