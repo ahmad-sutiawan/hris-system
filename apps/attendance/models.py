@@ -103,6 +103,45 @@ class AttendanceRecord(TenantScopedModel):
         return f"{self.employee.employee_id} — {self.work_date}"
 
 
+class AttendancePunch(TenantScopedModel):
+    class PunchType(models.TextChoices):
+        IN = "in", "Clock In"
+        OUT = "out", "Clock Out"
+
+    attendance_record = models.ForeignKey(
+        AttendanceRecord,
+        on_delete=models.CASCADE,
+        related_name="punches",
+    )
+    employee = models.ForeignKey(
+        "employees.Employee",
+        on_delete=models.CASCADE,
+        related_name="attendance_punches",
+    )
+    work_date = models.DateField(db_index=True)
+    punch_type = models.CharField(max_length=8, choices=PunchType.choices)
+    punched_at = models.DateTimeField(db_index=True)
+    source = models.CharField(
+        max_length=20,
+        choices=AttendanceRecord.Source.choices,
+        default=AttendanceRecord.Source.WEB,
+    )
+    photo = models.ImageField(upload_to="attendance/%Y/%m/", null=True, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["punched_at", "pk"]
+        indexes = [
+            models.Index(fields=["tenant", "employee", "work_date"]),
+            models.Index(fields=["attendance_record", "punched_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.employee.employee_id} — {self.work_date} {self.punch_type}"
+
+
 class DailyTimesheet(TenantScopedModel):
     class CalculationStatus(models.TextChoices):
         DRAFT = "draft", "Draft"

@@ -68,11 +68,14 @@ def _authenticate_jwt(request):
 
 def _media_in_tenant(tenant_id: int, path: str) -> bool:
     if path.startswith("attendance/"):
-        from apps.attendance.models import AttendanceRecord
+        from apps.attendance.models import AttendancePunch, AttendanceRecord
 
-        return AttendanceRecord.objects.filter(tenant_id=tenant_id).filter(
-            Q(check_in_photo=path) | Q(check_out_photo=path)
-        ).exists()
+        return (
+            AttendanceRecord.objects.filter(tenant_id=tenant_id).filter(
+                Q(check_in_photo=path) | Q(check_out_photo=path)
+            ).exists()
+            or AttendancePunch.objects.filter(tenant_id=tenant_id, photo=path).exists()
+        )
     if path.startswith("payslips/"):
         from apps.payroll.models import Payslip
 
@@ -107,11 +110,14 @@ def user_can_access_media(user, path: str) -> bool:
         return _media_in_tenant(user.tenant_id, path)
 
     if path.startswith("attendance/") and profile:
-        from apps.attendance.models import AttendanceRecord
+        from apps.attendance.models import AttendancePunch, AttendanceRecord
 
-        return AttendanceRecord.objects.filter(employee=profile).filter(
-            Q(check_in_photo=path) | Q(check_out_photo=path)
-        ).exists()
+        return (
+            AttendanceRecord.objects.filter(employee=profile).filter(
+                Q(check_in_photo=path) | Q(check_out_photo=path)
+            ).exists()
+            or AttendancePunch.objects.filter(employee=profile, photo=path).exists()
+        )
 
     if path.startswith("payslips/") and profile:
         from apps.payroll.models import Payslip
@@ -131,12 +137,19 @@ def user_can_access_media(user, path: str) -> bool:
 
 def _media_hr_plant_access(user, path: str) -> bool:
     if path.startswith("attendance/"):
-        from apps.attendance.models import AttendanceRecord
+        from apps.attendance.models import AttendancePunch, AttendanceRecord
 
-        return AttendanceRecord.objects.filter(
-            tenant_id=user.tenant_id,
-            plant_id=user.plant_id,
-        ).filter(Q(check_in_photo=path) | Q(check_out_photo=path)).exists()
+        return (
+            AttendanceRecord.objects.filter(
+                tenant_id=user.tenant_id,
+                plant_id=user.plant_id,
+            ).filter(Q(check_in_photo=path) | Q(check_out_photo=path)).exists()
+            or AttendancePunch.objects.filter(
+                tenant_id=user.tenant_id,
+                employee__plant_id=user.plant_id,
+                photo=path,
+            ).exists()
+        )
     if path.startswith("payslips/"):
         from apps.payroll.models import Payslip
 

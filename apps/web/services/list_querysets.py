@@ -284,7 +284,7 @@ def attach_attendance_records(timesheets, tenant):
         tenant=tenant,
         employee_id__in={row.employee_id for row in timesheets},
         work_date__in={row.work_date for row in timesheets},
-    )
+    ).prefetch_related("punches")
     record_map = {(r.employee_id, r.work_date): r for r in records}
     for row in timesheets:
         row.punch_record = record_map.get((row.employee_id, row.work_date))

@@ -61,13 +61,37 @@
           {% endif %}
           <td>{{ row.work_date|local_date }}</td>
           <td>
-            {% if row.check_in %}
+            {% if row.punch_record and row.punch_record.punches.all %}
+              {% for punch in row.punch_record.punches.all %}
+                {% if punch.punch_type == "in" %}
+                <span class="hris-punch-log hris-punch-log--in" title="Clock in">
+                  <span class="hris-strong">{{ punch.punched_at|local_datetime:"H:i" }}</span>
+                </span>
+                {% endif %}
+              {% empty %}
+                {% if row.check_in %}
+                <span class="hris-strong">{{ row.check_in|local_datetime:"H:i" }}</span>
+                {% else %}—{% endif %}
+              {% endfor %}
+            {% elif row.check_in %}
             <span class="hris-strong">{{ row.check_in|local_datetime:"H:i" }}</span>
             <span class="hris-text-dim" style="display:block;font-size:0.6875rem">{{ row.check_in|local_datetime:"d M Y" }}</span>
             {% else %}—{% endif %}
           </td>
           <td>
-            {% if row.check_out %}
+            {% if row.punch_record and row.punch_record.punches.all %}
+              {% for punch in row.punch_record.punches.all %}
+                {% if punch.punch_type == "out" %}
+                <span class="hris-punch-log hris-punch-log--out" title="Clock out">
+                  <span class="hris-strong">{{ punch.punched_at|local_datetime:"H:i" }}</span>
+                </span>
+                {% endif %}
+              {% empty %}
+                {% if row.check_out %}
+                <span class="hris-strong">{{ row.check_out|local_datetime:"H:i" }}</span>
+                {% else %}—{% endif %}
+              {% endfor %}
+            {% elif row.check_out %}
             <span class="hris-strong">{{ row.check_out|local_datetime:"H:i" }}</span>
             <span class="hris-text-dim" style="display:block;font-size:0.6875rem">{{ row.check_out|local_datetime:"d M Y" }}</span>
             {% else %}—{% endif %}
@@ -79,17 +103,27 @@
           <td class="hris-num">{{ row.ot_after_minutes|num:0 }} m</td>
           <td>
             <div class="hris-punch-photo-row" data-hidden="true">
-              {% if row.punch_record and row.punch_record.check_in_photo %}
-              <a href="{{ row.punch_record.check_in_photo.url }}" target="_blank" rel="noopener" title="Foto CI" class="hris-punch-photo-link">
-                <img src="{{ row.punch_record.check_in_photo.url }}" alt="CI" class="hris-punch-photo hris-punch-photo--sm">
-              </a>
+              {% if row.punch_record %}
+                {% for punch in row.punch_record.punches.all %}
+                  {% if punch.photo %}
+                  <a href="{{ punch.photo.url }}" target="_blank" rel="noopener" title="Foto {{ punch.get_punch_type_display }}" class="hris-punch-photo-link">
+                    <img src="{{ punch.photo.url }}" alt="{{ punch.punch_type }}" class="hris-punch-photo hris-punch-photo--sm">
+                  </a>
+                  {% endif %}
+                {% empty %}
+                  {% if row.punch_record.check_in_photo %}
+                  <a href="{{ row.punch_record.check_in_photo.url }}" target="_blank" rel="noopener" title="Foto CI" class="hris-punch-photo-link">
+                    <img src="{{ row.punch_record.check_in_photo.url }}" alt="CI" class="hris-punch-photo hris-punch-photo--sm">
+                  </a>
+                  {% endif %}
+                  {% if row.punch_record.check_out_photo %}
+                  <a href="{{ row.punch_record.check_out_photo.url }}" target="_blank" rel="noopener" title="Foto CO" class="hris-punch-photo-link">
+                    <img src="{{ row.punch_record.check_out_photo.url }}" alt="CO" class="hris-punch-photo hris-punch-photo--sm">
+                  </a>
+                  {% endif %}
+                {% endfor %}
               {% endif %}
-              {% if row.punch_record and row.punch_record.check_out_photo %}
-              <a href="{{ row.punch_record.check_out_photo.url }}" target="_blank" rel="noopener" title="Foto CO" class="hris-punch-photo-link">
-                <img src="{{ row.punch_record.check_out_photo.url }}" alt="CO" class="hris-punch-photo hris-punch-photo--sm">
-              </a>
-              {% endif %}
-              {% if not row.punch_record or not row.punch_record.check_in_photo and not row.punch_record.check_out_photo %}—{% endif %}
+              {% if not row.punch_record %}—{% endif %}
             </div>
           </td>
           {% if user.role == 'admin' or user.role == 'hr' %}

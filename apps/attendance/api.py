@@ -37,7 +37,7 @@ def attach_punch_records(timesheets, tenant) -> None:
         tenant=tenant,
         employee_id__in={row.employee_id for row in timesheets},
         work_date__in={row.work_date for row in timesheets},
-    )
+    ).prefetch_related("punches")
     record_map = {(record.employee_id, record.work_date): record for record in records}
     for row in timesheets:
         row._punch_record = record_map.get((row.employee_id, row.work_date))

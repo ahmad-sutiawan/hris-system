@@ -523,6 +523,10 @@ class _TimesheetCard extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 12),
+          if (data['punch_events'] is List && (data['punch_events'] as List).isNotEmpty) ...[
+            _PunchEventList(events: data['punch_events'] as List),
+            const SizedBox(height: 12),
+          ],
           Row(
             children: [
               Expanded(
@@ -605,6 +609,60 @@ class _TimesheetCard extends ConsumerWidget {
       default:
         return '$source';
     }
+  }
+}
+
+class _PunchEventList extends StatelessWidget {
+  const _PunchEventList({required this.events});
+
+  final List events;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('HH:mm');
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final raw in events)
+          if (raw is Map<String, dynamic>) _PunchEventChip(event: raw, fmt: fmt),
+      ],
+    );
+  }
+}
+
+class _PunchEventChip extends StatelessWidget {
+  const _PunchEventChip({required this.event, required this.fmt});
+
+  final Map<String, dynamic> event;
+  final DateFormat fmt;
+
+  @override
+  Widget build(BuildContext context) {
+    final isIn = event['punch_type'] == 'in';
+    final punchedAt = event['punched_at'];
+    final timeLabel = punchedAt == null
+        ? '—'
+        : fmt.format(DateTime.parse(punchedAt as String).toLocal());
+    final color = isIn ? AppColors.success : AppColors.info;
+    final bg = isIn ? AppColors.successDim : AppColors.infoDim;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        '${isIn ? 'CI' : 'CO'} $timeLabel',
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
   }
 }
 

@@ -1,16 +1,34 @@
 from rest_framework import serializers
 
-from apps.attendance.models import AttendanceRecord, DailyTimesheet
+from apps.attendance.models import AttendancePunch, AttendanceRecord, DailyTimesheet
 from apps.core.media_serving import build_media_url
 
 
-def _photo_url(record: AttendanceRecord | None, field: str, request) -> str | None:
+def _photo_url(record: AttendanceRecord | AttendancePunch | None, field: str, request) -> str | None:
     if not record:
         return None
     image = getattr(record, field, None)
     if not image or not image.name:
         return None
     return build_media_url(image.name, request=request)
+
+
+class AttendancePunchSerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AttendancePunch
+        fields = [
+            "id",
+            "punch_type",
+            "punched_at",
+            "source",
+            "photo_url",
+            "notes",
+        ]
+
+    def get_photo_url(self, obj):
+        return _photo_url(obj, "photo", self.context.get("request"))
 
 
 class AttendanceRecordSerializer(serializers.ModelSerializer):
@@ -58,6 +76,7 @@ class DailyTimesheetSerializer(serializers.ModelSerializer):
     check_in_photo_url = serializers.SerializerMethodField()
     check_out_photo_url = serializers.SerializerMethodField()
     punch_source = serializers.SerializerMethodField()
+    punch_events = serializers.SerializerMethodField()
 
     class Meta:
         model = DailyTimesheet
@@ -93,6 +112,7 @@ class DailyTimesheetSerializer(serializers.ModelSerializer):
             "check_in_photo_url",
             "check_out_photo_url",
             "punch_source",
+            "punch_events",
         ]
 
     def _punch_record(self, obj):
@@ -107,3 +127,16 @@ class DailyTimesheetSerializer(serializers.ModelSerializer):
     def get_punch_source(self, obj):
         record = self._punch_record(obj)
         return record.source if record else None
+
+    def get_punch_events(self, obj):
+        record = self._punch_record(obj)
+        if not record:
+            return []
+        punches = getattr(record, "_prefetched_punches", None)
+        if punches is None:
+            punches = record.punches.order_by("punched_at", "pk")
+        return AttendancePunchSerializer(
+            punches,
+            many=True,
+            context=self.context,
+        ).data
