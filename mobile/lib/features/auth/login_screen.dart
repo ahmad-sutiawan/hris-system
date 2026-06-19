@@ -229,6 +229,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                             ),
                           ],
+                          const SizedBox(height: 12),
+                          Text(
+                            _serverReachable == true
+                                ? 'Server: $_serverUrl'
+                                : _serverReachable == false
+                                    ? 'Server tidak terjangkau: $_serverUrl'
+                                    : 'Mencari server…',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: _serverReachable == true
+                                  ? AppColors.success
+                                  : AppColors.textDim,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 20),
                           PrimaryButton(
                             label: 'Masuk',

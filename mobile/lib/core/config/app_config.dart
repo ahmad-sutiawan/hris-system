@@ -1,5 +1,3 @@
-import 'package:flutter/foundation.dart';
-
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
@@ -9,11 +7,11 @@ abstract final class AppConfig {
   /// Dev lokal (Chrome/emulator di mesin yang sama dengan runserver).
   static const localDevBaseUrl = 'http://127.0.0.1:8000$apiPathSuffix';
 
-  /// Override saat build: flutter run --dart-define=API_BASE_URL=http://host:8000/api/v1
+  /// Override saat build: flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api/v1
   static String get defaultBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return normalizeApiBaseUrl(override);
-    if (kDebugMode) return localDevBaseUrl;
+    // Emulator, Chrome, dan APK release memakai backend publik yang sama.
     return productionBaseUrl;
   }
 

@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.core.serializers_auth import HRISTokenObtainPairSerializer
 from apps.employees.serializers import EmployeeSelfSerializer, EmployeeSerializer
 
 
@@ -15,6 +16,7 @@ class AuthRateThrottle(AnonRateThrottle):
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [AuthRateThrottle]
+    serializer_class = HRISTokenObtainPairSerializer
 
 
 class ThrottledTokenRefreshView(TokenRefreshView):
