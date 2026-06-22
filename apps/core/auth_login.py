@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
+
 from django.contrib.auth import get_user_model
 
 from apps.employees.models import Employee
 from apps.employees.nik_lookup import compute_nik_lookup
+from apps.employees.querysets import employee_login_qs
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 # Role yang login via username (bukan NIK/employee_id).
 _USERNAME_LOGIN_ROLES = {
@@ -24,7 +28,7 @@ def normalize_login_identifier(value: str) -> str:
 
 def _best_employee_match(qs) -> Employee | None:
     """Pilih karyawan dengan akun aktif jika ada duplikat lintas tenant."""
-    employees = list(qs.select_related("user", "tenant", "plant"))
+    employees = list(qs)
     if not employees:
         return None
     for emp in employees:
@@ -41,16 +45,16 @@ def find_employee_by_login_identifier(identifier: str, *, employee_id_hint: str 
         return None
 
     if ident and not id_hint:
-        emp = _best_employee_match(Employee.objects.filter(employee_id__iexact=ident))
+        emp = _best_employee_match(employee_login_qs().filter(employee_id__iexact=ident))
         if emp:
             return emp
         lookup = compute_nik_lookup(ident)
         if lookup:
-            return _best_employee_match(Employee.objects.filter(nik_lookup=lookup))
+            return _best_employee_match(employee_login_qs().filter(nik_lookup=lookup))
         return None
 
     if id_hint:
-        qs = Employee.objects.filter(employee_id__iexact=id_hint)
+        qs = employee_login_qs().filter(employee_id__iexact=id_hint)
         if ident and ident.lower() != id_hint.lower():
             lookup = compute_nik_lookup(ident)
             if lookup:
@@ -62,7 +66,7 @@ def find_employee_by_login_identifier(identifier: str, *, employee_id_hint: str 
     if ident:
         lookup = compute_nik_lookup(ident)
         if lookup:
-            return _best_employee_match(Employee.objects.filter(nik_lookup=lookup))
+            return _best_employee_match(employee_login_qs().filter(nik_lookup=lookup))
 
     return None
 

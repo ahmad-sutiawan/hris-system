@@ -49,8 +49,16 @@ def _latest_punch_photos(employee_ids: list[int]) -> dict[int, str]:
     for record in AttendanceRecord.objects.filter(pair_filter).only(
         "employee_id", "check_in_photo"
     ):
-        if record.check_in_photo:
-            photos[record.employee_id] = record.check_in_photo.url
+        if not record.check_in_photo or not record.check_in_photo.name:
+            continue
+        try:
+            from apps.core.media_serving import build_media_url
+
+            url = build_media_url(record.check_in_photo.name, request=request)
+            if url:
+                photos[record.employee_id] = url
+        except Exception:
+            continue
     return photos
 
 

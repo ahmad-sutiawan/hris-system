@@ -1,10 +1,11 @@
 import base64
 import hashlib
+import logging
 
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 
 ENC_PREFIX = "enc:v1:"
+logger = logging.getLogger(__name__)
 
 
 def _fernet():
@@ -34,4 +35,8 @@ def decrypt_value(stored: str) -> str:
     try:
         return _fernet().decrypt(token.encode("utf-8")).decode("utf-8")
     except Exception as exc:
-        raise ImproperlyConfigured("Gagal dekripsi field — periksa HRIS_FIELD_ENCRYPTION_KEY.") from exc
+        logger.error(
+            "Gagal dekripsi field — periksa HRIS_FIELD_ENCRYPTION_KEY cocok dengan data DB: %s",
+            exc,
+        )
+        return ""

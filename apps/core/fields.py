@@ -53,7 +53,11 @@ class EncryptedDecimalField(models.DecimalField):
         if isinstance(value, Decimal):
             return value
         if isinstance(value, str) and value.startswith("enc:v1:"):
-            return Decimal(decrypt_value(value))
+            plain = decrypt_value(value)
+            try:
+                return Decimal(plain) if plain else Decimal("0")
+            except (InvalidOperation, TypeError):
+                return Decimal("0")
         return Decimal(str(value))
 
     def db_type(self, connection):

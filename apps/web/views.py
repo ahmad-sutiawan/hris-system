@@ -1,3 +1,5 @@
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -64,6 +66,8 @@ from apps.core.xlsx_io import xlsx_http_response
 from apps.attendance.services.overtime_compensation import build_compensation_preview
 from apps.shifts.models import ShiftAssignment
 from apps.web.services.dashboard import build_dashboard_context
+
+logger = logging.getLogger(__name__)
 from apps.web.services.list_exports import (
     export_attendance_csv,
     export_attendance_csv_with_default_range,
@@ -172,13 +176,21 @@ def dashboard(request):
         ).first()
         punch_ui = get_punch_ui_state(today_record)
 
-    dashboard_ctx = build_dashboard_context(
-        user=user,
-        tenant=tenant,
-        today=today,
-        profile=profile,
-        request=request,
-    )
+    dashboard_ctx = {}
+    try:
+        dashboard_ctx = build_dashboard_context(
+            user=user,
+            tenant=tenant,
+            today=today,
+            profile=profile,
+            request=request,
+        )
+    except Exception:
+        logger.exception("Dashboard gagal dimuat untuk user %s", user.pk)
+        messages.warning(
+            request,
+            "Beberapa data dashboard tidak dapat dimuat. Hubungi administrator jika masalah berlanjut.",
+        )
 
     return render(
         request,
