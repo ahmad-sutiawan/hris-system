@@ -46,20 +46,21 @@ from apps.web.services.leave_form import build_leave_balance_context
 from apps.employees.services.profile import build_employee_profile_context
 from apps.payroll.models import PayrollRun, Payslip
 from apps.employees.services.user_link import ensure_employee_profile
-from apps.employees.services.import_csv import import_employees_csv, template_csv
+from apps.employees.services.import_csv import template_xlsx as employee_import_template_xlsx
 from apps.employees.services.import_dispatch import import_employees_file
 from apps.employees.services.onboarding import provision_new_employee, sync_employee_default_shift
 from apps.organization.models import Department, JobLevel, JobPosition
 from apps.attendance.services.import_punches import (
     PunchImportError,
-    import_attendance_csv,
-    template_csv as attendance_import_template_csv,
+    import_attendance_xlsx,
+    template_xlsx as attendance_import_template_xlsx,
 )
-from apps.payroll.services.bank_export import export_bank_csv
-from apps.payroll.services.compliance_export import export_bpjs_csv, export_pph21_csv
+from apps.payroll.services.bank_export import export_bank_xlsx
+from apps.payroll.services.compliance_export import export_bpjs_xlsx, export_pph21_xlsx
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
-from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_csv
+from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_xlsx
+from apps.core.xlsx_io import xlsx_http_response
 from apps.attendance.services.overtime_compensation import build_compensation_preview
 from apps.shifts.models import ShiftAssignment
 from apps.web.services.dashboard import build_dashboard_context
@@ -314,7 +315,7 @@ def employee_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="employees_export.csv",
+        export_filename="employees_export.xlsx",
         export_fn=export_employees_csv,
     )
     if response:
@@ -338,10 +339,7 @@ def employee_list(request):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_import_template(request):
-    content = template_csv()
-    response = HttpResponse(content, content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="employee_import_template.csv"'
-    return response
+    return xlsx_http_response(employee_import_template_xlsx(), "employee_import_template.xlsx")
 
 
 @login_required
@@ -350,7 +348,7 @@ def employee_import(request):
     if request.method == "POST":
         upload = request.FILES.get("file")
         if not upload:
-            messages.error(request, "Pilih file CSV atau Excel terlebih dahulu.")
+            messages.error(request, "Pilih file Excel (.xlsx) terlebih dahulu.")
             return redirect("web:employee_import")
         try:
             result = import_employees_file(
@@ -500,7 +498,7 @@ def employee_compensation_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="employee_compensation_export.csv",
+        export_filename="employee_compensation_export.xlsx",
         export_fn=export_employee_compensation_csv,
     )
     if response:
@@ -579,7 +577,7 @@ def shift_assignment_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="shift_assignments_export.csv",
+        export_filename="shift_assignments_export.xlsx",
         export_fn=export_shifts_csv,
     )
     if response:
@@ -695,7 +693,7 @@ def shift_delete(request, pk):
 
 @login_required
 def attendance_list(request):
-    from apps.core.listing import build_filter_query, csv_http_response, parse_list_filters
+    from apps.core.listing import build_filter_query, export_format_requested, parse_list_filters
 
     profile = _employee_profile(request.user)
     filters = parse_list_filters(request)
@@ -708,7 +706,7 @@ def attendance_list(request):
         "shift",
         "attendance_code",
     )
-    if request.GET.get("export") == "csv":
+    if export_format_requested(request):
         from apps.web.services.list_exports import AttendanceExportError
 
         try:
@@ -722,12 +720,12 @@ def attendance_list(request):
             query = build_filter_query(request)
             suffix = f"?{query}" if query else ""
             return redirect(f"{reverse('web:attendance_list')}{suffix}")
-        return csv_http_response(content, "timesheet_export.csv")
+        return xlsx_http_response(content, "timesheet_export.xlsx")
 
     response, ctx = resolve_list(
         request,
         export_qs,
-        export_filename="timesheet_export.csv",
+        export_filename="timesheet_export.xlsx",
         export_fn=lambda q: export_attendance_csv_with_default_range(
             q,
             date_from=filters.date_from,
@@ -758,7 +756,7 @@ def attendance_export(request):
     from apps.core.listing import build_filter_query
 
     query = build_filter_query(request)
-    suffix = f"{query}&export=csv" if query else "export=csv"
+    suffix = f"{query}&export=xlsx" if query else "export=xlsx"
     return redirect(f"{reverse('web:attendance_list')}?{suffix}")
 
 
@@ -827,7 +825,7 @@ def leave_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="leave_requests_export.csv",
+        export_filename="leave_requests_export.xlsx",
         export_fn=export_leave_csv,
     )
     if response:
@@ -973,7 +971,7 @@ def overtime_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="overtime_requests_export.csv",
+        export_filename="overtime_requests_export.xlsx",
         export_fn=export_overtime_csv,
     )
     if response:
@@ -1165,7 +1163,7 @@ def payroll_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="payroll_runs_export.csv",
+        export_filename="payroll_runs_export.xlsx",
         export_fn=export_payroll_runs_csv,
     )
     if response:
@@ -1266,7 +1264,7 @@ def payroll_detail(request, pk):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename=f"payslips_{run.plant.code}_{run.period_end}.csv",
+        export_filename=f"payslips_{run.plant.code}_{run.period_end}.xlsx",
         export_fn=export_payslips_csv,
     )
     if response:
@@ -1317,7 +1315,7 @@ def payslip_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="payslips_export.csv",
+        export_filename="payslips_export.xlsx",
         export_fn=export_payslips_csv,
     )
     if response:
@@ -1357,30 +1355,30 @@ def payroll_bank_export(request, pk):
     if run.status != PayrollRun.Status.FINALIZED:
         messages.error(request, "Payroll harus finalized sebelum export bank.")
         return redirect("web:payroll_detail", pk=pk)
-    content = export_bank_csv(run)
-    response = HttpResponse(content, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="bank_export_{run.plant.code}_{run.period_end}.csv"'
-    return response
+    return xlsx_http_response(
+        export_bank_xlsx(run),
+        f"bank_export_{run.plant.code}_{run.period_end}.xlsx",
+    )
 
 
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_bpjs_export(request, pk):
     run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
-    content = export_bpjs_csv(run)
-    response = HttpResponse(content, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="bpjs_{run.plant.code}_{run.period_end}.csv"'
-    return response
+    return xlsx_http_response(
+        export_bpjs_xlsx(run),
+        f"bpjs_{run.plant.code}_{run.period_end}.xlsx",
+    )
 
 
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def payroll_pph21_export(request, pk):
     run = get_object_or_404(PayrollRun, pk=pk, tenant=request.user.tenant)
-    content = export_pph21_csv(run)
-    response = HttpResponse(content, content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="pph21_{run.plant.code}_{run.period_end}.csv"'
-    return response
+    return xlsx_http_response(
+        export_pph21_xlsx(run),
+        f"pph21_{run.plant.code}_{run.period_end}.xlsx",
+    )
 
 
 @login_required
@@ -1391,10 +1389,10 @@ def payroll_validate(request, pk):
     if request.method == "POST":
         upload = request.FILES.get("file")
         if not upload:
-            messages.error(request, "Pilih file CSV terlebih dahulu.")
+            messages.error(request, "Pilih file Excel (.xlsx) terlebih dahulu.")
         else:
             try:
-                result = validate_payroll_against_csv(run, upload.read().decode("utf-8-sig"))
+                result = validate_payroll_against_xlsx(run, upload.read())
                 if result["ok"]:
                     messages.success(request, f"Validasi OK — {result['matched']} karyawan cocok.")
                 else:
@@ -1415,9 +1413,7 @@ def payroll_validate(request, pk):
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def attendance_import_template(request):
-    response = HttpResponse(attendance_import_template_csv(), content_type="text/csv")
-    response["Content-Disposition"] = 'attachment; filename="attendance_import_template.csv"'
-    return response
+    return xlsx_http_response(attendance_import_template_xlsx(), "attendance_import_template.xlsx")
 
 
 @login_required
@@ -1426,12 +1422,12 @@ def attendance_import(request):
     if request.method == "POST":
         upload = request.FILES.get("file")
         if not upload:
-            messages.error(request, "Pilih file CSV terlebih dahulu.")
+            messages.error(request, "Pilih file Excel (.xlsx) terlebih dahulu.")
         else:
             try:
-                result = import_attendance_csv(
+                result = import_attendance_xlsx(
                     request.user.tenant,
-                    upload.read().decode("utf-8-sig"),
+                    upload.read(),
                     plant=request.user.plant if not request.user.is_admin else None,
                 )
                 messages.success(
@@ -1456,7 +1452,7 @@ def notification_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="notifications_export.csv",
+        export_filename="notifications_export.xlsx",
         export_fn=export_notifications_csv,
     )
     if response:
@@ -1509,7 +1505,7 @@ def audit_log_list(request):
     response, ctx = resolve_list(
         request,
         qs,
-        export_filename="audit_log_export.csv",
+        export_filename="audit_log_export.xlsx",
         export_fn=export_audit_csv,
     )
     if response:

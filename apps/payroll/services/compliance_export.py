@@ -1,29 +1,24 @@
-import csv
-from io import StringIO
-
+from apps.core.xlsx_io import write_xlsx
 from apps.payroll.models import Payslip
 
 
-def export_bpjs_csv(payroll_run) -> str:
-    buffer = StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(
-        [
-            "employee_id",
-            "full_name",
-            "npwp",
-            "bpjs_kesehatan",
-            "bpjs_jht",
-            "bpjs_jp",
-            "gross_amount",
-        ]
-    )
-    slips = Payslip.objects.filter(payroll_run=payroll_run).select_related("employee")
-    for slip in slips:
-        emp = slip.employee
-        ded = slip.deductions_breakdown or {}
-        writer.writerow(
-            [
+def export_bpjs_xlsx(payroll_run) -> bytes:
+    headers = [
+        "employee_id",
+        "full_name",
+        "npwp",
+        "bpjs_kesehatan",
+        "bpjs_jht",
+        "bpjs_jp",
+        "gross_amount",
+    ]
+
+    def rows():
+        slips = Payslip.objects.filter(payroll_run=payroll_run).select_related("employee")
+        for slip in slips:
+            emp = slip.employee
+            ded = slip.deductions_breakdown or {}
+            yield [
                 emp.employee_id,
                 emp.full_name,
                 emp.npwp,
@@ -32,30 +27,27 @@ def export_bpjs_csv(payroll_run) -> str:
                 ded.get("bpjs_jp", "0"),
                 slip.gross_amount,
             ]
-        )
-    return buffer.getvalue()
+
+    return write_xlsx(headers, rows())
 
 
-def export_pph21_csv(payroll_run) -> str:
-    buffer = StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(
-        [
-            "employee_id",
-            "full_name",
-            "tax_status",
-            "npwp",
-            "gross_amount",
-            "pph21",
-            "net_amount",
-        ]
-    )
-    slips = Payslip.objects.filter(payroll_run=payroll_run).select_related("employee")
-    for slip in slips:
-        emp = slip.employee
-        ded = slip.deductions_breakdown or {}
-        writer.writerow(
-            [
+def export_pph21_xlsx(payroll_run) -> bytes:
+    headers = [
+        "employee_id",
+        "full_name",
+        "tax_status",
+        "npwp",
+        "gross_amount",
+        "pph21",
+        "net_amount",
+    ]
+
+    def rows():
+        slips = Payslip.objects.filter(payroll_run=payroll_run).select_related("employee")
+        for slip in slips:
+            emp = slip.employee
+            ded = slip.deductions_breakdown or {}
+            yield [
                 emp.employee_id,
                 emp.full_name,
                 emp.tax_status,
@@ -64,5 +56,9 @@ def export_pph21_csv(payroll_run) -> str:
                 ded.get("pph21", "0"),
                 slip.net_amount,
             ]
-        )
-    return buffer.getvalue()
+
+    return write_xlsx(headers, rows())
+
+
+export_bpjs_csv = export_bpjs_xlsx
+export_pph21_csv = export_pph21_xlsx

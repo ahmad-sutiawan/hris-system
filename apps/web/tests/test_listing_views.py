@@ -4,6 +4,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from apps.core.models import Plant, Tenant, User
+from apps.core.xlsx_io import XLSX_CONTENT_TYPE, read_xlsx_rows
 from apps.employees.models import Employee
 from apps.organization.models import Department, JobLevel, JobPosition
 from apps.leave.models import LeaveRequest, LeaveType
@@ -100,15 +101,16 @@ class ListFilteringPaginationTests(TestCase):
         response = self.client.get(reverse("web:leave_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Halaman 1 /")
-        self.assertContains(response, "Export CSV")
+        self.assertContains(response, "Export Excel")
 
     def test_leave_export_respects_search(self):
         self.client.login(username="listingadmin", password="TestPassword123!")
         response = self.client.get(reverse("web:leave_list"), {"export": "csv", "q": "Budi"})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
-        body = response.content.decode()
-        self.assertIn("Budi Santoso", body)
+        self.assertEqual(response["Content-Type"], XLSX_CONTENT_TYPE)
+        headers, rows = read_xlsx_rows(response.content)
+        self.assertTrue(rows)
+        self.assertIn("Budi Santoso", str(rows[0].values()))
 
     def test_employee_list_date_filter(self):
         self.client.login(username="listingadmin", password="TestPassword123!")

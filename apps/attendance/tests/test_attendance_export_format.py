@@ -1,4 +1,4 @@
-"""Export rekap absensi — parity dengan format legacy HR (22 kolom)."""
+"""Export rekap absensi — format Excel lengkap."""
 
 from datetime import date, datetime, time
 from decimal import Decimal
@@ -9,9 +9,10 @@ from django.utils import timezone
 from apps.attendance.models import AttendanceCode, DailyTimesheet
 from apps.attendance.services.export import (
     TIMESHEET_EXPORT_HEADERS,
-    export_timesheets_csv,
+    export_timesheets_xlsx,
     timesheet_to_row,
 )
+from apps.core.xlsx_io import read_xlsx_rows
 from apps.core.models import Plant, Tenant
 from apps.employees.models import Employee
 from apps.organization.models import Department, JobPosition
@@ -85,41 +86,35 @@ class AttendanceExportFormatTests(TestCase):
             hourly_time_off_breakdown=[],
         )
 
-    def test_export_headers_match_legacy_format(self):
-        self.assertEqual(len(TIMESHEET_EXPORT_HEADERS), 22)
-        self.assertEqual(TIMESHEET_EXPORT_HEADERS[-1], "Overtime Duration After Hourly Time Off Label")
-        self.assertIn("Hourly Time Off Start & Finish", TIMESHEET_EXPORT_HEADERS)
-        self.assertIn("Effective Working Hour", TIMESHEET_EXPORT_HEADERS)
-        self.assertIn("Brief Working Hour", TIMESHEET_EXPORT_HEADERS)
+    def test_export_headers_include_schedule_and_status_fields(self):
+        self.assertIn("Schedule Check In", TIMESHEET_EXPORT_HEADERS)
+        self.assertIn("Overtime Before", TIMESHEET_EXPORT_HEADERS)
+        self.assertIn("Calculation Status", TIMESHEET_EXPORT_HEADERS)
 
     def test_export_row_matches_legacy_sample(self):
         row = timesheet_to_row(self.timesheet)
         self.assertEqual(row[0], "1004")
         self.assertEqual(row[1], "Mario Marcello")
         self.assertEqual(row[2], "PT. Maju Perkasa Sentosa")
-        self.assertEqual(row[3], "Actors Management")
-        self.assertEqual(row[4], "Business Development")
-        self.assertEqual(row[5], "2024-03-01")
-        self.assertEqual(row[6], "Office")
-        self.assertEqual(row[9], "08:00")
-        self.assertEqual(row[10], "17:00")
-        self.assertEqual(row[14], "08:00")
-        self.assertEqual(row[15], "17:00")
-        self.assertEqual(row[16], "00:00")
-        self.assertEqual(row[17], "00:00")
-        self.assertEqual(row[18], "08:00")
-        self.assertEqual(row[19], "09:00")
-        self.assertEqual(row[20], "09:00")
-        self.assertEqual(row[21], "00:00")
+        self.assertEqual(row[3], "MPS")
+        self.assertEqual(row[4], "Actors Management")
+        self.assertEqual(row[5], "Business Development")
+        self.assertEqual(row[6], "2024-03-01")
+        self.assertEqual(row[7], "Office")
+        self.assertEqual(row[10], "08:00")
+        self.assertEqual(row[11], "17:00")
+        self.assertEqual(row[15], "08:00")
+        self.assertEqual(row[16], "17:00")
 
-    def test_export_csv_includes_bom_ready_headers(self):
-        content = export_timesheets_csv([self.timesheet])
-        first_line = content.splitlines()[0]
-        self.assertEqual(first_line.split(","), TIMESHEET_EXPORT_HEADERS)
+    def test_export_xlsx_contains_headers(self):
+        content = export_timesheets_xlsx([self.timesheet])
+        headers, rows = read_xlsx_rows(content)
+        self.assertEqual(headers, TIMESHEET_EXPORT_HEADERS)
+        self.assertEqual(len(rows), 1)
 
     def test_hourly_time_off_breakdown_formatted(self):
         self.timesheet.hourly_time_off_breakdown = [
             {"start": "10:00", "finish": "12:00"},
         ]
         row = timesheet_to_row(self.timesheet)
-        self.assertEqual(row[13], "10:00 - 12:00")
+        self.assertEqual(row[14], "10:00 - 12:00")

@@ -72,7 +72,7 @@ def _resource_list(request, slug, *, scope="manage"):
     resource = _get_resource_or_404(slug, scope=scope)
     filters = parse_list_filters(request)
     qs = get_queryset(request, resource, filters)
-    export_name = f"{resource.slug}_export.csv"
+    export_name = f"{resource.slug}_export.xlsx"
     response, list_ctx = resolve_list(
         request,
         qs,

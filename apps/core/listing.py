@@ -1,16 +1,21 @@
-"""Shared list filtering, pagination, and CSV export helpers."""
+"""Shared list filtering, pagination, and export helpers."""
 
 from __future__ import annotations
 
-import csv
 from dataclasses import dataclass
 from datetime import date, datetime
-from io import StringIO
 from urllib.parse import urlencode
 
 from django.core.paginator import Paginator
 from django.http import HttpResponse
 from django.utils import timezone
+
+from apps.core.xlsx_io import (
+    export_format_requested,
+    normalize_xlsx_filename,
+    queryset_to_xlsx,
+    xlsx_http_response,
+)
 
 
 DEFAULT_PAGE_SIZE = 25
@@ -149,28 +154,16 @@ def list_pagination_context(request, page_obj, filters: ListFilters) -> dict:
     }
 
 
-def queryset_to_csv(rows, headers: list[str], row_builder) -> str:
-    buffer = StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(headers)
-    for row in rows:
-        writer.writerow(row_builder(row))
-    return buffer.getvalue()
-
-
-def csv_http_response(content: str, filename: str) -> HttpResponse:
-    bom = "\ufeff"
-    response = HttpResponse(bom + content, content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
-
-
-def maybe_export_csv(request, qs, *, filename: str, headers: list[str], row_builder):
-    if request.GET.get(EXPORT_PARAM) != "csv":
+def maybe_export_xlsx(request, qs, *, filename: str, headers: list[str], row_builder):
+    if not export_format_requested(request):
         return None
     rows = qs[:MAX_EXPORT_ROWS]
-    content = queryset_to_csv(rows, headers, row_builder)
-    return csv_http_response(content, filename)
+    content = queryset_to_xlsx(rows, headers, row_builder)
+    return xlsx_http_response(content, normalize_xlsx_filename(filename))
+
+
+# Backward-compatible alias (export=csv now returns .xlsx).
+maybe_export_csv = maybe_export_xlsx
 
 
 def format_dt(value: datetime | None) -> str:

@@ -5,7 +5,8 @@ from django.test import TestCase
 
 from apps.core.models import Plant, Tenant
 from apps.employees.models import Employee
-from apps.employees.services.import_csv import import_employees_csv, template_csv
+from apps.core.xlsx_io import read_xlsx_rows, XLSX_CONTENT_TYPE
+from apps.employees.services.import_csv import import_employees_csv, import_employees_xlsx, template_xlsx
 from apps.organization.models import Department, JobPosition
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
@@ -26,12 +27,11 @@ class ImportCsvTests(TestCase):
         )
 
     def test_template_has_headers(self):
-        content = template_csv()
-        self.assertIn("employee_id", content)
+        headers, _ = read_xlsx_rows(template_xlsx())
+        self.assertIn("employee_id", headers)
 
     def test_import_creates_employee(self):
-        content = template_csv()
-        result = import_employees_csv(self.tenant, content)
+        result = import_employees_xlsx(self.tenant, template_xlsx())
         self.assertEqual(result["created"], 1)
         employee = Employee.objects.get(tenant=self.tenant)
         self.assertEqual(employee.salary_scheme, Employee.SalaryScheme.DAILY)

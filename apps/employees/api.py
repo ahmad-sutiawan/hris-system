@@ -11,7 +11,7 @@ from apps.employees.serializers import (
     EmployeeSelfSerializer,
     EmployeeSerializer,
 )
-from apps.employees.services.import_csv import template_csv
+from apps.employees.services.import_csv import template_xlsx
 from apps.employees.services.import_dispatch import import_employees_file
 
 
@@ -67,11 +67,9 @@ class EmployeeViewSet(TenantScopedViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
     def import_template(self, request):
-        from django.http import HttpResponse
+        from apps.core.xlsx_io import xlsx_http_response
 
-        response = HttpResponse(template_csv(), content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="employee_import_template.csv"'
-        return response
+        return xlsx_http_response(template_xlsx(), "employee_import_template.xlsx")
 
     @action(detail=False, methods=["post"], permission_classes=[IsAdminOrHR])
     def import_csv(self, request):

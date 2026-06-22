@@ -14,7 +14,7 @@
   <div class="hris-list-toolbar-actions">
     <button type="submit" class="hris-btn hris-btn-secondary">Cari</button>
     {% if show_export %}
-    <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}export=csv" class="hris-btn hris-btn-secondary">Export CSV</a>
+    <a href="?{% if filter_query %}{{ filter_query }}&amp;{% endif %}export=xlsx" class="hris-btn hris-btn-secondary">Export Excel</a>
     {% endif %}
     {% if has_list_filters or date_from or date_to or extra_filter_active %}
     <a href="{{ search_reset_url|default:request.path }}" class="hris-btn hris-btn-ghost">Reset</a>

@@ -20,7 +20,7 @@
     <button type="button" id="toggle-attendance-photos" class="hris-btn hris-btn-secondary">Tampilkan foto</button>
     <a href="{% url 'web:shift_assignment_list' %}" class="hris-btn hris-btn-secondary">Kelola Shift</a>
     <a href="{% url 'web:shift_assign' %}" class="hris-btn hris-btn-secondary">Assign Shift</a>
-    <a href="{% url 'web:attendance_export' %}" class="hris-btn hris-btn-primary">Export CSV (24 kolom)</a>
+    <a href="{% url 'web:attendance_export' %}" class="hris-btn hris-btn-primary">Export Excel</a>
     {% else %}
     <a href="{% url 'web:dashboard' %}" class="hris-btn hris-btn-primary">Clock In / Out</a>
     {% endif %}

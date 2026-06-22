@@ -71,7 +71,7 @@ class Tahap1PolicyTests(TestCase):
             },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response["Content-Type"], "text/csv; charset=utf-8")
+        self.assertEqual(response["Content-Type"], XLSX_CONTENT_TYPE)
         body = response.content.decode()
         self.assertIn("Budi Santoso", body)
         self.assertIn("Overtime Duration After Hourly Time Off Label", body)

@@ -8,8 +8,8 @@
     <div>
       <h1>Import Karyawan</h1>
       <p>
-        <a href="{% url 'web:employee_import_template' %}" class="hris-link">Download template CSV</a>
-        · Mendukung <strong>CSV (template HRIS)</strong> dan <strong>Excel export Talenta (.xlsx)</strong>.
+        <a href="{% url 'web:employee_import_template' %}" class="hris-link">Download template Excel (.xlsx)</a>
+        · Mendukung <strong>template HRIS (.xlsx)</strong> dan <strong>export Talenta (.xlsx)</strong>.
       </p>
       <p class="hris-text-muted">
         Untuk file Talenta, plant/departemen/role/job level dan relasi atasan dibuat &amp; dipetakan otomatis.
@@ -21,8 +21,8 @@
       <form method="post" enctype="multipart/form-data" class="hris-form-grid">
         {% csrf_token %}
         <div class="hris-field">
-          <label for="file">File CSV / Excel</label>
-          <input type="file" name="file" id="file" accept=".csv,.xlsx,.xlsm" required class="hris-input">
+          <label for="file">File Excel (.xlsx)</label>
+          <input type="file" name="file" id="file" accept=".xlsx,.xlsm" required class="hris-input">
         </div>
         <button type="submit" class="hris-btn hris-btn-primary">Upload & Import</button>
       </form>

@@ -1,6 +1,7 @@
-import csv
 from decimal import Decimal, InvalidOperation
-from io import StringIO
+
+from apps.core.xlsx_io import read_xlsx_rows
+from apps.payroll.models import Payslip
 
 
 class PayrollValidationError(Exception):
@@ -14,35 +15,31 @@ def _parse_decimal(value) -> Decimal:
         return Decimal("0")
 
 
-def validate_payroll_against_csv(payroll_run, file_content: str) -> dict:
-    """
-    Bandingkan net_amount payslip sistem vs CSV legacy (kolom: employee_id, net_amount).
-    Toleransi default Rp 0.
-    """
-    reader = csv.DictReader(StringIO(file_content))
-    if not reader.fieldnames:
-        raise PayrollValidationError("CSV kosong atau header tidak valid.")
+def validate_payroll_against_xlsx(payroll_run, file_bytes: bytes) -> dict:
+    """Bandingkan net_amount payslip sistem vs file Excel legacy."""
+    _, rows = read_xlsx_rows(file_bytes)
+    if not rows:
+        raise PayrollValidationError("File Excel kosong atau header tidak valid.")
 
+    fieldnames = list(rows[0].keys())
     required = {"employee_id", "net_amount"}
-    missing = required - set(reader.fieldnames)
+    missing = required - set(fieldnames)
     if missing:
         raise PayrollValidationError(f"Kolom wajib hilang: {', '.join(sorted(missing))}")
 
     expected = {}
-    for row_num, row in enumerate(reader, start=2):
-        eid = (row.get("employee_id") or "").strip()
+    for row_num, row in enumerate(rows, start=2):
+        eid = str(row.get("employee_id") or "").strip()
         if not eid:
             continue
         expected[eid] = _parse_decimal(row.get("net_amount"))
-
-    from apps.payroll.models import Payslip
 
     slips = Payslip.objects.filter(payroll_run=payroll_run).select_related("employee")
     actual = {s.employee.employee_id: s.net_amount for s in slips}
 
     mismatches = []
     missing_in_system = []
-    missing_in_csv = []
+    missing_in_file = []
 
     for eid, exp_net in expected.items():
         act = actual.get(eid)
@@ -61,12 +58,15 @@ def validate_payroll_against_csv(payroll_run, file_content: str) -> dict:
 
     for eid in actual:
         if eid not in expected:
-            missing_in_csv.append(eid)
+            missing_in_file.append(eid)
 
     return {
         "matched": len(expected) - len(mismatches) - len(missing_in_system),
         "mismatches": mismatches,
         "missing_in_system": missing_in_system,
-        "missing_in_csv": missing_in_csv,
+        "missing_in_csv": missing_in_file,
         "ok": not mismatches and not missing_in_system,
     }
+
+
+validate_payroll_against_csv = validate_payroll_against_xlsx

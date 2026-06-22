@@ -9,8 +9,8 @@ from apps.core.listing import (
     build_filter_query,
     paginate_queryset,
     parse_list_filters,
-    queryset_to_csv,
 )
+from apps.core.xlsx_io import read_xlsx_rows, queryset_to_xlsx
 from apps.employees.models import Employee
 
 
@@ -122,11 +122,13 @@ class ListingHelpersTests(TestCase):
         )
         self.assertEqual(desc_list_row_number(total_count=0, page_start_index=1, counter0=0), 0)
 
-    def test_queryset_to_csv(self):
-        content = queryset_to_csv(
+    def test_queryset_to_xlsx(self):
+        content = queryset_to_xlsx(
             [{"name": "A"}, {"name": "B"}],
             ["Name"],
             lambda row: [row["name"]],
         )
-        self.assertIn("Name", content)
-        self.assertIn("A", content)
+        headers, rows = read_xlsx_rows(content)
+        self.assertEqual(headers, ["Name"])
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["Name"], "A")

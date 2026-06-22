@@ -1,13 +1,14 @@
-import csv
 from decimal import Decimal
-from io import StringIO
 
 from django.utils import timezone
+
+from apps.core.xlsx_io import write_xlsx
 
 TIMESHEET_EXPORT_HEADERS = [
     "Employee ID",
     "Full Name",
     "Branch",
+    "Branch Code",
     "Organization",
     "Job Position",
     "Date",
@@ -26,7 +27,12 @@ TIMESHEET_EXPORT_HEADERS = [
     "Effective Working Hour",
     "Actual Working Hour",
     "Brief Working Hour",
+    "Overtime Before",
     "Overtime Duration After Hourly Time Off Label",
+    "Hourly Time Off Taken",
+    "Calculation Status",
+    "Calculated At",
+    "Locked At",
 ]
 
 
@@ -40,6 +46,14 @@ def _fmt_punch_time(value):
     if timezone.is_aware(value):
         value = timezone.localtime(value)
     return value.strftime("%H:%M")
+
+
+def _fmt_punch_datetime(value):
+    if not value:
+        return ""
+    if timezone.is_aware(value):
+        value = timezone.localtime(value)
+    return value.replace(tzinfo=None).isoformat(sep=" ", timespec="seconds")
 
 
 def _fmt_duration_minutes(minutes) -> str:
@@ -85,10 +99,12 @@ def _fmt_hourly_time_off_breakdown(breakdown) -> str:
 def timesheet_to_row(ts):
     emp = ts.employee
     branch = ts.plant.name if ts.plant_id else ""
+    branch_code = ts.plant.code if ts.plant_id else ""
     return [
         emp.employee_id,
         emp.full_name,
         branch,
+        branch_code,
         emp.department.name if emp.department_id else "",
         emp.job_position.title if emp.job_position_id else "",
         ts.work_date.isoformat(),
@@ -107,14 +123,18 @@ def timesheet_to_row(ts):
         _fmt_duration_hours(ts.schedule_working_hours),
         _fmt_duration_hours(ts.actual_working_hours),
         _fmt_duration_hours(ts.paid_working_hours),
+        _fmt_duration_minutes(ts.ot_before_minutes),
         _fmt_duration_minutes(ts.ot_after_minutes),
+        _fmt_duration_hours(ts.hourly_time_off_taken),
+        ts.get_calculation_status_display(),
+        _fmt_punch_datetime(ts.calculated_at),
+        _fmt_punch_datetime(ts.locked_at),
     ]
 
 
-def export_timesheets_csv(timesheets):
-    buffer = StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(TIMESHEET_EXPORT_HEADERS)
-    for ts in timesheets:
-        writer.writerow(timesheet_to_row(ts))
-    return buffer.getvalue()
+def export_timesheets_xlsx(timesheets) -> bytes:
+    return write_xlsx(TIMESHEET_EXPORT_HEADERS, (timesheet_to_row(ts) for ts in timesheets))
+
+
+# Backward-compatible alias.
+export_timesheets_csv = export_timesheets_xlsx

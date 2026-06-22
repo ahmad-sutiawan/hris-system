@@ -19,7 +19,7 @@
     <a href="{% url 'web:payroll_pph21_export' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Export PPh21</a>
     {% endif %}
     {% if payroll_run.status == 'review' %}
-    <a href="{% url 'web:payroll_validate' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Validasi vs CSV</a>
+    <a href="{% url 'web:payroll_validate' payroll_run.pk %}" class="hris-btn hris-btn-secondary">Validasi vs Excel</a>
     {% endif %}
     {% if payroll_run.status != 'finalized' %}
     <form method="post" action="{% url 'web:payroll_calculate' payroll_run.pk %}">{% csrf_token %}

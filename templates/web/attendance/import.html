@@ -6,19 +6,19 @@
 <div class="hris-page-header">
   <div>
     <h1>Import Absensi Mesin</h1>
-    <p>CSV dari fingerprint / mesin absen</p>
+    <p>Excel (.xlsx) dari fingerprint / mesin absen</p>
   </div>
   <a href="{% url 'web:attendance_import_template' %}" class="hris-btn hris-btn-secondary">Download Template</a>
 </div>
 
 <div class="hris-card">
   <div class="hris-card-body">
-    <p class="hris-text-dim">Kolom: employee_id, work_date, check_in, check_out, device_id</p>
+    <p class="hris-text-dim">Kolom: employee_id, work_date, check_in, check_out, device_id, notes, source</p>
     <form method="post" enctype="multipart/form-data" class="hris-form-grid" style="margin-top:1rem">
       {% csrf_token %}
       <div class="hris-field">
-        <label for="file">File CSV</label>
-        <input type="file" name="file" id="file" accept=".csv" class="hris-input" required>
+        <label for="file">File Excel (.xlsx)</label>
+        <input type="file" name="file" id="file" accept=".xlsx,.xlsm" class="hris-input" required>
       </div>
       <div class="hris-inline-actions">
         <button type="submit" class="hris-btn hris-btn-primary">Import</button>

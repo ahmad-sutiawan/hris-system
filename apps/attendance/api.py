@@ -8,8 +8,8 @@ from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
 from apps.attendance.services.import_punches import (
     PunchImportError,
-    import_attendance_csv,
-    template_csv,
+    import_attendance_xlsx,
+    template_xlsx,
 )
 from apps.attendance.services.timesheet import recalculate_daily_timesheet
 from apps.core.api_scoping import employee_scoped_queryset
@@ -73,11 +73,9 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
 
     @action(detail=False, methods=["get"], permission_classes=[IsAdminOrHR])
     def import_template(self, request):
-        from django.http import HttpResponse
+        from apps.core.xlsx_io import xlsx_http_response
 
-        response = HttpResponse(template_csv(), content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="attendance_import_template.csv"'
-        return response
+        return xlsx_http_response(template_xlsx(), "attendance_import_template.xlsx")
 
     @action(detail=False, methods=["post"], permission_classes=[IsAdminOrHR])
     def import_csv(self, request):
@@ -85,9 +83,9 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
         if not upload:
             return Response({"detail": "file required."}, status=400)
         try:
-            result = import_attendance_csv(
+            result = import_attendance_xlsx(
                 request.user.tenant,
-                upload.read().decode("utf-8-sig"),
+                upload.read(),
                 plant=request.user.plant,
             )
             return Response(result)

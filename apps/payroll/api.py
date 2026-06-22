@@ -7,11 +7,12 @@ from apps.core.permissions import IsAdminOrHR
 from apps.core.viewsets import TenantScopedViewSet
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.serializers import PayrollRunSerializer, PayslipSerializer
-from apps.payroll.services.bank_export import export_bank_csv
+from apps.core.xlsx_io import xlsx_http_response
+from apps.payroll.services.bank_export import export_bank_xlsx
 from apps.payroll.services.payslip_pdf import generate_payslip_pdf
-from apps.payroll.services.compliance_export import export_bpjs_csv, export_pph21_csv
+from apps.payroll.services.compliance_export import export_bpjs_xlsx, export_pph21_xlsx
 from apps.payroll.services.payroll_run import PayrollError, calculate_payroll_run, finalize_payroll_run
-from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_csv
+from apps.payroll.services.payroll_validation import PayrollValidationError, validate_payroll_against_xlsx
 
 
 class PayrollRunViewSet(TenantScopedViewSet):
@@ -46,26 +47,17 @@ class PayrollRunViewSet(TenantScopedViewSet):
         run = self.get_object()
         if run.status != PayrollRun.Status.FINALIZED:
             return Response({"detail": "Payroll must be finalized."}, status=400)
-        content = export_bank_csv(run)
-        response = HttpResponse(content, content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="bank_export_{run.plant.code}.csv"'
-        return response
+        return xlsx_http_response(export_bank_xlsx(run), f"bank_export_{run.plant.code}.xlsx")
 
     @action(detail=True, methods=["get"])
     def bpjs_export(self, request, pk=None):
         run = self.get_object()
-        content = export_bpjs_csv(run)
-        response = HttpResponse(content, content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="bpjs_{run.plant.code}_{run.period_end}.csv"'
-        return response
+        return xlsx_http_response(export_bpjs_xlsx(run), f"bpjs_{run.plant.code}_{run.period_end}.xlsx")
 
     @action(detail=True, methods=["get"])
     def pph21_export(self, request, pk=None):
         run = self.get_object()
-        content = export_pph21_csv(run)
-        response = HttpResponse(content, content_type="text/csv")
-        response["Content-Disposition"] = f'attachment; filename="pph21_{run.plant.code}_{run.period_end}.csv"'
-        return response
+        return xlsx_http_response(export_pph21_xlsx(run), f"pph21_{run.plant.code}_{run.period_end}.xlsx")
 
     @action(detail=True, methods=["post"])
     def validate_csv(self, request, pk=None):
@@ -74,7 +66,7 @@ class PayrollRunViewSet(TenantScopedViewSet):
         if not upload:
             return Response({"detail": "file required."}, status=400)
         try:
-            result = validate_payroll_against_csv(run, upload.read().decode("utf-8-sig"))
+            result = validate_payroll_against_xlsx(run, upload.read())
             return Response(result)
         except PayrollValidationError as exc:
             return Response({"detail": str(exc)}, status=400)

@@ -1,7 +1,8 @@
-"""CSV export row builders for list views."""
+"""Excel export row builders for list views."""
 
-from apps.attendance.services.export import export_timesheets_csv
-from apps.core.listing import format_date, format_dt, queryset_to_csv
+from apps.attendance.services.export import export_timesheets_xlsx
+from apps.core.listing import format_date, format_dt
+from apps.core.xlsx_io import write_xlsx
 from apps.employees.talenta_vocabulary import TALENTA_COLUMNS
 
 
@@ -12,6 +13,7 @@ COMPENSATION_EXPORT_HEADERS = [
     "Employee ID",
     "Full Name",
     "Plant",
+    "Plant Code",
     "Salary Scheme",
     "Base Salary",
     "Allowance Transport",
@@ -24,14 +26,18 @@ COMPENSATION_EXPORT_HEADERS = [
     "Bank",
     "Account Number",
     "Account Name",
+    "Employee Tax Status",
+    "Tax Config",
+    "PPH21 Deduct",
 ]
 
 
-def export_employee_compensation_csv(qs) -> str:
+def export_employee_compensation_xlsx(qs) -> bytes:
     def row(emp):
         return [
             emp.employee_id,
             emp.full_name,
+            emp.plant.name if emp.plant_id else "",
             emp.plant.code if emp.plant_id else "",
             emp.get_salary_scheme_display(),
             emp.base_salary,
@@ -45,14 +51,15 @@ def export_employee_compensation_csv(qs) -> str:
             emp.bank_name or "N/A",
             emp.bank_account_number or "N/A",
             emp.bank_account_name or "N/A",
+            emp.employee_tax_status or "N/A",
+            emp.tax_config or "N/A",
+            emp.pph21_deduct,
         ]
 
-    return queryset_to_csv(qs, COMPENSATION_EXPORT_HEADERS, row)
+    return write_xlsx(COMPENSATION_EXPORT_HEADERS, (row(emp) for emp in qs))
 
 
-def export_employees_csv(qs) -> str:
-    from apps.employees.talenta_vocabulary import TALENTA_COLUMNS
-
+def export_employees_xlsx(qs) -> bytes:
     def row(emp):
         data = emp.talenta_export_row()
         barcode = getattr(emp, "barcode", "") or ""
@@ -64,7 +71,7 @@ def export_employees_csv(qs) -> str:
                 out.append(data.get(header, ""))
         return out
 
-    return queryset_to_csv(qs, TALENTA_COLUMNS, row)
+    return write_xlsx(TALENTA_COLUMNS, (row(emp) for emp in qs))
 
 
 SHIFT_EXPORT_HEADERS = [
@@ -75,10 +82,11 @@ SHIFT_EXPORT_HEADERS = [
     "Shift Name",
     "Scheduled Check In",
     "Scheduled Check Out",
+    "Plant Code",
 ]
 
 
-def export_shifts_csv(qs) -> str:
+def export_shifts_xlsx(qs) -> bytes:
     def row(item):
         return [
             item.employee.employee_id,
@@ -88,9 +96,10 @@ def export_shifts_csv(qs) -> str:
             item.shift.name,
             item.scheduled_check_in.strftime("%H:%M") if item.scheduled_check_in else "",
             item.scheduled_check_out.strftime("%H:%M") if item.scheduled_check_out else "",
+            item.employee.plant.code if item.employee.plant_id else "",
         ]
 
-    return queryset_to_csv(qs, SHIFT_EXPORT_HEADERS, row)
+    return write_xlsx(SHIFT_EXPORT_HEADERS, (row(item) for item in qs))
 
 
 class AttendanceExportError(Exception):
@@ -100,14 +109,14 @@ class AttendanceExportError(Exception):
 MAX_ATTENDANCE_EXPORT_DAYS = 366
 
 
-def export_attendance_csv(qs) -> str:
+def export_attendance_xlsx(qs) -> bytes:
     from apps.core.listing import MAX_EXPORT_ROWS
 
-    return export_timesheets_csv(qs[:MAX_EXPORT_ROWS])
+    return export_timesheets_xlsx(qs[:MAX_EXPORT_ROWS])
 
 
-def export_attendance_csv_with_default_range(qs, *, date_from: str, date_to: str) -> str:
-    from datetime import datetime, timedelta
+def export_attendance_xlsx_with_default_range(qs, *, date_from: str, date_to: str) -> bytes:
+    from datetime import datetime
 
     from apps.core.listing import apply_date_field_range
 
@@ -131,37 +140,51 @@ def export_attendance_csv_with_default_range(qs, *, date_from: str, date_to: str
         )
 
     qs = apply_date_field_range(qs, date_from=date_from, date_to=date_to, field_name="work_date")
-    return export_attendance_csv(qs)
+    return export_attendance_xlsx(qs)
 
 
 LEAVE_EXPORT_HEADERS = [
     "Employee ID",
     "Employee Name",
     "Leave Type",
+    "Leave Type Code",
     "Start Date",
     "End Date",
     "Days",
+    "Half Day",
     "Status",
     "Reason",
+    "Approver",
+    "Approved At",
+    "Rejection Reason",
+    "Approval Step",
     "Submitted At",
+    "Updated At",
 ]
 
 
-def export_leave_csv(qs) -> str:
+def export_leave_xlsx(qs) -> bytes:
     def row(item):
         return [
             item.employee.employee_id,
             item.employee.full_name,
             item.leave_type.name,
+            item.leave_type.code,
             format_date(item.start_date),
             format_date(item.end_date),
             str(item.days),
+            "Yes" if item.is_half_day else "No",
             item.get_status_display(),
             item.reason,
+            item.approver.username if item.approver_id else "",
+            format_dt(item.approved_at),
+            item.rejection_reason,
+            item.approval_step,
             format_dt(item.created_at),
+            format_dt(item.updated_at),
         ]
 
-    return queryset_to_csv(qs, LEAVE_EXPORT_HEADERS, row)
+    return write_xlsx(LEAVE_EXPORT_HEADERS, (row(item) for item in qs))
 
 
 OVERTIME_EXPORT_HEADERS = [
@@ -169,33 +192,45 @@ OVERTIME_EXPORT_HEADERS = [
     "Employee Name",
     "Work Date",
     "Overtime Type",
+    "Overtime Type Code",
     "OT Before (min)",
     "OT After (min)",
     "Compensation",
     "Leave Days Credited",
     "Status",
     "Reason",
+    "Approver",
+    "Approved At",
+    "Rejection Reason",
+    "Approval Step",
     "Submitted At",
+    "Updated At",
 ]
 
 
-def export_overtime_csv(qs) -> str:
+def export_overtime_xlsx(qs) -> bytes:
     def row(item):
         return [
             item.employee.employee_id,
             item.employee.full_name,
             format_date(item.work_date),
             item.overtime_type.name if item.overtime_type_id else "",
+            item.overtime_type.code if item.overtime_type_id else "",
             item.ot_before_minutes,
             item.ot_after_minutes,
             item.get_compensation_mode_display(),
             item.leave_days_credited,
             item.get_status_display(),
             item.reason,
+            item.approver.username if item.approver_id else "",
+            format_dt(item.approved_at),
+            item.rejection_reason,
+            item.approval_step,
             format_dt(item.created_at),
+            format_dt(item.updated_at),
         ]
 
-    return queryset_to_csv(qs, OVERTIME_EXPORT_HEADERS, row)
+    return write_xlsx(OVERTIME_EXPORT_HEADERS, (row(item) for item in qs))
 
 
 PAYROLL_EXPORT_HEADERS = [
@@ -204,11 +239,13 @@ PAYROLL_EXPORT_HEADERS = [
     "Period End",
     "Status",
     "Notes",
+    "Finalized At",
     "Created At",
+    "Updated At",
 ]
 
 
-def export_payroll_runs_csv(qs) -> str:
+def export_payroll_runs_xlsx(qs) -> bytes:
     def row(item):
         return [
             item.plant.code,
@@ -216,10 +253,12 @@ def export_payroll_runs_csv(qs) -> str:
             format_date(item.period_end),
             item.get_status_display(),
             item.notes,
+            format_dt(item.finalized_at),
             format_dt(item.created_at),
+            format_dt(item.updated_at),
         ]
 
-    return queryset_to_csv(qs, PAYROLL_EXPORT_HEADERS, row)
+    return write_xlsx(PAYROLL_EXPORT_HEADERS, (row(item) for item in qs))
 
 
 PAYSLIP_EXPORT_HEADERS = [
@@ -231,10 +270,13 @@ PAYSLIP_EXPORT_HEADERS = [
     "Gross",
     "Deduction",
     "Net",
+    "Earnings Breakdown",
+    "Deductions Breakdown",
+    "Verification Hash",
 ]
 
 
-def export_payslips_csv(qs) -> str:
+def export_payslips_xlsx(qs) -> bytes:
     def row(item):
         run = item.payroll_run
         return [
@@ -246,9 +288,12 @@ def export_payslips_csv(qs) -> str:
             str(item.gross_amount),
             str(item.deduction_amount),
             str(item.net_amount),
+            item.earnings_breakdown,
+            item.deductions_breakdown,
+            item.verification_hash,
         ]
 
-    return queryset_to_csv(qs, PAYSLIP_EXPORT_HEADERS, row)
+    return write_xlsx(PAYSLIP_EXPORT_HEADERS, (row(item) for item in qs))
 
 
 NOTIFICATION_EXPORT_HEADERS = [
@@ -257,10 +302,11 @@ NOTIFICATION_EXPORT_HEADERS = [
     "Message",
     "Read",
     "Created At",
+    "Updated At",
 ]
 
 
-def export_notifications_csv(qs) -> str:
+def export_notifications_xlsx(qs) -> bytes:
     def row(item):
         return [
             item.get_category_display(),
@@ -268,9 +314,10 @@ def export_notifications_csv(qs) -> str:
             item.message,
             "Yes" if item.is_read else "No",
             format_dt(item.created_at),
+            format_dt(item.updated_at),
         ]
 
-    return queryset_to_csv(qs, NOTIFICATION_EXPORT_HEADERS, row)
+    return write_xlsx(NOTIFICATION_EXPORT_HEADERS, (row(item) for item in qs))
 
 
 AUDIT_EXPORT_HEADERS = [
@@ -280,10 +327,12 @@ AUDIT_EXPORT_HEADERS = [
     "Model",
     "Object",
     "Changes",
+    "IP Address",
+    "User Agent",
 ]
 
 
-def export_audit_csv(qs) -> str:
+def export_audit_xlsx(qs) -> bytes:
     def row(item):
         return [
             format_dt(item.created_at),
@@ -292,12 +341,14 @@ def export_audit_csv(qs) -> str:
             item.model_name,
             item.object_repr,
             item.changes or "",
+            item.ip_address or "",
+            item.user_agent or "",
         ]
 
-    return queryset_to_csv(qs, AUDIT_EXPORT_HEADERS, row)
+    return write_xlsx(AUDIT_EXPORT_HEADERS, (row(item) for item in qs))
 
 
-def export_admin_resource_csv(resource, qs) -> str:
+def export_admin_resource_xlsx(resource, qs) -> bytes:
     headers = [col.header for col in resource.columns]
 
     def row(obj):
@@ -305,4 +356,19 @@ def export_admin_resource_csv(resource, qs) -> str:
 
         return [get_cell_value(obj, col.attr) for col in resource.columns]
 
-    return queryset_to_csv(qs, headers, row)
+    return write_xlsx(headers, (row(obj) for obj in qs))
+
+
+# Backward-compatible aliases.
+export_employee_compensation_csv = export_employee_compensation_xlsx
+export_employees_csv = export_employees_xlsx
+export_shifts_csv = export_shifts_xlsx
+export_attendance_csv = export_attendance_xlsx
+export_attendance_csv_with_default_range = export_attendance_xlsx_with_default_range
+export_leave_csv = export_leave_xlsx
+export_overtime_csv = export_overtime_xlsx
+export_payroll_runs_csv = export_payroll_runs_xlsx
+export_payslips_csv = export_payslips_xlsx
+export_notifications_csv = export_notifications_xlsx
+export_audit_csv = export_audit_xlsx
+export_admin_resource_csv = export_admin_resource_xlsx
