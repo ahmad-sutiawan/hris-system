@@ -28,6 +28,16 @@ if command -v curl >/dev/null 2>&1; then
     -H "Content-Type: application/json" \
     -d '{"username":"525","password":"525"}' || true
   echo
+  echo "→ uji CORS Flutter web (localhost emulator)"
+  curl -s -i -X OPTIONS "http://127.0.0.1:8080/api/v1/health/" \
+    -H "Origin: http://localhost:49609" \
+    -H "Access-Control-Request-Method: GET" | head -12 || true
+  echo
+fi
+
+if docker compose ps nginx >/dev/null 2>&1; then
+  echo "→ reload nginx (CORS /api/)"
+  docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx
 fi
 
 echo ""

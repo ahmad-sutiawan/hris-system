@@ -218,7 +218,7 @@ CORS_ALLOWED_ORIGINS = config(
     default="http://127.0.0.1:8080,http://localhost:8080,http://127.0.0.1:8000,http://localhost:8000",
     cast=Csv(),
 )
-# Flutter web dev server (port acak, mis. localhost:63896) — perlu True saat uji mobile web ke server production
+# Flutter web dev server (port acak, mis. localhost:63896) — emulator/browser ke server publik
 CORS_ALLOW_FLUTTER_DEV = config("CORS_ALLOW_FLUTTER_DEV", default=True, cast=bool)
 CORS_ALLOWED_ORIGIN_REGEXES = []
 if CORS_ALLOW_FLUTTER_DEV:
@@ -226,6 +226,8 @@ if CORS_ALLOW_FLUTTER_DEV:
         r"^http://localhost:\d+$",
         r"^http://127\.0\.0\.1:\d+$",
     ]
+# CORS hanya untuk REST API — tidak mengubah CSRF/session portal web admin
+CORS_URLS_REGEX = r"^/api/.*$"
 # Hanya untuk development; production set False di .env
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=DEBUG, cast=bool)
 

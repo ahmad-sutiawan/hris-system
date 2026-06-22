@@ -65,7 +65,7 @@ class ApiClient {
 
   static const _accessKey = 'access_token';
   static const _refreshKey = 'refresh_token';
-  static const _baseUrlKey = 'api_base_url';
+  static const _legacyBaseUrlKey = 'api_base_url';
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
@@ -93,47 +93,15 @@ class ApiClient {
     } catch (_) {}
   }
 
-  Future<bool> probeHealth(String baseUrl) => _probeHealth(baseUrl);
-
-  Future<bool> _probeHealth(String baseUrl) async {
-    try {
-      final probe = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 3),
-          receiveTimeout: const Duration(seconds: 3),
-        ),
-      );
-      final res = await probe.get('/health/');
-      return res.statusCode == 200;
-    } catch (_) {
-      return false;
-    }
-  }
-
   Future<String> resolveBaseUrl() async {
-    final saved = await _readStorage(_baseUrlKey);
-    if (saved != null && saved.isNotEmpty) {
-      _dio.options.baseUrl = AppConfig.normalizeApiBaseUrl(saved);
-    } else {
-      _dio.options.baseUrl = AppConfig.defaultBaseUrl;
-    }
+    _dio.options.baseUrl = AppConfig.defaultBaseUrl;
+    // Hapus override lama dari versi sebelumnya (UI pengaturan server).
+    await _deleteStorage(_legacyBaseUrlKey);
     return _dio.options.baseUrl;
   }
 
   Future<void> init() async {
     await resolveBaseUrl();
-  }
-
-  Future<void> setBaseUrl(String url) async {
-    final normalized = AppConfig.normalizeApiBaseUrl(url);
-    await _writeStorage(_baseUrlKey, normalized);
-    _dio.options.baseUrl = normalized;
-  }
-
-  Future<void> resetBaseUrl() async {
-    await _deleteStorage(_baseUrlKey);
-    _dio.options.baseUrl = AppConfig.productionBaseUrl;
   }
 
   Future<String> loadBaseUrl() async {
@@ -490,9 +458,7 @@ class ApiClient {
         e.type == DioExceptionType.sendTimeout ||
         e.type == DioExceptionType.receiveTimeout) {
       return ApiException(
-        'Tidak bisa terhubung ke $server. '
-        'Periksa koneksi dan pastikan server bisa diakses '
-        '(dev lokal: http://127.0.0.1:8000).',
+        'Tidak bisa terhubung ke server HRIS. Periksa koneksi internet Anda.',
         statusCode: status,
       );
     }
