@@ -40,9 +40,11 @@
           <th>Nama</th>
           {% endif %}
           <th>Tanggal</th>
+          <th>Shift</th>
+          <th>Schedule In</th>
+          <th>Schedule Out</th>
           <th>Clock In</th>
           <th>Clock Out</th>
-          <th>Shift</th>
           <th>Code</th>
           <th>Late</th>
           <th>OT Before</th>
@@ -60,6 +62,21 @@
           <td class="hris-strong">{{ row.employee.full_name }}</td>
           {% endif %}
           <td>{{ row.work_date|local_date }}</td>
+          <td>{{ row.shift_code|default:"-" }}</td>
+          <td class="hris-mono hris-text-dim">
+            {% if row.scheduled_check_in %}
+            {{ row.scheduled_check_in|time:"H:i" }}
+            {% elif row.shift %}
+            {{ row.shift.scheduled_check_in|time:"H:i" }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="hris-mono hris-text-dim">
+            {% if row.scheduled_check_out %}
+            {{ row.scheduled_check_out|time:"H:i" }}
+            {% elif row.shift %}
+            {{ row.shift.scheduled_check_out|time:"H:i" }}
+            {% else %}—{% endif %}
+          </td>
           <td>
             {% if row.punch_record and row.punch_record.punches.all %}
               {% for punch in row.punch_record.punches.all %}
@@ -96,7 +113,6 @@
             <span class="hris-text-dim" style="display:block;font-size:0.6875rem">{{ row.check_out|local_datetime:"d M Y" }}</span>
             {% else %}—{% endif %}
           </td>
-          <td>{{ row.shift_code|default:"-" }}</td>
           <td><span class="hris-mono">{{ row.attendance_code.code|default:"-" }}</span></td>
           <td>{{ row.late_in_minutes|num:0 }} m</td>
           <td class="hris-num">{{ row.ot_before_minutes|num:0 }} m</td>
@@ -131,7 +147,7 @@
           {% endif %}
         </tr>
         {% empty %}
-        <tr><td colspan="{% if user.role == 'admin' or user.role == 'hr' %}13{% else %}11{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada timesheet yang cocok dengan pencarian.{% else %}Belum ada timesheet.{% endif %}</div></td></tr>
+        <tr><td colspan="{% if user.role == 'admin' or user.role == 'hr' %}15{% else %}13{% endif %}"><div class="hris-empty">{% if search_query %}Tidak ada timesheet yang cocok dengan pencarian.{% else %}Belum ada timesheet.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

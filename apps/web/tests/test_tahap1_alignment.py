@@ -122,6 +122,8 @@ class Tahap1PolicyTests(TestCase):
     def test_attendance_list_shows_ot_columns(self):
         self.client.login(username="tahap1admin", password="TestPassword123!")
         response = self.client.get(reverse("web:attendance_list"))
+        self.assertContains(response, "Schedule In")
+        self.assertContains(response, "Schedule Out")
         self.assertContains(response, "OT Before")
         self.assertContains(response, "OT After")
         self.assertContains(response, "Tampilkan foto")
