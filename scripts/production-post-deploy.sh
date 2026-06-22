@@ -22,6 +22,9 @@ $RUN python manage.py migrate --noinput
 echo "→ sync kredensial login karyawan (NIK + Employee ID)"
 $RUN python manage.py sync_employee_credentials --tenant default
 
+echo "→ kompres foto profil karyawan (WebP avatar)"
+$RUN python manage.py compress_employee_photos --tenant default || true
+
 echo "→ uji login JWT contoh (opsional, abaikan jika gagal)"
 if command -v curl >/dev/null 2>&1; then
   curl -s -X POST "http://127.0.0.1:8080/api/v1/auth/token/" \

@@ -134,7 +134,7 @@ class DailyTimesheetSerializer(serializers.ModelSerializer):
             return []
         punches = getattr(record, "_prefetched_punches", None)
         if punches is None:
-            punches = record.punches.order_by("punched_at", "pk")
+            punches = sorted(record.punches.all(), key=lambda p: (p.punched_at, p.pk))
         return AttendancePunchSerializer(
             punches,
             many=True,

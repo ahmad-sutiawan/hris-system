@@ -3,7 +3,7 @@
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.attendance.models import AttendanceRecord, DailyTimesheet, OvertimeRequest
+from apps.attendance.models import DailyTimesheet, OvertimeRequest
 from apps.core.listing import (
     ListFilters,
     apply_date_field_range,
@@ -108,9 +108,13 @@ def attendance_list_queryset(user: User, filters: ListFilters):
             | Q(shift_code__icontains=filters.q)
             | Q(attendance_code__code__icontains=filters.q)
         )
-    qs = apply_date_field_range(
-        qs, date_from=filters.date_from, date_to=filters.date_to, field_name="work_date"
-    )
+    if filters.date_from or filters.date_to:
+        qs = apply_date_field_range(
+            qs, date_from=filters.date_from, date_to=filters.date_to, field_name="work_date"
+        )
+    else:
+        today = timezone.localdate()
+        qs = qs.filter(work_date__gte=today.replace(day=1), work_date__lte=today)
     return qs.order_by("-work_date", "employee__full_name")
 
 
@@ -277,15 +281,9 @@ def payroll_detail_payslip_queryset(run, filters: ListFilters):
 
 
 def attach_attendance_records(timesheets, tenant):
-    record_map = {}
-    if not timesheets:
-        return record_map
-    records = AttendanceRecord.objects.filter(
-        tenant=tenant,
-        employee_id__in={row.employee_id for row in timesheets},
-        work_date__in={row.work_date for row in timesheets},
-    ).prefetch_related("punches")
-    record_map = {(r.employee_id, r.work_date): r for r in records}
+    from apps.attendance.services.record_prefetch import attendance_record_map
+
+    record_map = attendance_record_map(timesheets, tenant)
     for row in timesheets:
         row.punch_record = record_map.get((row.employee_id, row.work_date))
     return record_map

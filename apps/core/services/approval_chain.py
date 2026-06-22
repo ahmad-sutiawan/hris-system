@@ -46,8 +46,10 @@ def approver_for_step(step: ApprovalLine, employee: Employee) -> User | None:
     return None
 
 
-def can_user_approve_step(user, employee: Employee, request_type: str, current_step: int) -> bool:
-    steps = approval_steps(employee.tenant, request_type)
+def can_user_approve_step(
+    user, employee: Employee, request_type: str, current_step: int, *, steps=None
+) -> bool:
+    steps = steps if steps is not None else approval_steps(employee.tenant, request_type)
     if not steps:
         return can_approve_employee(user, employee)
     for step in steps:

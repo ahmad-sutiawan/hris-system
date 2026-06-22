@@ -1,7 +1,7 @@
 from datetime import timedelta
 import math
 
-from django.db.models import Count
+from django.db.models import Count, Max, Q
 
 from apps.attendance.models import AttendanceRecord, DailyTimesheet, OvertimeRequest
 from apps.core.models import Notification, User
@@ -31,15 +31,24 @@ def _latest_punch_photos(employee_ids: list[int]) -> dict[int, str]:
     if not employee_ids:
         return {}
 
-    photos: dict[int, str] = {}
-    records = (
+    latest_by_employee = dict(
         AttendanceRecord.objects.filter(employee_id__in=employee_ids)
         .exclude(check_in_photo="")
-        .order_by("employee_id", "-work_date", "-check_in")
+        .values("employee_id")
+        .annotate(max_date=Max("work_date"))
+        .values_list("employee_id", "max_date")
     )
-    for record in records:
-        if record.employee_id in photos:
-            continue
+    if not latest_by_employee:
+        return {}
+
+    pair_filter = Q()
+    for employee_id, max_date in latest_by_employee.items():
+        pair_filter |= Q(employee_id=employee_id, work_date=max_date)
+
+    photos: dict[int, str] = {}
+    for record in AttendanceRecord.objects.filter(pair_filter).only(
+        "employee_id", "check_in_photo"
+    ):
         if record.check_in_photo:
             photos[record.employee_id] = record.check_in_photo.url
     return photos
@@ -529,7 +538,8 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
     )
 
     active_emp = _active_employees(user, tenant)
-    active_ids = list(active_emp.values_list("id", flat=True))
+    active_count = active_emp.count()
+    active_id_subq = active_emp.values("id")
 
     on_leave_today_items = build_on_leave_today_items(
         user=user,
@@ -546,7 +556,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
             tenant=tenant,
             work_date=today,
             check_in__isnull=False,
-            employee_id__in=active_ids,
+            employee_id__in=active_id_subq,
         ),
     )
     present_ids = set(present_qs.values_list("employee_id", flat=True))
@@ -556,12 +566,12 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
         "on_leave_today": len(on_leave_ids),
         "absent_today": max(
             0,
-            len(active_ids) - len(present_ids) - len(on_leave_ids),
+            active_count - len(present_ids) - len(on_leave_ids),
         ),
     }
 
     stats_extra = context["stats_extra"]
-    total_active = len(active_ids)
+    total_active = active_count
     context["analytics"] = {
         "attendance_rate": _attendance_rate(
             present=stats_extra["present_today"],
@@ -610,16 +620,24 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
 
     week = []
     week_max = 0
-    for offset in range(6, -1, -1):
-        work_date = today - timedelta(days=offset)
-        count = _plant_filter(
+    week_start = today - timedelta(days=6)
+    week_count_map = dict(
+        _plant_filter(
             user,
             DailyTimesheet.objects.filter(
                 tenant=tenant,
-                work_date=work_date,
-                employee_id__in=active_ids,
+                work_date__gte=week_start,
+                work_date__lte=today,
+                employee_id__in=active_id_subq,
             ),
-        ).count()
+        )
+        .values("work_date")
+        .annotate(c=Count("id"))
+        .values_list("work_date", "c")
+    )
+    for offset in range(6, -1, -1):
+        work_date = today - timedelta(days=offset)
+        count = week_count_map.get(work_date, 0)
         week_max = max(week_max, count)
         week.append({"date": work_date, "count": count})
     context["attendance_week"] = week
@@ -646,12 +664,12 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
     pending_leave_count = LeaveRequest.objects.filter(
         tenant=tenant,
         status=LeaveRequest.Status.PENDING,
-        employee_id__in=active_ids,
+        employee_id__in=active_id_subq,
     ).count()
     pending_overtime_count = OvertimeRequest.objects.filter(
         tenant=tenant,
         status=OvertimeRequest.Status.PENDING,
-        employee_id__in=active_ids,
+        employee_id__in=active_id_subq,
     ).count()
     context["pending_leave_count"] = pending_leave_count
     context["pending_overtime_count"] = pending_overtime_count
@@ -684,7 +702,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
         DailyTimesheet.objects.filter(
             tenant=tenant,
             work_date=today,
-            employee_id__in=active_ids,
+            employee_id__in=active_id_subq,
         ),
     ).count()
     draft_payroll_qs = PayrollRun.objects.filter(
@@ -719,7 +737,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
             LeaveRequest.objects.filter(
                 tenant=tenant,
                 status=LeaveRequest.Status.PENDING,
-                employee_id__in=active_ids,
+                employee_id__in=active_id_subq,
             )
             .select_related("employee", "leave_type")
             .order_by("-created_at")[:5]
@@ -728,7 +746,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
             OvertimeRequest.objects.filter(
                 tenant=tenant,
                 status=OvertimeRequest.Status.PENDING,
-                employee_id__in=active_ids,
+                employee_id__in=active_id_subq,
             )
             .select_related("employee", "overtime_type")
             .order_by("-created_at")[:5]

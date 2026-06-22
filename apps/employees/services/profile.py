@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 
+from django.db.models import Count, Q, Sum
 from django.utils import timezone
 
 from apps.attendance.models import DailyTimesheet
@@ -57,17 +58,26 @@ def build_employee_profile_context(employee: Employee) -> dict:
         employee=employee,
         work_date__gte=month_start,
         work_date__lte=month_end,
-    ).select_related("attendance_code", "shift")
+    )
 
+    month_agg = month_timesheets.aggregate(
+        present_days=Count(
+            "id",
+            filter=Q(check_in__isnull=False) & ~Q(attendance_code__code="A"),
+        ),
+        paid_hours=Sum("paid_working_hours"),
+        late_minutes=Sum("late_in_minutes"),
+        ot_before_minutes=Sum("ot_before_minutes"),
+        ot_after_minutes=Sum("ot_after_minutes"),
+        alpha_days=Count("id", filter=Q(attendance_code__code="A")),
+    )
     month_stats = {
-        "present_days": month_timesheets.filter(check_in__isnull=False)
-        .exclude(attendance_code__code="A")
-        .count(),
-        "paid_hours": sum(ts.paid_working_hours for ts in month_timesheets),
-        "late_minutes": sum(ts.late_in_minutes for ts in month_timesheets),
-        "ot_before_minutes": sum(ts.ot_before_minutes for ts in month_timesheets),
-        "ot_after_minutes": sum(ts.ot_after_minutes for ts in month_timesheets),
-        "alpha_days": month_timesheets.filter(attendance_code__code="A").count(),
+        "present_days": month_agg["present_days"] or 0,
+        "paid_hours": month_agg["paid_hours"] or 0,
+        "late_minutes": month_agg["late_minutes"] or 0,
+        "ot_before_minutes": month_agg["ot_before_minutes"] or 0,
+        "ot_after_minutes": month_agg["ot_after_minutes"] or 0,
+        "alpha_days": month_agg["alpha_days"] or 0,
     }
 
     recent_timesheets = list(

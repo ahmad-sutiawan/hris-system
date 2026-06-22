@@ -26,7 +26,14 @@ def payslip_list_qs(qs):
 
 
 def timesheet_list_qs(qs):
-    return qs.select_related("employee", "plant", "shift", "attendance_code")
+    return qs.select_related(
+        "employee",
+        "employee__department",
+        "employee__job_position",
+        "plant",
+        "shift",
+        "attendance_code",
+    )
 
 
 def overtime_list_qs(qs):

@@ -1,9 +1,11 @@
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
 from apps.attendance.models import AttendanceRecord, DailyTimesheet
+from apps.attendance.services.record_prefetch import attendance_record_map
 from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
 from apps.attendance.services.import_punches import (
@@ -31,14 +33,7 @@ def _parse_punch_photo(request):
 
 
 def attach_punch_records(timesheets, tenant) -> None:
-    if not timesheets:
-        return
-    records = AttendanceRecord.objects.filter(
-        tenant=tenant,
-        employee_id__in={row.employee_id for row in timesheets},
-        work_date__in={row.work_date for row in timesheets},
-    ).prefetch_related("punches")
-    record_map = {(record.employee_id, record.work_date): record for record in records}
+    record_map = attendance_record_map(timesheets, tenant)
     for row in timesheets:
         row._punch_record = record_map.get((row.employee_id, row.work_date))
 
@@ -163,7 +158,16 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
             qs = qs.filter(work_date__gte=work_date_from)
         if work_date_to:
             qs = qs.filter(work_date__lte=work_date_to)
+        if not work_date_from and not work_date_to:
+            today = timezone.localdate()
+            qs = qs.filter(work_date__gte=today.replace(day=1), work_date__lte=today)
         return qs.order_by("-work_date")
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        attach_punch_records([instance], request.user.tenant)
+        serializer = self.get_serializer(instance, context=self.get_serializer_context())
+        return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

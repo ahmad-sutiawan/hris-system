@@ -12,6 +12,7 @@ from apps.core.models import Notification, Plant, User
 from apps.core.approval import can_approve_request
 from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
+from apps.core.services.approval_chain import approval_steps
 from apps.employees.models import Employee
 from apps.employees.services.onboarding import resolve_default_shift
 from apps.employees.services.photo import employee_photo_url
@@ -20,8 +21,8 @@ from apps.employees.services.user_link import ensure_employee_profile
 from apps.leave.models import LeaveRequest
 from apps.organization.models import JobPosition
 from apps.shifts.models import ShiftAssignment
+from apps.payroll.models import Pph21TerCategory
 from apps.payroll.services.salary_preview import build_salary_preview
-from apps.payroll.services.ter import seed_ter_master
 from apps.web.services.dashboard import build_dashboard_context
 
 
@@ -64,15 +65,21 @@ def _pending_approval_summary(user, profile, tenant) -> dict:
     else:
         return {"leave": 0, "overtime": 0}
 
+    leave_steps = approval_steps(tenant, "leave")
+    ot_steps = approval_steps(tenant, "overtime")
     leave_count = sum(
         1
         for req in leave_qs
-        if can_approve_request(user, req.employee, "leave", req.approval_step or 1)
+        if can_approve_request(
+            user, req.employee, "leave", req.approval_step or 1, steps=leave_steps
+        )
     )
     ot_count = sum(
         1
         for req in ot_qs
-        if can_approve_request(user, req.employee, "overtime", req.approval_step or 1)
+        if can_approve_request(
+            user, req.employee, "overtime", req.approval_step or 1, steps=ot_steps
+        )
     )
     return {"leave": leave_count, "overtime": ot_count}
 
@@ -299,7 +306,10 @@ class MobileProfileView(APIView):
         employee = ctx["employee"]
         resolved_default = ctx.get("default_shift")
         default_shift_payload = _serialize_default_shift(employee, resolved_default)
-        seed_ter_master(request.user.tenant)
+        if not Pph21TerCategory.objects.filter(tenant=request.user.tenant).exists():
+            from apps.payroll.services.ter import seed_ter_master
+
+            seed_ter_master(request.user.tenant)
         salary_preview = _serialize_salary_preview(
             build_salary_preview(employee, tenant=request.user.tenant)
         )
