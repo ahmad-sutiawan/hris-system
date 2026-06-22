@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/employee_avatar.dart';
 import '../../core/widgets/hris_widgets.dart';
 
 final employeeDetailProvider =
@@ -52,17 +53,12 @@ class EmployeeDetailScreen extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 34,
+                      EmployeeAvatar(
+                        photoUrl: emp['photo_url'] as String?,
+                        name: emp['full_name'] as String? ?? '?',
+                        size: 68,
                         backgroundColor: Colors.white.withValues(alpha: 0.18),
-                        child: Text(
-                          _initials(emp['full_name'] as String? ?? '?'),
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 22,
-                          ),
-                        ),
+                        textColor: Colors.white,
                       ),
                       const SizedBox(height: 12),
                       Text(
@@ -104,13 +100,6 @@ class EmployeeDetailScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  static String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 }
 

@@ -43,9 +43,9 @@ class AuthMeView(APIView):
         user = request.user
         profile = getattr(user, "employee_profile", None)
         if profile and (user.is_hr or user.is_admin):
-            employee_data = EmployeeSerializer(profile).data
+            employee_data = EmployeeSerializer(profile, context={"request": request}).data
         elif profile:
-            employee_data = EmployeeSelfSerializer(profile).data
+            employee_data = EmployeeSelfSerializer(profile, context={"request": request}).data
         else:
             employee_data = None
         payload = {

@@ -33,7 +33,7 @@
         <tr>
           <td class="hris-col-no hris-text-dim">{% list_row_no result_count forloop.counter0 page_start %}</td>
           <td>{{ row.work_date }}</td>
-          <td class="hris-strong">{{ row.employee.full_name }}</td>
+          <td class="hris-strong"><span class="hris-employee-name-cell">{% employee_avatar row.employee 32 %}{{ row.employee.full_name }}</span></td>
           <td><span class="hris-mono">{{ row.shift.code }}</span></td>
           <td>{{ row.scheduled_check_in }}</td>
           <td>{{ row.scheduled_check_out }}</td>

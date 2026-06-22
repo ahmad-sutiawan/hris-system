@@ -59,7 +59,7 @@
           <td class="hris-col-no hris-text-dim">{% list_row_no result_count forloop.counter0 page_start %}</td>
           {% if user.role == 'admin' or user.role == 'hr' %}
           <td><span class="hris-mono">{{ row.employee.employee_id }}</span></td>
-          <td class="hris-strong">{{ row.employee.full_name }}</td>
+          <td class="hris-strong"><span class="hris-employee-name-cell">{% employee_avatar row.employee 32 %}{{ row.employee.full_name }}</span></td>
           {% endif %}
           <td>{{ row.work_date|local_date }}</td>
           <td>{{ row.shift_code|default:"-" }}</td>

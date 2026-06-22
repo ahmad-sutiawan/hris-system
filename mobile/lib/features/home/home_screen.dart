@@ -8,6 +8,7 @@ import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/shift_utils.dart';
 import '../../core/widgets/animated_interactions.dart';
+import '../../core/widgets/employee_avatar.dart';
 import '../../core/widgets/hris_widgets.dart';
 import '../../core/widgets/talenta_widgets.dart';
 
@@ -109,6 +110,7 @@ class HomeScreen extends ConsumerWidget {
                 child: HomeGreetingHeader(
                   name: name,
                   subtitle: employeeId.isNotEmpty ? employeeId : null,
+                  photoUrl: employee?['photo_url'] as String?,
                   onAvatarTap: () => context.push('/profile'),
                 ),
               ),
@@ -189,21 +191,12 @@ class HomeScreen extends ConsumerWidget {
                           child: HrisCard(
                             child: ListTile(
                               contentPadding: EdgeInsets.zero,
-                              leading: CircleAvatar(
+                              leading: EmployeeAvatar(
+                                photoUrl: item['photo_url'] as String?,
+                                name: item['full_name'] as String? ?? '?',
+                                size: 40,
                                 backgroundColor: AppColors.chinaRedLight,
-                                child: Text(
-                                  (item['full_name'] as String? ?? '?')
-                                      .split(' ')
-                                      .map((p) => p.isNotEmpty ? p[0] : '')
-                                      .take(2)
-                                      .join()
-                                      .toUpperCase(),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.chinaRed,
-                                  ),
-                                ),
+                                textColor: AppColors.chinaRed,
                               ),
                               title: Text(
                                 item['full_name'] as String? ?? '—',

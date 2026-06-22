@@ -34,7 +34,7 @@
         <tr>
           <td class="hris-col-no hris-text-dim">{% list_row_no result_count forloop.counter0 page_start %}</td>
           <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
-          <td class="hris-strong">{{ employee.full_name }}</td>
+          <td class="hris-strong"><span class="hris-employee-name-cell">{% employee_avatar employee 32 %}{{ employee.full_name }}</span></td>
           <td>{{ employee.plant.code }}</td>
           <td>{{ employee.get_salary_scheme_display }}</td>
           <td class="hris-num">{{ employee.base_salary|num:0 }}</td>

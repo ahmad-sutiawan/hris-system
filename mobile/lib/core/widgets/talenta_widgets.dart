@@ -5,6 +5,7 @@ import '../theme/app_colors.dart';
 import '../utils/shift_utils.dart';
 import 'animated_interactions.dart';
 import 'aurora_background.dart';
+import 'employee_avatar.dart';
 
 const _cardRadius = 16.0;
 
@@ -21,11 +22,13 @@ class HomeGreetingHeader extends StatelessWidget {
     super.key,
     required this.name,
     this.subtitle,
+    this.photoUrl,
     this.onAvatarTap,
   });
 
   final String name;
   final String? subtitle;
+  final String? photoUrl;
   final VoidCallback? onAvatarTap;
 
   @override
@@ -108,17 +111,12 @@ class HomeGreetingHeader extends StatelessWidget {
                         shape: BoxShape.circle,
                         gradient: AppColors.goldGradient,
                       ),
-                      child: CircleAvatar(
-                        radius: 24,
+                      child: EmployeeAvatar(
+                        photoUrl: photoUrl,
+                        name: name.isNotEmpty ? name : firstName,
+                        size: 48,
                         backgroundColor: Colors.white,
-                        child: Text(
-                          firstName.isNotEmpty ? firstName[0].toUpperCase() : '?',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.chinaRed,
-                          ),
-                        ),
+                        textColor: AppColors.chinaRed,
                       ),
                     ),
                   ),
@@ -1104,28 +1102,24 @@ class TeamMemberAvatar extends StatelessWidget {
   const TeamMemberAvatar({
     super.key,
     required this.name,
+    this.photoUrl,
     this.size = 52,
   });
 
   final String name;
+  final String? photoUrl;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final initial = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
     return Column(
       children: [
-        CircleAvatar(
-          radius: size / 2,
+        EmployeeAvatar(
+          photoUrl: photoUrl,
+          name: name,
+          size: size,
           backgroundColor: AppColors.chinaRedLight,
-          child: Text(
-            initial,
-            style: GoogleFonts.plusJakartaSans(
-              fontWeight: FontWeight.w800,
-              color: AppColors.chinaRed,
-              fontSize: size * 0.38,
-            ),
-          ),
+          textColor: AppColors.chinaRed,
         ),
         const SizedBox(height: 6),
         SizedBox(
@@ -1184,6 +1178,7 @@ class DirectReportsRow extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 16),
                       child: TeamMemberAvatar(
                         name: member['full_name'] ?? '?',
+                        photoUrl: member['photo_url'] as String?,
                       ),
                     ),
                 ],

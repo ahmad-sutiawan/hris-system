@@ -280,6 +280,16 @@
   font: 700 0.6875rem/1 var(--hx-mono);
   color: #fff;
   background: linear-gradient(135deg, var(--neo-cyan-end), var(--neo-purple-end));
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.hx-punch-avatar .hris-employee-avatar,
+.hx-punch-avatar .hris-employee-avatar.is-photo {
+  width: 2.25rem;
+  height: 2.25rem;
+  --avatar-size: 2.25rem;
+  border: none;
 }
 
 .hx-punch-user strong { display: block; font-size: 0.8125rem; }
@@ -956,6 +966,15 @@
   color: #fff;
   background: linear-gradient(135deg, var(--neo-magenta), var(--neo-purple-end));
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.hx-people-av .hris-employee-avatar,
+.hx-people-av .hris-employee-avatar.is-photo {
+  width: 1.75rem;
+  height: 1.75rem;
+  --avatar-size: 1.75rem;
+  border: none;
 }
 
 .hx-people strong { display: block; font-size: 0.6875rem; }

@@ -20,12 +20,17 @@
 
 <div class="hris-page-header">
   <div>
-    <h1>{{ employee.full_name }}</h1>
-    <p>
-      <span class="hris-mono">{{ employee.employee_id }}</span>
-      · {{ employee.plant.code }} — {{ employee.plant.name }}
-      · {% status_badge employee.status employee.get_status_display %}
-    </p>
+    <div class="hris-profile-hero">
+      {% employee_avatar employee 80 %}
+      <div>
+        <h1>{{ employee.full_name }}</h1>
+        <p>
+          <span class="hris-mono">{{ employee.employee_id }}</span>
+          · {{ employee.plant.code }} — {{ employee.plant.name }}
+          · {% status_badge employee.status employee.get_status_display %}
+        </p>
+      </div>
+    </div>
   </div>
   <div class="hris-actions">
     <a href="{% url 'web:payslip_list' %}" class="hris-btn hris-btn-secondary">Slip Gaji</a>

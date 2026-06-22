@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_interactions.dart';
+import '../../core/widgets/employee_avatar.dart';
 import '../../core/widgets/hris_widgets.dart';
 
 class EmployeeDirectoryQuery {
@@ -409,8 +410,6 @@ class _EmployeeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = _initials(employee['full_name'] as String? ?? '?');
-
     return AnimatedPress(
       onTap: onTap,
       child: Container(
@@ -425,16 +424,10 @@ class _EmployeeCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.cyanDim,
-              child: Text(
-                initials,
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppColors.cyan,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+            EmployeeAvatar(
+              photoUrl: employee['photo_url'] as String?,
+              name: employee['full_name'] as String? ?? '?',
+              size: 48,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -469,12 +462,5 @@ class _EmployeeCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  static String _initials(String name) {
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    if (parts.isEmpty) return '?';
-    if (parts.length == 1) return parts.first[0].toUpperCase();
-    return '${parts.first[0]}${parts.last[0]}'.toUpperCase();
   }
 }

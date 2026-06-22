@@ -24,6 +24,12 @@
         {% endif %}
 
         <div class="hris-field--full"><h2 class="hris-card-title">Data Karyawan</h2></div>
+        {% if form.instance.pk and form.instance.photo %}
+        <div class="hris-field--full hris-form-photo-preview">
+          <p class="hris-text-dim" style="font-size:0.875rem;margin:0">Foto profil saat ini</p>
+          <div style="margin-top:0.5rem">{% employee_avatar form.instance 72 %}</div>
+        </div>
+        {% endif %}
         {% for field in form %}
           <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--checkbox{% elif field.name in 'full_name employee_id plant address photo' %} hris-field--full{% endif %}">
             {% if field.field.widget.input_type == 'checkbox' %}

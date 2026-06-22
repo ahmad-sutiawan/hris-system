@@ -73,7 +73,7 @@
   {% if profile %}
   <section class="hx-punch-strip">
     <div class="hx-punch-user">
-      <span class="hx-punch-avatar">{{ profile.full_name|initials }}</span>
+      <span class="hx-punch-avatar">{% employee_avatar profile 36 %}</span>
       <div>
         <strong>{{ profile.full_name }}</strong>
         <span>{{ profile.employee_id }}</span>
@@ -262,7 +262,7 @@
       <header class="hx-panel-head"><span class="hx-tag hx-tag--magenta">Cuti</span><h2>Sedang Cuti Hari Ini</h2></header>
       {% if on_leave_today_items %}
       <ul class="hx-people">{% for item in on_leave_today_items %}
-        <li><span class="hx-people-av">{{ item.employee.full_name|initials }}</span><div><strong>{{ item.employee.full_name }}</strong><span>{% if item.leave_request.leave_type %}{{ item.leave_request.leave_type.name }}{% endif %}{% if item.employee.department %} · {{ item.employee.department.name }}{% endif %}</span></div></li>
+        <li><span class="hx-people-av">{% employee_avatar item.employee 28 %}</span><div><strong>{{ item.employee.full_name }}</strong><span>{% if item.leave_request.leave_type %}{{ item.leave_request.leave_type.name }}{% endif %}{% if item.employee.department %} · {{ item.employee.department.name }}{% endif %}</span></div></li>
       {% endfor %}</ul>
       {% else %}<p class="hx-empty">Tidak ada karyawan cuti hari ini.</p>{% endif %}
     </section>

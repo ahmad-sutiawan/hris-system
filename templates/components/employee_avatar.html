@@ -1,0 +1,5 @@
+{% if url %}
+<img src="{{ url }}" alt="" class="hris-employee-avatar is-photo" width="{{ size }}" height="{{ size }}" loading="lazy" decoding="async" title="{{ name }}">
+{% else %}
+<span class="hris-employee-avatar" style="--avatar-size: {{ size }}px" title="{{ name }}">{{ initials }}</span>
+{% endif %}

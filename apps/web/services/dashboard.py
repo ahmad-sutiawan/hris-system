@@ -45,7 +45,31 @@ def _latest_punch_photos(employee_ids: list[int]) -> dict[int, str]:
     return photos
 
 
-def build_on_leave_today_items(*, user: User, tenant, today) -> list[dict]:
+def _employee_profile_photos(employee_ids: list[int], *, request=None) -> dict[int, str]:
+    if not employee_ids:
+        return {}
+
+    from apps.employees.models import Employee
+    from apps.employees.services.photo import employee_photo_url
+
+    photos: dict[int, str] = {}
+    for employee in Employee.objects.filter(id__in=employee_ids).only("id", "photo"):
+        url = employee_photo_url(employee, request=request)
+        if url:
+            photos[employee.id] = url
+    return photos
+
+
+def _resolve_employee_photo_urls(employee_ids: list[int], *, request=None) -> dict[int, str]:
+    photos = _employee_profile_photos(employee_ids, request=request)
+    missing = [employee_id for employee_id in employee_ids if employee_id not in photos]
+    if missing:
+        punch_photos = _latest_punch_photos(missing)
+        photos.update(punch_photos)
+    return photos
+
+
+def build_on_leave_today_items(*, user: User, tenant, today, request=None) -> list[dict]:
     """Karyawan aktif yang sedang cuti (semua jenis, approved) pada tanggal `today`."""
     active_ids = list(_active_employees(user, tenant).values_list("id", flat=True))
     if not active_ids:
@@ -71,7 +95,7 @@ def build_on_leave_today_items(*, user: User, tenant, today) -> list[dict]:
         seen.add(request.employee_id)
         employee_ids.append(request.employee_id)
 
-    photos = _latest_punch_photos(employee_ids)
+    photos = _resolve_employee_photo_urls(employee_ids, request=request)
     items: list[dict] = []
     seen.clear()
     for request in leave_requests:
@@ -450,7 +474,7 @@ def _build_neo_visuals(
     }
 
 
-def build_dashboard_context(*, user: User, tenant, today, profile):
+def build_dashboard_context(*, user: User, tenant, today, profile, request=None):
     """Aggregate dashboard widgets from existing HRIS data."""
     context = {
         "show_ops": user.is_hr,
@@ -511,6 +535,7 @@ def build_dashboard_context(*, user: User, tenant, today, profile):
         user=user,
         tenant=tenant,
         today=today,
+        request=request,
     )
     on_leave_ids = {item["employee"].id for item in on_leave_today_items}
     context["on_leave_today_items"] = on_leave_today_items

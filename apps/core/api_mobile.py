@@ -14,6 +14,7 @@ from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
 from apps.employees.models import Employee
 from apps.employees.services.onboarding import resolve_default_shift
+from apps.employees.services.photo import employee_photo_url
 from apps.employees.services.profile import build_employee_profile_context
 from apps.employees.services.user_link import ensure_employee_profile
 from apps.leave.models import LeaveRequest
@@ -111,13 +112,14 @@ def _serialize_salary_preview(preview: dict) -> dict:
     }
 
 
-def _serialize_employee_mobile(employee, *, default_shift_payload) -> dict:
+def _serialize_employee_mobile(employee, *, default_shift_payload, request=None) -> dict:
     scheme_labels = dict(Employee.SalaryScheme.choices)
     dept_name = employee.department.name if employee.department_id else None
     return {
         "id": employee.id,
         "employee_id": employee.employee_id,
         "full_name": employee.full_name,
+        "photo_url": employee_photo_url(employee, request=request),
         "email": employee.email,
         "phone": employee.phone,
         "status": employee.status,
@@ -175,6 +177,7 @@ class MobileDashboardView(APIView):
             tenant=user.tenant,
             today=today,
             profile=profile,
+            request=request,
         )
 
         unread_notifications = Notification.objects.filter(
@@ -207,9 +210,9 @@ class MobileDashboardView(APIView):
                 .filter(pk=profile.pk)
                 .first()
             )
-            direct_reports = _serialize_direct_reports(profile)
+            direct_reports = _serialize_direct_reports(profile, request=request)
             if not direct_reports:
-                team_colleagues = _serialize_team_colleagues(profile)
+                team_colleagues = _serialize_team_colleagues(profile, request=request)
             upcoming_shifts = [
                 _serialize_shift(item)
                 for item in ShiftAssignment.objects.filter(
@@ -244,6 +247,7 @@ class MobileDashboardView(APIView):
                 {
                     "employee_id": item["employee"].employee_id,
                     "full_name": item["employee"].full_name,
+                    "photo_url": employee_photo_url(item["employee"], request=request),
                     "department": (
                         item["employee"].department.name
                         if item["employee"].department_id
@@ -304,6 +308,7 @@ class MobileProfileView(APIView):
                 "employee": _serialize_employee_mobile(
                     employee,
                     default_shift_payload=default_shift_payload,
+                    request=request,
                 ),
                 "today": ctx["today"].isoformat(),
                 "month_stats": ctx["month_stats"],
@@ -330,17 +335,18 @@ class MobileProfileView(APIView):
         )
 
 
-def _serialize_team_member(employee: Employee) -> dict:
+def _serialize_team_member(employee: Employee, *, request=None) -> dict:
     return {
         "id": employee.id,
         "employee_id": employee.employee_id,
         "full_name": employee.full_name,
         "job_title": employee.job_position.title if employee.job_position_id else None,
         "department_name": employee.department.name if employee.department_id else None,
+        "photo_url": employee_photo_url(employee, request=request),
     }
 
 
-def _serialize_direct_reports(profile: Employee) -> list[dict]:
+def _serialize_direct_reports(profile: Employee, *, request=None) -> list[dict]:
     qs = (
         profile.direct_reports.exclude(
             status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED],
@@ -348,10 +354,10 @@ def _serialize_direct_reports(profile: Employee) -> list[dict]:
         .select_related("job_position", "department")
         .order_by("full_name")[:8]
     )
-    return [_serialize_team_member(item) for item in qs]
+    return [_serialize_team_member(item, request=request) for item in qs]
 
 
-def _serialize_team_colleagues(profile: Employee, *, limit: int = 5) -> list[dict]:
+def _serialize_team_colleagues(profile: Employee, *, limit: int = 5, request=None) -> list[dict]:
     if not profile.department_id:
         return []
     qs = (
@@ -364,7 +370,7 @@ def _serialize_team_colleagues(profile: Employee, *, limit: int = 5) -> list[dic
         .select_related("job_position", "department")
         .order_by("full_name")[:limit]
     )
-    return [_serialize_team_member(item) for item in qs]
+    return [_serialize_team_member(item, request=request) for item in qs]
 
 
 def _shift_datetime(work_date, time_value):

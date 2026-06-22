@@ -24,6 +24,7 @@
       <thead>
         <tr>
           <th class="hris-col-no">No</th>
+          <th class="hris-employee-avatar-cell" aria-label="Foto"></th>
           <th>Employee ID</th>
           <th>Full Name</th>
           <th>Organization</th>
@@ -46,6 +47,7 @@
         {% for employee in employees %}
         <tr>
           <td class="hris-col-no hris-text-dim">{% list_row_no result_count forloop.counter0 page_start %}</td>
+          <td class="hris-employee-avatar-cell">{% employee_avatar employee 36 %}</td>
           <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
           <td class="hris-strong">{{ employee.full_name }}</td>
           <td>{{ employee.organization_name|default:"—" }}</td>
@@ -74,7 +76,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="17"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan. Import file Excel Talenta di folder media.{% endif %}</div></td></tr>
+        <tr><td colspan="18"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan. Import file Excel Talenta di folder media.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

@@ -1,10 +1,18 @@
 from rest_framework import serializers
 
 from apps.employees.models import Employee
+from apps.employees.services.photo import employee_photo_url
 from apps.payroll.services.calculator import effective_daily_wage, hourly_rate
 
 
-class EmployeeDirectorySerializer(serializers.ModelSerializer):
+class EmployeePhotoUrlMixin:
+    photo_url = serializers.SerializerMethodField()
+
+    def get_photo_url(self, obj):
+        return employee_photo_url(obj, request=self.context.get("request"))
+
+
+class EmployeeDirectorySerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
     """Safe employee list for mobile directory — no compensation fields."""
 
     plant_code = serializers.CharField(source="plant.code", read_only=True)
@@ -32,11 +40,12 @@ class EmployeeDirectorySerializer(serializers.ModelSerializer):
             "manager_name",
             "status",
             "join_date",
+            "photo_url",
         ]
         read_only_fields = fields
 
 
-class EmployeeSerializer(serializers.ModelSerializer):
+class EmployeeSerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
     """Full employee record — HR/Admin only."""
     plant_code = serializers.CharField(source="plant.code", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
@@ -90,6 +99,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
             "pph21_deduct",
             "bpjs_kesehatan_number",
             "bpjs_ketenagakerjaan_number",
+            "photo_url",
             "created_at",
             "updated_at",
         ]
@@ -110,7 +120,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return str(hourly_rate(obj))
 
 
-class EmployeeSelfSerializer(serializers.ModelSerializer):
+class EmployeeSelfSerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
     """Read-only profile for the logged-in employee (no compensation/PII edits)."""
 
     plant_code = serializers.CharField(source="plant.code", read_only=True)
@@ -146,5 +156,6 @@ class EmployeeSelfSerializer(serializers.ModelSerializer):
             "birth_place",
             "birth_date",
             "mother_name",
+            "photo_url",
         ]
         read_only_fields = fields

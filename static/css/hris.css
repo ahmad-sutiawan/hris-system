@@ -3242,6 +3242,64 @@ body.hris-modal-open {
   gap: 0.35rem;
 }
 
+.hris-employee-avatar {
+  flex-shrink: 0;
+  width: var(--avatar-size, 2.5rem);
+  height: var(--avatar-size, 2.5rem);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(var(--avatar-size, 2.5rem) * 0.34);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--hris-amber);
+  background: linear-gradient(135deg, rgba(251, 208, 47, 0.22), rgba(50, 105, 204, 0.12));
+  border: 2px solid var(--hris-gold-border);
+  overflow: hidden;
+}
+
+.hris-employee-avatar.is-photo {
+  object-fit: cover;
+  display: block;
+  padding: 0;
+  background: var(--hris-bg);
+  border-radius: 50%;
+}
+
+.hris-employee-avatar-cell {
+  width: 3rem;
+}
+
+.hris-employee-avatar-cell .hris-employee-avatar {
+  margin: 0 auto;
+}
+
+.hris-employee-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hris-profile-hero {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.hris-profile-hero .hris-employee-avatar,
+.hris-profile-hero .hris-employee-avatar.is-photo {
+  --avatar-size: 5rem;
+  width: 5rem;
+  height: 5rem;
+  font-size: 1.35rem;
+}
+
+.hris-form-photo-preview {
+  margin-top: 0.5rem;
+}
+
 /* ── Dashboard visualizations (CSS-native, no external chart lib) ── */
 .hris-viz-grid {
   display: grid;

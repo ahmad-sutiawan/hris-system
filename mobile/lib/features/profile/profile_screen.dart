@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/network/api_client.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/money_utils.dart';
+import '../../core/widgets/employee_avatar.dart';
 import '../../core/widgets/hris_widgets.dart';
 
 final profileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -54,17 +55,35 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        emp['full_name'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${emp['employee_id']} · ${emp['status_label'] ?? emp['status']}',
-                        style: const TextStyle(color: AppColors.textSecondary),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          EmployeeAvatar(
+                            photoUrl: emp['photo_url'] as String?,
+                            name: emp['full_name'] as String? ?? '',
+                            size: 56,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  emp['full_name'] ?? '',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${emp['employee_id']} · ${emp['status_label'] ?? emp['status']}',
+                                  style: const TextStyle(color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       _InfoRow('Plant', emp['plant']),

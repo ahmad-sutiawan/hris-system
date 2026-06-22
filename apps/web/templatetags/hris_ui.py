@@ -106,6 +106,20 @@ def initials(value):
     return parts[0][:2].upper()
 
 
+@register.inclusion_tag("components/employee_avatar.html", takes_context=True)
+def employee_avatar(context, employee, size=40):
+    from apps.employees.services.photo import employee_photo_url
+
+    request = context.get("request")
+    name = getattr(employee, "full_name", "") or ""
+    return {
+        "url": employee_photo_url(employee, request=request),
+        "initials": initials(name),
+        "size": int(size),
+        "name": name,
+    }
+
+
 @register.filter
 def rupiah(value):
     return format_rupiah(value)

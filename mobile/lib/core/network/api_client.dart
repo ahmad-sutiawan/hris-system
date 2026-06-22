@@ -69,6 +69,8 @@ class ApiClient {
 
   final Dio _dio;
   final FlutterSecureStorage _storage;
+  final Map<String, Uint8List> _mediaCache = {};
+  final Map<String, Future<Uint8List?>> _mediaInflight = {};
 
   Dio get dio => _dio;
   String get baseUrl => _dio.options.baseUrl;
@@ -272,7 +274,32 @@ class ApiClient {
 
     final query = _mediaQuery(urlOrPath);
     final requestPath = query == null ? '/media/$mediaPath' : '/media/$mediaPath?$query';
+    final cacheKey = requestPath;
 
+    final cached = _mediaCache[cacheKey];
+    if (cached != null) return cached;
+
+    final inflight = _mediaInflight[cacheKey];
+    if (inflight != null) return inflight;
+
+    final future = _downloadMediaBytes(mediaPath, query, requestPath);
+    _mediaInflight[cacheKey] = future;
+    try {
+      final bytes = await future;
+      if (bytes != null && bytes.isNotEmpty) {
+        _mediaCache[cacheKey] = bytes;
+      }
+      return bytes;
+    } finally {
+      _mediaInflight.remove(cacheKey);
+    }
+  }
+
+  Future<Uint8List?> _downloadMediaBytes(
+    String mediaPath,
+    String? query,
+    String requestPath,
+  ) async {
     try {
       final res = await _dio.get<List<int>>(
         requestPath,

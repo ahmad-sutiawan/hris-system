@@ -177,6 +177,7 @@ def dashboard(request):
         tenant=tenant,
         today=today,
         profile=profile,
+        request=request,
     )
 
     return render(
