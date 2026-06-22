@@ -139,8 +139,11 @@ def calculate_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
 
 @transaction.atomic
 def finalize_payroll_run(payroll_run: PayrollRun) -> PayrollRun:
-    if payroll_run.status not in {PayrollRun.Status.REVIEW, PayrollRun.Status.DRAFT}:
-        raise PayrollError("Payroll tidak bisa difinalize.")
+    if payroll_run.status != PayrollRun.Status.REVIEW:
+        raise PayrollError("Hitung payroll terlebih dahulu (status REVIEW) sebelum finalize.")
+
+    if not Payslip.objects.filter(payroll_run=payroll_run).exists():
+        raise PayrollError("Tidak ada slip gaji. Hitung payroll terlebih dahulu.")
 
     negative = Payslip.objects.filter(payroll_run=payroll_run, net_amount__lt=0)
     if negative.exists():

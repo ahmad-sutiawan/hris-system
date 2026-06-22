@@ -124,8 +124,28 @@ def user_can_access_media(user, path: str) -> bool:
 
         return Payslip.objects.filter(employee=profile, pdf_file=path).exists()
 
-    if path.startswith("employee_photos/") and profile:
-        return profile.photo.name == path
+    if path.startswith("employee_photos/"):
+        from apps.employees.models import Employee
+
+        inactive = {Employee.Status.INACTIVE, Employee.Status.RESIGNED}
+        if user.is_hr:
+            if user.plant_id:
+                return Employee.objects.filter(
+                    tenant_id=user.tenant_id,
+                    plant_id=user.plant_id,
+                    photo=path,
+                ).exclude(status__in=inactive).exists()
+            return Employee.objects.filter(
+                tenant_id=user.tenant_id,
+                photo=path,
+            ).exclude(status__in=inactive).exists()
+        if profile:
+            if profile.photo.name == path:
+                return True
+            return Employee.objects.filter(
+                tenant_id=user.tenant_id,
+                photo=path,
+            ).exclude(status__in=inactive).exists()
 
     if path.startswith("employee_documents/") and profile:
         from apps.employees.models import EmployeeDocument
@@ -187,8 +207,8 @@ def serve_protected_media(request, path: str):
         raise Http404
 
     sig = request.GET.get("sig")
-    if sig and verify_media_signature(path, sig):
-        return _file_response(full_path, path)
+    if sig and not verify_media_signature(path, sig):
+        return HttpResponseForbidden("Akses media ditolak.")
 
     if not request.user.is_authenticated:
         _authenticate_jwt(request)

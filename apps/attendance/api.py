@@ -169,6 +169,12 @@ class DailyTimesheetViewSet(TenantScopedViewSet):
         serializer = self.get_serializer(instance, context=self.get_serializer_context())
         return Response(serializer.data)
 
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"detail": 'Method "POST" not allowed.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)

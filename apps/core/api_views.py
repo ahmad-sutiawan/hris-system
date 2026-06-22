@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.utils import timezone
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -57,6 +58,12 @@ class NotificationViewSet(TenantScopedViewSet):
         return Notification.objects.filter(
             tenant=self.request.user.tenant,
             user=self.request.user,
+        )
+
+    def create(self, request, *args, **kwargs):
+        return Response(
+            {"detail": 'Method "POST" not allowed.'},
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
     @action(detail=False, methods=["post"])

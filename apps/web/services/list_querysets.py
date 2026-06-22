@@ -15,6 +15,7 @@ from apps.core.querysets import audit_log_list_qs, employee_list_qs, timesheet_l
 from apps.employees.models import Employee
 from apps.leave.models import LeaveRequest
 from apps.payroll.models import PayrollRun, Payslip
+from apps.payroll.access import restrict_payslip_visibility
 from apps.shifts.models import ShiftAssignment
 
 
@@ -239,7 +240,9 @@ def payslip_list_queryset(user: User, filters: ListFilters):
         start_field="payroll_run__period_start",
         end_field="payroll_run__period_end",
     )
-    return qs.order_by("-payroll_run__period_end", "employee__full_name")
+    return restrict_payslip_visibility(qs, user).order_by(
+        "-payroll_run__period_end", "employee__full_name"
+    )
 
 
 def notification_list_queryset(user: User, filters: ListFilters):

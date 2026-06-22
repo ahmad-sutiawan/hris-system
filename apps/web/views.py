@@ -1338,6 +1338,11 @@ def payslip_download(request, pk):
         messages.error(request, "Akses ditolak.")
         return redirect("web:payslip_list")
 
+    if not (request.user.is_hr or request.user.is_admin):
+        if payslip.payroll_run.status != PayrollRun.Status.FINALIZED:
+            messages.error(request, "Slip gaji belum tersedia.")
+            return redirect("web:payslip_list")
+
     if payslip.pdf_file:
         response = HttpResponse(payslip.pdf_file.read(), content_type="application/pdf")
     else:

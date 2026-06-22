@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from apps.core.api_scoping import employee_scoped_queryset
 from apps.core.permissions import IsAdminOrHR
 from apps.core.viewsets import TenantScopedViewSet
+from apps.payroll.access import restrict_payslip_visibility
 from apps.payroll.models import PayrollRun, Payslip
 from apps.payroll.serializers import PayrollRunSerializer, PayslipSerializer
 from apps.core.xlsx_io import xlsx_http_response
@@ -80,7 +81,8 @@ class PayslipViewSet(TenantScopedViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        return employee_scoped_queryset(self.request.user, qs)
+        qs = employee_scoped_queryset(self.request.user, qs)
+        return restrict_payslip_visibility(qs, self.request.user)
 
     @action(detail=True, methods=["get"])
     def pdf(self, request, pk=None):
@@ -89,6 +91,8 @@ class PayslipViewSet(TenantScopedViewSet):
         if not (request.user.is_hr or request.user.is_admin):
             if not profile or profile.id != payslip.employee_id:
                 return Response({"detail": "Forbidden."}, status=403)
+            if payslip.payroll_run.status != PayrollRun.Status.FINALIZED:
+                return Response({"detail": "Slip gaji belum tersedia."}, status=403)
 
         if payslip.pdf_file:
             response = HttpResponse(payslip.pdf_file.read(), content_type="application/pdf")
