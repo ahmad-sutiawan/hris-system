@@ -135,6 +135,7 @@ class Tahap1PolicyTests(TestCase):
             plant=self.plant,
             employee=self.employee,
             work_date=work_date,
+            shift=self.shift,
             shift_code="S1",
         )
         self.client.login(username="tahap1admin", password="TestPassword123!")
@@ -143,6 +144,11 @@ class Tahap1PolicyTests(TestCase):
         self.assertContains(response, "Koreksi Absensi")
         self.assertContains(response, "Budi Santoso")
         self.assertContains(response, "Jam masuk")
+        self.assertContains(response, "shift-schedules-data")
+        self.assertContains(response, '"in": "08:00"')
+        self.assertContains(response, '"out": "17:00"')
+        self.assertContains(response, 'value="08:00"')
+        self.assertContains(response, 'value="17:00"')
 
     def test_attendance_correct_post_updates_record(self):
         work_date = timezone.localdate()

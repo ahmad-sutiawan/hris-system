@@ -47,4 +47,30 @@
     </div>
   </div>
 </div>
+
+{{ form.shift_schedules|json_script:"shift-schedules-data" }}
+<script>
+(function () {
+  var dataEl = document.getElementById("shift-schedules-data");
+  var shiftSel = document.getElementById("id_shift");
+  var schedIn = document.getElementById("id_scheduled_check_in");
+  var schedOut = document.getElementById("id_scheduled_check_out");
+  if (!dataEl || !shiftSel || !schedIn || !schedOut) return;
+
+  var schedules = JSON.parse(dataEl.textContent);
+
+  function applyShiftSchedule() {
+    var pk = shiftSel.value;
+    if (!pk || !schedules[pk]) return;
+    schedIn.value = schedules[pk].in;
+    schedOut.value = schedules[pk].out;
+  }
+
+  shiftSel.addEventListener("change", applyShiftSchedule);
+
+  if (shiftSel.value && !schedIn.value && !schedOut.value) {
+    applyShiftSchedule();
+  }
+})();
+</script>
 {% endblock %}

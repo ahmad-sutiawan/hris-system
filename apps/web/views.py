@@ -768,7 +768,7 @@ def attendance_correct(request, pk):
     from apps.attendance.services.correction import CorrectionError, apply_attendance_correction
 
     timesheet = get_object_or_404(
-        DailyTimesheet.objects.select_related("employee", "employee__plant"),
+        DailyTimesheet.objects.select_related("employee", "employee__plant", "shift"),
         pk=pk,
         tenant=request.user.tenant,
     )

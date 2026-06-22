@@ -391,29 +391,59 @@ class AttendanceCorrectionForm(forms.Form):
     def __init__(self, *args, tenant=None, timesheet=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.timesheet = timesheet
+        self.shift_schedules = {}
         if tenant and timesheet:
-            self.fields["shift"].queryset = Shift.objects.filter(
-                tenant=tenant, is_active=True
-            )
+            shift_qs = Shift.objects.filter(tenant=tenant, is_active=True)
+            self.fields["shift"].queryset = shift_qs
             self.fields["attendance_code"].queryset = AttendanceCode.objects.filter(
                 tenant=tenant, is_active=True
             )
+            self.shift_schedules = {
+                str(shift.pk): {
+                    "in": shift.scheduled_check_in.strftime("%H:%M"),
+                    "out": shift.scheduled_check_out.strftime("%H:%M"),
+                }
+                for shift in shift_qs
+            }
+        apply_time_fields(
+            self,
+            "check_in_time",
+            "check_out_time",
+            "scheduled_check_in",
+            "scheduled_check_out",
+        )
         if timesheet and not self.is_bound:
             if timesheet.check_in:
                 self.fields["check_in_time"].initial = timezone.localtime(timesheet.check_in).time()
             if timesheet.check_out:
                 self.fields["check_out_time"].initial = timezone.localtime(timesheet.check_out).time()
-            if timesheet.scheduled_check_in:
-                self.fields["scheduled_check_in"].initial = timesheet.scheduled_check_in
-            if timesheet.scheduled_check_out:
-                self.fields["scheduled_check_out"].initial = timesheet.scheduled_check_out
             if timesheet.shift_id:
                 self.fields["shift"].initial = timesheet.shift_id
+                shift = timesheet.shift
+                if not timesheet.scheduled_check_in:
+                    self.fields["scheduled_check_in"].initial = shift.scheduled_check_in
+                else:
+                    self.fields["scheduled_check_in"].initial = timesheet.scheduled_check_in
+                if not timesheet.scheduled_check_out:
+                    self.fields["scheduled_check_out"].initial = shift.scheduled_check_out
+                else:
+                    self.fields["scheduled_check_out"].initial = timesheet.scheduled_check_out
+            else:
+                if timesheet.scheduled_check_in:
+                    self.fields["scheduled_check_in"].initial = timesheet.scheduled_check_in
+                if timesheet.scheduled_check_out:
+                    self.fields["scheduled_check_out"].initial = timesheet.scheduled_check_out
             if timesheet.attendance_code_id:
                 self.fields["attendance_code"].initial = timesheet.attendance_code_id
 
     def clean(self):
         cleaned = super().clean()
+        shift = cleaned.get("shift")
+        if shift:
+            if not cleaned.get("scheduled_check_in"):
+                cleaned["scheduled_check_in"] = shift.scheduled_check_in
+            if not cleaned.get("scheduled_check_out"):
+                cleaned["scheduled_check_out"] = shift.scheduled_check_out
         has_change = any(
             cleaned.get(field)
             for field in (
