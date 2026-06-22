@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from apps.core.models import User
 from apps.employees.models import Employee
+from apps.employees.querysets import employee_login_qs
 
 
 def link_user_to_employee(user) -> Employee | None:
@@ -18,7 +19,7 @@ def link_user_to_employee(user) -> Employee | None:
     if user.role not in {User.Role.EMPLOYEE, User.Role.MANAGER}:
         return None
 
-    qs = Employee.objects.filter(tenant=user.tenant).filter(user__isnull=True).exclude(
+    qs = employee_login_qs().filter(tenant=user.tenant).filter(user__isnull=True).exclude(
         status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
     )
     if user.plant_id:

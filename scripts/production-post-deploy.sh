@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Jalankan di server production (148.230.98.125) setelah git pull / docker build.
+# Jalankan di server production setelah docker compose --profile mysql up -d --build
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -7,41 +7,33 @@ cd "$ROOT"
 
 echo "=== HRIS production post-deploy ==="
 
-if docker compose ps web >/dev/null 2>&1; then
-  RUN="docker compose exec -T web"
-elif command -v python3 >/dev/null 2>&1 && [ -f manage.py ]; then
-  RUN="python3 manage.py"
-else
-  echo "Jalankan dari folder proyek HRIS dengan Docker atau manage.py."
-  exit 1
-fi
+RUN="docker compose --profile mysql exec -T web"
 
 echo "→ migrate"
 $RUN python manage.py migrate --noinput
 
-echo "→ sync kredensial login karyawan (NIK + Employee ID)"
-$RUN python manage.py sync_employee_credentials --tenant default
+echo "→ repair production (tenant, admin, sync login karyawan)"
+$RUN python manage.py repair_production --tenant default || true
 
 echo "→ kompres foto profil karyawan (WebP avatar)"
 $RUN python manage.py compress_employee_photos --tenant default || true
 
-echo "→ uji login JWT contoh (opsional, abaikan jika gagal)"
-if command -v curl >/dev/null 2>&1; then
-  curl -s -X POST "http://127.0.0.1:8080/api/v1/auth/token/" \
-    -H "Content-Type: application/json" \
-    -d '{"username":"525","password":"525"}' || true
-  echo
-  echo "→ uji CORS Flutter web (localhost emulator)"
-  curl -s -i -X OPTIONS "http://127.0.0.1:8080/api/v1/health/" \
-    -H "Origin: http://localhost:49609" \
-    -H "Access-Control-Request-Method: GET" | head -12 || true
-  echo
+SITE_URL="${HRIS_SITE_URL:-https://hris.besibps.com}"
+if [ -f .env ]; then
+  # shellcheck disable=SC1091
+  val="$(grep -E '^HRIS_SITE_URL=' .env | head -1 | cut -d= -f2- | tr -d '"' | tr -d "'")"
+  if [ -n "$val" ]; then
+    SITE_URL="$val"
+  fi
 fi
 
-if docker compose ps nginx >/dev/null 2>&1; then
-  echo "→ reload nginx (CORS /api/)"
-  docker compose exec -T nginx nginx -s reload 2>/dev/null || docker compose restart nginx
+echo "→ health check ${SITE_URL}/api/v1/health/"
+if command -v curl >/dev/null 2>&1; then
+  curl -fsS "${SITE_URL%/}/api/v1/health/" && echo
 fi
 
 echo ""
-echo "Selesai. Login mobile: NIK + Employee ID (password = Employee ID)."
+echo "Selesai."
+echo "  Login web admin: username akun HR/admin"
+echo "  Login karyawan: NIK + Employee ID (password = Employee ID)"
+echo "  Jika login 500: docker compose --profile mysql logs web --tail 80"
