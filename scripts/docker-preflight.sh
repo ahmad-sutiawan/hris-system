@@ -74,10 +74,10 @@ if [ "$MODE" = "mysql" ]; then
   if [ "${DB_ENGINE:-}" != "django.db.backends.mysql" ]; then
     fail "Mode mysql but DB_ENGINE bukan MySQL. Edit .env — lihat .env.example"
   fi
-  if [ -z "${DB_PASSWORD:-}" ] || [ "${DB_PASSWORD}" = "strong-db-password" ]; then
+  if [ -z "${DB_PASSWORD:-}" ] || [ "${DB_PASSWORD}" = "strong-db-password" ] || [ "${DB_PASSWORD}" = "change-me-strong-db-password" ]; then
     fail "DB_PASSWORD masih default/kosong. Set password kuat di .env"
   fi
-  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ] || [ "${MYSQL_ROOT_PASSWORD}" = "strong-root-password" ]; then
+  if [ -z "${MYSQL_ROOT_PASSWORD:-}" ] || [ "${MYSQL_ROOT_PASSWORD}" = "strong-root-password" ] || [ "${MYSQL_ROOT_PASSWORD}" = "change-me-strong-db-password" ]; then
     fail "MYSQL_ROOT_PASSWORD masih default/kosong. Set password kuat di .env"
   fi
   if echo "${MYSQL_ROOT_PASSWORD:-}" | grep -qiE 'PASTE_|GANTI_'; then
@@ -96,6 +96,14 @@ if [ "$MODE" = "mysql" ]; then
     warn 'DB_PASSWORD mengandung karakter spesial — amankan dengan tanda kutip di .env, contoh: DB_PASSWORD="pass@123"'
   fi
   ok "Konfigurasi MySQL terdeteksi (DB_NAME=${DB_NAME:-?}, DB_USER=${DB_USER}, DB_HOST=${DB_HOST:-mysql})"
+
+  if [ -z "${HRIS_SITE_URL:-}" ] || ! echo "${HRIS_SITE_URL}" | grep -qi '^https://'; then
+    fail "HRIS_SITE_URL harus HTTPS di production (contoh: https://hris.besibps.com)"
+  fi
+  if ! echo "${ALLOWED_HOSTS:-}" | grep -q "${HRIS_DOMAIN:-hris.besibps.com}"; then
+    warn "ALLOWED_HOSTS sebaiknya mencakup HRIS_DOMAIN (${HRIS_DOMAIN:-hris.besibps.com})"
+  fi
+  ok "HRIS_SITE_URL: ${HRIS_SITE_URL}"
 else
   if [ "${DB_ENGINE:-django.db.backends.sqlite3}" != "django.db.backends.sqlite3" ]; then
     warn "DB_ENGINE bukan SQLite tapi mode sqlite — pastikan sengaja"
@@ -104,18 +112,29 @@ else
 fi
 
 # Port check (best effort)
-if command -v ss >/dev/null 2>&1; then
-  if ss -tln | grep -q ":${HTTP_PORT} "; then
-    warn "Port ${HTTP_PORT} sudah dipakai proses lain — ubah HTTP_PORT di .env atau stop proses tersebut"
-  else
-    ok "Port ${HTTP_PORT} tersedia"
+check_port() {
+  local port="$1"
+  local label="$2"
+  if command -v ss >/dev/null 2>&1; then
+    if ss -tln | grep -q ":${port} "; then
+      warn "Port ${port} (${label}) sudah dipakai proses lain"
+    else
+      ok "Port ${port} (${label}) tersedia"
+    fi
+  elif command -v lsof >/dev/null 2>&1; then
+    if lsof -i ":${port}" >/dev/null 2>&1; then
+      warn "Port ${port} (${label}) sudah dipakai — cek: lsof -i :${port}"
+    else
+      ok "Port ${port} (${label}) tersedia"
+    fi
   fi
-elif command -v lsof >/dev/null 2>&1; then
-  if lsof -i ":${HTTP_PORT}" >/dev/null 2>&1; then
-    warn "Port ${HTTP_PORT} sudah dipakai — cek dengan: lsof -i :${HTTP_PORT}"
-  else
-    ok "Port ${HTTP_PORT} tersedia"
-  fi
+}
+
+if [ "$MODE" = "mysql" ]; then
+  check_port 80 "HTTP / Let's Encrypt"
+  check_port 443 "HTTPS"
+else
+  check_port "${HTTP_PORT}" "dev HTTP"
 fi
 
 echo ""

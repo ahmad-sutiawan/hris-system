@@ -1,8 +1,8 @@
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
-  /// Backend publik PT BPS — dipakai emulator, debug, dan release APK.
-  static const productionBaseUrl = 'http://148.230.98.125:8080$apiPathSuffix';
+  /// Backend publik PT BPS — HTTPS via hris.besibps.com
+  static const productionBaseUrl = 'https://hris.besibps.com$apiPathSuffix';
 
   /// Override hanya saat build khusus: --dart-define=API_BASE_URL=...
   static String get defaultBaseUrl {

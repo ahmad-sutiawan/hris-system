@@ -71,31 +71,34 @@ mobile/        # Flutter employee app
 - **Tier B (MVP features):** Employee, attendance, leave, payroll flows — in progress
 - **Tier C (Scaffolded):** Hourly leave, OT before, THR, SSO — schema ready, logic later
 
-## Production (Docker)
+## Production (Docker + HTTPS)
 
 ```bash
-cp .env.example .env
-nano .env    # SECRET_KEY, ALLOWED_HOSTS, DB_* (lihat .env.example)
+cp deploy/env.production.example .env
+nano .env    # SECRET_KEY, HRIS_FIELD_ENCRYPTION_KEY, DB_PASSWORD
 chmod +x scripts/*.sh
-./scripts/docker-up.sh mysql     # production MySQL
-# ./scripts/docker-up.sh sqlite  # uji coba
-docker compose exec web python manage.py seed_demo
-docker compose exec web python manage.py encrypt_employee_data
+./scripts/docker-up.sh mysql
+# atau langsung:
+docker compose --profile mysql up -d --build
 ```
+
+**DNS:** A record `hris` → IP server (mis. `148.230.98.125`)  
+**Firewall:** buka TCP **80** dan **443** (Let's Encrypt + HTTPS)
 
 | Script | Fungsi |
 |---|---|
-| `scripts/docker-up.sh sqlite` | Deploy SQLite (default) |
-| `scripts/docker-up.sh mysql` | Deploy MySQL + cron backup |
+| `scripts/docker-up.sh sqlite` | Uji lokal HTTP (`--profile dev`, port 8080) |
+| `scripts/docker-up.sh mysql` | Production HTTPS + MySQL + Redis + worker |
 | `scripts/docker-preflight.sh` | Cek `.env` sebelum deploy |
 | `scripts/docker-verify.sh` | Cek health setelah deploy |
 
 | Service | Port | Keterangan |
 |---|---|---|
-| nginx | 8080 (default) | Reverse proxy + media |
+| caddy | 80, 443 | HTTPS otomatis (profile `mysql`) |
+| nginx | 8080 | Dev lokal (profile `dev`) |
 | web | internal | Gunicorn + WhiteNoise |
-| mysql | internal | Profile `--profile mysql` |
-| cron | internal | Arsip audit + backup (MySQL) |
+| mysql | internal | Profile `mysql` |
+| redis / worker / cron | internal | Profile `mysql` |
 
 **Health check:** `GET /api/v1/health/`
 

@@ -1,14 +1,16 @@
 # HRIS-Lite — Docker deployment
 #
-# Quick start (SQLite, uji coba / staging kecil):
+# Quick start (SQLite, uji coba lokal HTTP):
 #   cp .env.example .env
-#   # Edit SECRET_KEY, HRIS_FIELD_ENCRYPTION_KEY, ALLOWED_HOSTS
-#   docker compose up -d --build
+#   docker compose --profile dev up -d --build
+#   → http://localhost:8080
 #
-# Production (MySQL 8 + Redis + worker + cron):
+# Production (MySQL + Redis + HTTPS via Caddy):
 #   cp deploy/env.production.example .env
-#   # Edit SECRET_KEY, HRIS_FIELD_ENCRYPTION_KEY, ALLOWED_HOSTS, DB_PASSWORD
+#   # Edit SECRET_KEY, HRIS_FIELD_ENCRYPTION_KEY, DB_PASSWORD
+#   # DNS A record: hris.besibps.com → server IP
 #   docker compose --profile mysql up -d --build
+#   → https://hris.besibps.com
 
 name: hris-lite
 
@@ -27,7 +29,12 @@ services:
       DB_USER: ${DB_USER:-hris}
       DB_PASSWORD: ${DB_PASSWORD:-}
       DEBUG: ${DEBUG:-False}
-      CORS_ALLOW_FLUTTER_DEV: ${CORS_ALLOW_FLUTTER_DEV:-True}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-hris.besibps.com,localhost,127.0.0.1}
+      HRIS_SITE_URL: ${HRIS_SITE_URL:-https://hris.besibps.com}
+      CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-https://hris.besibps.com}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://hris.besibps.com}
+      CORS_ALLOW_FLUTTER_DEV: ${CORS_ALLOW_FLUTTER_DEV:-False}
+      CORS_ALLOW_ALL_ORIGINS: ${CORS_ALLOW_ALL_ORIGINS:-False}
       HRIS_MEDIA_PROTECTED: ${HRIS_MEDIA_PROTECTED:-True}
       HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
       REDIS_URL: ${REDIS_URL:-}
@@ -53,7 +60,28 @@ services:
       retries: 8
       start_period: 120s
 
+  caddy:
+    profiles: ["mysql"]
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      HRIS_DOMAIN: ${HRIS_DOMAIN:-hris.besibps.com}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@besibps.com}
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+  # Local dev without TLS — optional: docker compose --profile dev up
   nginx:
+    profiles: ["dev"]
     image: nginx:1.27-alpine
     restart: unless-stopped
     ports:
@@ -166,3 +194,5 @@ volumes:
   audit_archive:
   backups:
   mysql_data:
+  caddy_data:
+  caddy_config:

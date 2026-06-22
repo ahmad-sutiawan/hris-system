@@ -1,0 +1,23 @@
+# Automatic HTTPS for hris.besibps.com (Let's Encrypt via Caddy)
+# Env: HRIS_DOMAIN, ACME_EMAIL (set in docker-compose / .env)
+
+{
+	email {$ACME_EMAIL:admin@besibps.com}
+}
+
+{$HRIS_DOMAIN:hris.besibps.com} {
+	encode gzip zstd
+
+	reverse_proxy web:8000 {
+		flush_interval -1
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+# Redirect legacy IP access to canonical HTTPS domain
+http://148.230.98.125 {
+	redir https://{$HRIS_DOMAIN:hris.besibps.com}{uri} permanent
+}
