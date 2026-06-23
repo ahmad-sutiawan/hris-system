@@ -1,0 +1,9 @@
+# Crontab untuk user www-data (sudo crontab -u www-data -e)
+# Ganti /var/www/hris-system jika path berbeda.
+
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+
+0 2 * * * cd /var/www/hris-system && .venv/bin/python manage.py archive_audit_logs >> /var/log/hris-cron.log 2>&1
+0 4 * * 0 cd /var/www/hris-system && .venv/bin/python manage.py purge_attendance_retention --execute >> /var/log/hris-cron.log 2>&1
+0 3 * * * cd /var/www/hris-system && .venv/bin/python manage.py backup_database --output-dir /var/www/hris-system/backups >> /var/log/hris-cron.log 2>&1

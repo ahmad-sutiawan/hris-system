@@ -1,0 +1,17 @@
+[Unit]
+Description=BPS HRIS RQ worker (opsional — butuh Redis)
+After=network.target redis.service hris-web.service
+Wants=redis.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/hris-system
+EnvironmentFile=/var/www/hris-system/.env
+ExecStart=/var/www/hris-system/.venv/bin/python manage.py rqworker punch default --verbosity 1
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
