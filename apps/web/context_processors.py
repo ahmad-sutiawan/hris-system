@@ -7,11 +7,8 @@ from apps.core.decorators import (
 )
 from apps.core.models import Notification
 from apps.core.services.announcements import active_announcements_for_user
-from apps.web.admin_crud.registry import (
-    ensure_bootstrapped,
-    master_nav_items,
-    resources_by_app,
-)
+
+_MASTER_NAV_CACHE: list[dict] | None = None
 
 
 def announcement_banners(request):
@@ -37,8 +34,14 @@ def notifications(request):
 
 
 def admin_navigation(request):
+    from django.conf import settings
+
+    if not getattr(settings, "HRIS_ENABLE_ADMIN_CONSOLE", False):
+        return {"show_admin_nav": False, "admin_nav_apps": []}
     if not user_has_admin_console(request.user):
         return {"show_admin_nav": False, "admin_nav_apps": []}
+
+    from apps.web.admin_crud.registry import ensure_bootstrapped, resources_by_app
 
     ensure_bootstrapped()
     apps = []
@@ -67,21 +70,25 @@ def employee_navigation(request):
 
 
 def master_data_navigation(request):
+    global _MASTER_NAV_CACHE
+
     if not user_can_manage_master_data(request.user):
         return {"show_master_nav": False, "master_nav_items": []}
 
-    ensure_bootstrapped()
-    items = []
-    for resource in master_nav_items():
-        items.append(
+    if _MASTER_NAV_CACHE is None:
+        from apps.web.admin_crud.registry import ensure_bootstrapped, master_nav_items
+
+        ensure_bootstrapped()
+        _MASTER_NAV_CACHE = [
             {
                 "slug": resource.slug,
                 "label": resource.title_plural,
                 "url": reverse("web:master_list", kwargs={"slug": resource.slug}),
             }
-        )
+            for resource in master_nav_items()
+        ]
 
     return {
         "show_master_nav": True,
-        "master_nav_items": items,
+        "master_nav_items": _MASTER_NAV_CACHE,
     }

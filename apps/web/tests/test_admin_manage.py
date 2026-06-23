@@ -5,7 +5,7 @@ from apps.core.models import Plant, Tenant, User
 from apps.organization.models import Department
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"])
+@override_settings(ALLOWED_HOSTS=["testserver"], HRIS_ENABLE_ADMIN_CONSOLE=True)
 class AdminManageTests(TestCase):
     def setUp(self):
         self.tenant = Tenant.objects.create(slug="adm", name="Admin Co")
@@ -119,3 +119,12 @@ class AdminManageTests(TestCase):
         response = self.client.get(url, {"q": "Production"})
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Production")
+
+    def test_manage_routes_disabled_by_default_setting(self):
+        with override_settings(HRIS_ENABLE_ADMIN_CONSOLE=False):
+            self.client.login(username="admin-manage", password="TestPassword123!")
+            response = self.client.get(reverse("web:manage_hub"))
+            self.assertEqual(response.status_code, 404)
+            dashboard = self.client.get(reverse("web:dashboard"))
+            self.assertNotContains(dashboard, "Konsol Admin")
+            self.assertNotContains(dashboard, "Administrasi")

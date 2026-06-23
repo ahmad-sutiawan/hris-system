@@ -8,7 +8,7 @@ from apps.leave.models import LeaveType
 from apps.organization.models import Department
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"])
+@override_settings(ALLOWED_HOSTS=["testserver"], HRIS_ENABLE_ADMIN_CONSOLE=True)
 class MasterDataTests(TestCase):
     def setUp(self):
         self.tenant = Tenant.objects.create(slug="master", name="Master Co")

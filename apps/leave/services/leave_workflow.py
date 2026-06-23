@@ -82,8 +82,9 @@ def _notify_employee_status(leave_request, approved=True):
 
 @transaction.atomic
 def get_or_create_balance(employee, leave_type, year=None) -> LeaveBalance:
+    """Buat saldo cuti jika belum ada — tidak mengubah saldo yang sudah diset HR."""
     year = year or timezone.localdate().year
-    balance, created = LeaveBalance.objects.get_or_create(
+    balance, _created = LeaveBalance.objects.get_or_create(
         employee=employee,
         leave_type=leave_type,
         year=year,
