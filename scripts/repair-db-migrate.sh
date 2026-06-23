@@ -56,8 +56,21 @@ case "$ACTION" in
       GRANT ALL PRIVILEGES ON \`${DB_NAME:-hris_system}\`.* TO '${DB_USER:-hris}'@'%';
       FLUSH PRIVILEGES;
     "
-    echo "→ start ulang stack"
-    $COMPOSE up -d --build --force-recreate web worker cron nginx
+    echo "→ start web dulu (migrate hanya di sini)"
+    $COMPOSE up -d --build --force-recreate web
+    echo "→ tunggu web healthy..."
+    for i in $(seq 1 30); do
+      if $COMPOSE ps web --format '{{.Status}}' 2>/dev/null | grep -qi healthy; then
+        echo "web healthy"
+        break
+      fi
+      if [ "$i" -eq 30 ]; then
+        echo "web belum healthy — cek: $COMPOSE logs web --tail 80" >&2
+        exit 1
+      fi
+      sleep 5
+    done
+    $COMPOSE up -d worker cron nginx
     echo "→ tunggu web healthy, lalu:"
     echo "   curl -fsS http://127.0.0.1:\${HRIS_HTTP_PORT:-8081}/api/v1/health/"
     echo "   docker compose exec web python manage.py repair_production --bootstrap-admin"

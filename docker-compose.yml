@@ -162,6 +162,7 @@ services:
       REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       HRIS_PUNCH_ASYNC_RECALC: ${HRIS_PUNCH_ASYNC_RECALC:-True}
       HRIS_AUDIT_ARCHIVE_DIR: ${HRIS_AUDIT_ARCHIVE_DIR:-/app/audit_archive}
+      HRIS_SKIP_MIGRATE: "true"
     volumes:
       - media_data:/app/media
     depends_on:
@@ -170,7 +171,7 @@ services:
       redis:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     command: ["python", "manage.py", "rqworker", "punch", "default", "--verbosity", "1"]
 
   cron:
@@ -195,7 +196,7 @@ services:
       mysql:
         condition: service_healthy
       web:
-        condition: service_started
+        condition: service_healthy
     entrypoint: ["/bin/sh", "/app/scripts/cron.sh"]
 
 volumes:
