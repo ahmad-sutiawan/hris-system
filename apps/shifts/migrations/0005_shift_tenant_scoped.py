@@ -38,6 +38,21 @@ def _mysql_indexes(cursor, table):
     }
 
 
+def _mysql_foreign_keys_on_column(cursor, table, column):
+    cursor.execute(
+        """
+        SELECT CONSTRAINT_NAME
+        FROM information_schema.KEY_COLUMN_USAGE
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = %s
+          AND COLUMN_NAME = %s
+          AND REFERENCED_TABLE_NAME IS NOT NULL
+        """,
+        [table, column],
+    )
+    return [row[0] for row in cursor.fetchall()]
+
+
 def apply_shift_tenant_code_unique(apps, schema_editor):
     """MySQL-safe unique_together swap; avoids duplicate tenant_id index errors."""
     connection = schema_editor.connection
@@ -57,6 +72,10 @@ def apply_shift_tenant_code_unique(apps, schema_editor):
     new_index = "shifts_shift_tenant_code_uniq"
 
     with connection.cursor() as cursor:
+        # MySQL memakai unique (tenant, plant, code) untuk FK plant_id — drop FK dulu.
+        for fk_name in _mysql_foreign_keys_on_column(cursor, table, "plant_id"):
+            cursor.execute(f"ALTER TABLE `{table}` DROP FOREIGN KEY `{fk_name}`")
+
         indexes = _mysql_indexes(cursor, table)
         for name, meta in indexes.items():
             if meta["non_unique"] == 0 and tuple(meta["columns"]) == old_cols:
@@ -72,6 +91,7 @@ def apply_shift_tenant_code_unique(apps, schema_editor):
                 f"ALTER TABLE `{table}` ADD UNIQUE INDEX `{new_index}` "
                 f"(`tenant_id`, `code`)"
             )
+        # plant_id dihapus di 0006 — tidak perlu re-add FK plant di sini.
 
 
 class Migration(migrations.Migration):

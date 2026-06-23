@@ -24,9 +24,7 @@ do
   sleep 5
 done
 
-python manage.py migrate --noinput
-
-CRON_FILE=/etc/cron.d/hris-lite
+# migrate hanya di container web (entrypoint.sh)
 {
   echo "SHELL=/bin/sh"
   echo "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
