@@ -23,11 +23,11 @@ COPY . .
 RUN chmod +x /app/scripts/entrypoint.sh /app/scripts/cron.sh /app/scripts/rqworker.sh \
     && mkdir -p /app/data /app/media /app/audit_archive /app/backups /app/staticfiles
 
-# Collect static saat build (bukan runtime) — gagal deploy ketahuan di build, startup lebih cepat
-ENV DEBUG=False \
+# collectstatic saat build — env inline saja, jangan persist ke image (hindari override .env runtime)
+RUN DEBUG=False \
     SECRET_KEY=build-only-secret-key-for-collectstatic-minimum-50-chars \
-    HRIS_FIELD_ENCRYPTION_KEY=build-only-encryption-key-32-chars!!
-RUN python manage.py collectstatic --noinput
+    HRIS_FIELD_ENCRYPTION_KEY=build-only-encryption-key-32-chars!! \
+    python manage.py collectstatic --noinput
 
 EXPOSE 8000
 

@@ -13,7 +13,7 @@ echo "→ migrate"
 $RUN python manage.py migrate --noinput
 
 echo "→ repair production (tenant, admin, sync login karyawan)"
-$RUN python manage.py repair_production --tenant default || true
+$RUN python manage.py repair_production --bootstrap-admin --tenant default || true
 
 echo "→ kompres foto profil karyawan (WebP avatar)"
 $RUN python manage.py compress_employee_photos --tenant default || true

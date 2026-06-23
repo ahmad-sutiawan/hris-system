@@ -358,9 +358,36 @@ class Employee(TenantScopedModel):
             raise ValidationError({"manager": "Manager harus dalam tenant yang sama."})
 
     def save(self, *args, **kwargs):
+        from apps.core.encryption import ENC_PREFIX, decrypt_value
         from apps.employees.nik_lookup import compute_nik_lookup
 
-        self.nik_lookup = compute_nik_lookup(self.nik or "")
+        if self.pk:
+            old_nik_raw, old_lookup = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values_list("nik", "nik_lookup")
+                .first()
+                or (None, None)
+            )
+            plain_nik = (self.nik or "").strip()
+            if (
+                not plain_nik
+                and old_nik_raw
+                and str(old_nik_raw).startswith(ENC_PREFIX)
+            ):
+                # Form tampil kosong saat dekripsi gagal — jangan timpa NIK di DB.
+                self.nik = old_nik_raw
+                if old_lookup:
+                    self.nik_lookup = old_lookup
+            elif plain_nik and not plain_nik.startswith(ENC_PREFIX):
+                self.nik_lookup = compute_nik_lookup(plain_nik)
+            elif old_lookup and not (self.nik_lookup or "").strip():
+                self.nik_lookup = old_lookup
+            else:
+                self.nik_lookup = compute_nik_lookup(plain_nik)
+        else:
+            self.nik_lookup = compute_nik_lookup(self.nik or "")
+
         super().save(*args, **kwargs)
 
     @staticmethod

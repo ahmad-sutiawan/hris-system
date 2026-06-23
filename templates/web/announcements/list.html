@@ -9,9 +9,6 @@
     <h1>Pengumuman</h1>
     <p>Informasi resmi perusahaan, kebijakan, dan pengumuman penting — {{ result_count|num:0 }} aktif</p>
   </div>
-  {% if user.role == 'admin' %}
-  <a href="{% url 'web:manage_list' 'announcements' %}" class="hris-btn hris-btn-secondary">Kelola Pengumuman</a>
-  {% endif %}
 </div>
 
 {% if announcements %}

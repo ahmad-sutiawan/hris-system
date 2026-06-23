@@ -266,6 +266,9 @@ HRIS_FIELD_ENCRYPTION_KEY = config("HRIS_FIELD_ENCRYPTION_KEY", default=SECRET_K
 HRIS_MEDIA_PROTECTED = config("HRIS_MEDIA_PROTECTED", default=not DEBUG, cast=bool)
 HRIS_MEDIA_URL_TTL_SECONDS = config("HRIS_MEDIA_URL_TTL_SECONDS", default=3600, cast=int)
 
+# Konsol Admin (/manage/*) — berat; nonaktifkan di production (pakai menu operasional saja)
+HRIS_ENABLE_ADMIN_CONSOLE = config("HRIS_ENABLE_ADMIN_CONSOLE", default=False, cast=bool)
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

@@ -31,8 +31,7 @@ fi
 # shellcheck disable=SC1091
 source <(grep -v '^#' .env | grep -v '^$' | sed 's/\r$//')
 
-BPS_ENCRYPTION_KEY="dev-only-32-char-encryption-key!!"
-WRONG_KEY="0e409590449cd788616afee8ff8db95d9320e1325b7b98ccb0d32128308b9063"
+CANONICAL_KEY="0e409590449cd788616afee8ff8db95d9320e1325b7b98ccb0d32128308b9063"
 
 echo ""
 echo "1) Cek HRIS_FIELD_ENCRYPTION_KEY..."
@@ -41,15 +40,11 @@ if [ -z "${HRIS_FIELD_ENCRYPTION_KEY:-}" ]; then
   exit 1
 fi
 
-if [ "${HRIS_FIELD_ENCRYPTION_KEY}" = "$WRONG_KEY" ]; then
-  echo "   Key salah (baru digenerate) — auto-fix ke key bps_hris lokal..."
-  if grep -q '^HRIS_FIELD_ENCRYPTION_KEY=' .env; then
-    sed -i "s|^HRIS_FIELD_ENCRYPTION_KEY=.*|HRIS_FIELD_ENCRYPTION_KEY=${BPS_ENCRYPTION_KEY}|" .env
-  else
-    echo "HRIS_FIELD_ENCRYPTION_KEY=${BPS_ENCRYPTION_KEY}" >> .env
-  fi
-  HRIS_FIELD_ENCRYPTION_KEY="$BPS_ENCRYPTION_KEY"
-  echo "   Diperbarui → ${BPS_ENCRYPTION_KEY}"
+if [ "${HRIS_FIELD_ENCRYPTION_KEY}" = "dev-only-32-char-encryption-key!!" ]; then
+  echo "   Key lama (dev lokal) — ganti ke key production (data canonical di server)..."
+  sed -i "s|^HRIS_FIELD_ENCRYPTION_KEY=.*|HRIS_FIELD_ENCRYPTION_KEY=${CANONICAL_KEY}|" .env
+  HRIS_FIELD_ENCRYPTION_KEY="$CANONICAL_KEY"
+  echo "   Diperbarui."
 else
   echo "   Key terdeteksi (${#HRIS_FIELD_ENCRYPTION_KEY} karakter)"
 fi

@@ -10,7 +10,7 @@ from apps.employees.models import Employee
 from apps.organization.models import Department, JobPosition
 
 
-@override_settings(ALLOWED_HOSTS=["testserver"])
+@override_settings(ALLOWED_HOSTS=["testserver"], HRIS_ENABLE_ADMIN_CONSOLE=True)
 class AnnouncementFeatureTests(TestCase):
     def setUp(self):
         self.client = Client()

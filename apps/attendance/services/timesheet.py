@@ -130,6 +130,11 @@ def recalculate_daily_timesheet(employee, work_date: date) -> DailyTimesheet:
         work_date=work_date,
     ).select_related("shift").first()
 
+    if not assignment and not _is_holiday(employee, work_date):
+        from apps.employees.services.onboarding import sync_employee_default_shift
+
+        assignment = sync_employee_default_shift(employee, work_date=work_date)
+
     record = AttendanceRecord.objects.filter(
         employee=employee,
         work_date=work_date,

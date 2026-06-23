@@ -35,6 +35,11 @@ class Command(BaseCommand):
             default=os.environ.get("HRIS_ADMIN_PASSWORD", "Admin123456!"),
             help="Password superuser saat --bootstrap-admin",
         )
+        parser.add_argument(
+            "--sync-credentials",
+            action="store_true",
+            help="Sinkronkan login karyawan (default: tidak, agar data tidak diubah)",
+        )
 
     def handle(self, *args, **options):
         tenant_slug = options["tenant"]
@@ -67,8 +72,7 @@ class Command(BaseCommand):
         if not enc_ok:
             self.stdout.write(
                 self.style.ERROR(
-                    "HRIS_FIELD_ENCRYPTION_KEY tidak cocok dengan data karyawan. "
-                    "Salin key dari .env development (bps_hris) lalu restart container web."
+                    "HRIS_FIELD_ENCRYPTION_KEY tidak cocok dengan data karyawan di server."
                 )
             )
 
@@ -79,7 +83,7 @@ class Command(BaseCommand):
                 password=options["admin_password"],
             )
 
-        if employees > 0:
+        if options["sync_credentials"] and employees > 0:
             call_command("sync_employee_credentials", tenant=tenant.slug)
 
         self.stdout.write(self.style.SUCCESS("repair_production selesai."))

@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from apps.core.auth_login import apply_employee_credentials
 from apps.core.models import User
@@ -44,8 +45,10 @@ class Command(BaseCommand):
 
             lookup = compute_nik_lookup(employee.nik or "")
             if lookup and employee.nik_lookup != lookup:
-                employee.nik_lookup = lookup
-                employee.save(update_fields=["nik_lookup", "updated_at"])
+                Employee.objects.filter(pk=employee.pk).update(
+                    nik_lookup=lookup,
+                    updated_at=timezone.now(),
+                )
 
             user = apply_employee_credentials(employee, role=role)
             if user:

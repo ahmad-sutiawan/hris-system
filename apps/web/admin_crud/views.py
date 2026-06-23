@@ -18,10 +18,9 @@ from apps.web.services.list_exports import export_admin_resource_csv
 from apps.web.services.listing import resolve_list
 from apps.web.views import _form_context
 
-ensure_bootstrapped()
-
 
 def _get_resource_or_404(slug, *, scope="manage"):
+    ensure_bootstrapped()
     resource = get_resource(slug)
     if not resource:
         from django.http import Http404
@@ -197,6 +196,7 @@ def _resource_delete(request, slug, pk, *, scope="manage"):
 @login_required
 @require_admin
 def manage_hub(request):
+    ensure_bootstrapped()
     return render(
         request,
         "web/manage/index.html",
@@ -232,6 +232,7 @@ def resource_delete(request, slug, pk):
 @login_required
 @require_master_data
 def master_hub(request):
+    ensure_bootstrapped()
     return render(
         request,
         "web/master/index.html",
