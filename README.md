@@ -71,36 +71,25 @@ mobile/        # Flutter employee app
 - **Tier B (MVP features):** Employee, attendance, leave, payroll flows — in progress
 - **Tier C (Scaffolded):** Hourly leave, OT before, THR, SSO — schema ready, logic later
 
-## Production (Docker + HTTPS via nginx host)
+## Production (VPS)
 
 ```bash
-cp deploy/env.production.example .env
-nano .env    # SECRET_KEY, HRIS_FIELD_ENCRYPTION_KEY, DB_PASSWORD
+cp ops/native/env.production.example .env
+nano .env
 chmod +x scripts/*.sh
-./scripts/docker-up.sh mysql
-# atau langsung:
-docker compose --profile mysql up -d --build
+sudo ./scripts/deploy.sh --fresh-db
 ```
 
-**DNS:** A record `hris` → IP server  
-**TLS:** nginx **host** → `127.0.0.1:8081` — lihat [`docker/NGINX-HOST.md`](docker/NGINX-HOST.md) · `scripts/install-nginx-host.sh`
+Satu script: venv, migrate, systemd, nginx, SSL, health check.  
+DB kosong (`--fresh-db`); admin via `createsuperuser` manual.
+
+Panduan: [`ops/native/DEPLOY.md`](ops/native/DEPLOY.md)
 
 | Script | Fungsi |
 |---|---|
-| `scripts/docker-up.sh sqlite` | Uji lokal HTTP (`--profile dev`, port 8080) |
-| `scripts/docker-up.sh mysql` | Production MySQL + Redis + worker |
-| `scripts/docker-preflight.sh` | Cek `.env` sebelum deploy |
-| `scripts/docker-verify.sh` | Cek health setelah deploy |
-
-| Service | Port | Keterangan |
-|---|---|---|
-| nginx (host) | 80, 443 | TLS + reverse proxy ke HRIS |
-| nginx (container) | 127.0.0.1:8081 | Profile `mysql` — tidak bentrok port 80/443 |
-| caddy | 80, 443 | Opsional (`--profile caddy`) jika VPS tanpa nginx host |
-| nginx (dev) | 8080 | Profile `dev` — set `HRIS_BIND_HOST=0.0.0.0` |
-| web | internal | Gunicorn + WhiteNoise |
-| mysql | internal | Profile `mysql` |
-| redis / worker / cron | internal | Profile `mysql` |
+| **`scripts/deploy.sh`** | **Deploy lengkap** (`--pull`, `--fresh-db`) |
+| `scripts/import-bps-hris.sh` | Import dump MySQL |
+| `scripts/fix-production-login.sh` | Perbaiki key enkripsi / restart |
 
 **Health check:** `GET /api/v1/health/`
 

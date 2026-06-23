@@ -1,5 +1,5 @@
 try:
-    import MySQLdb  # mysqlclient — dipakai di Docker/production
+    import MySQLdb  # mysqlclient — production MySQL
 except ImportError:
     try:
         import pymysql

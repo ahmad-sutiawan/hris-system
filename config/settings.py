@@ -323,7 +323,7 @@ if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     _secure_ssl_raw = config("SECURE_SSL_REDIRECT", default="")
     if _secure_ssl_raw == "":
-        # HTTP deployment (mis. :8080 tanpa TLS) — jangan redirect healthcheck Docker
+        # HTTP deployment tanpa TLS — jangan redirect (healthcheck / dev)
         SECURE_SSL_REDIRECT = HRIS_SITE_URL.lower().startswith("https://")
     else:
         SECURE_SSL_REDIRECT = str(_secure_ssl_raw).lower() in ("1", "true", "yes")
