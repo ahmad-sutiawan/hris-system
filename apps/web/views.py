@@ -65,7 +65,7 @@ from apps.payroll.services.payroll_validation import PayrollValidationError, val
 from apps.core.xlsx_io import xlsx_http_response
 from apps.attendance.services.overtime_compensation import build_compensation_preview
 from apps.shifts.models import ShiftAssignment
-from apps.web.services.dashboard import build_dashboard_context
+from apps.web.services.dashboard import build_dashboard_context, empty_dashboard_context
 
 logger = logging.getLogger(__name__)
 from apps.web.services.list_exports import (
@@ -176,7 +176,7 @@ def dashboard(request):
         ).first()
         punch_ui = get_punch_ui_state(today_record)
 
-    dashboard_ctx = {}
+    dashboard_ctx = empty_dashboard_context(user=user)
     try:
         dashboard_ctx = build_dashboard_context(
             user=user,

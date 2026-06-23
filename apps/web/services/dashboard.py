@@ -27,7 +27,7 @@ def _plant_filter(user: User, qs):
     return qs
 
 
-def _latest_punch_photos(employee_ids: list[int]) -> dict[int, str]:
+def _latest_punch_photos(employee_ids: list[int], *, request=None) -> dict[int, str]:
     if not employee_ids:
         return {}
 
@@ -81,7 +81,7 @@ def _resolve_employee_photo_urls(employee_ids: list[int], *, request=None) -> di
     photos = _employee_profile_photos(employee_ids, request=request)
     missing = [employee_id for employee_id in employee_ids if employee_id not in photos]
     if missing:
-        punch_photos = _latest_punch_photos(missing)
+        punch_photos = _latest_punch_photos(missing, request=request)
         photos.update(punch_photos)
     return photos
 
@@ -491,10 +491,10 @@ def _build_neo_visuals(
     }
 
 
-def build_dashboard_context(*, user: User, tenant, today, profile, request=None):
-    """Aggregate dashboard widgets from existing HRIS data."""
-    context = {
-        "show_ops": user.is_hr,
+def empty_dashboard_context(*, user=None) -> dict:
+    """Default dashboard context — aman untuk template jika query gagal."""
+    return {
+        "show_ops": bool(user and user.is_hr),
         "stats_extra": {
             "present_today": 0,
             "on_leave_today": 0,
@@ -509,21 +509,29 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
             "chart_pending_ops": [],
             "heatmap_week": [],
             "chart_week": [],
-        "neo": {
-            "kpi_tiles": [],
-            "gauges": [],
-            "diverging_plants": [],
-            "radial_arcs": [],
-            "diverging_depts": [],
-            "trend_lines": [],
-            "trend_points": [],
-            "trend_highlight": {"x": 0, "value": 0, "label": ""},
-            "diamonds": [],
-            "radar_points": [],
-            "radar_poly": "",
-            "attendance_rate": 0.0,
-            "headline_total": 0,
-        },
+            "attendance_segments": [],
+            "pending_segments": [],
+            "status_rows": [],
+            "plant_rows": [],
+            "dept_rows": [],
+            "status_max": 1,
+            "plant_max": 1,
+            "dept_max": 1,
+            "neo": {
+                "kpi_tiles": [],
+                "gauges": [],
+                "diverging_plants": [],
+                "radial_arcs": [],
+                "diverging_depts": [],
+                "trend_lines": [],
+                "trend_points": [],
+                "trend_highlight": {"x": 0, "value": 0, "label": ""},
+                "diamonds": [],
+                "radar_points": [],
+                "radar_poly": "",
+                "attendance_rate": 0.0,
+                "headline_total": 0,
+            },
         },
         "recent_notifications": [],
         "pending_leave_items": [],
@@ -536,7 +544,14 @@ def build_dashboard_context(*, user: User, tenant, today, profile, request=None)
         "latest_payslip": None,
         "profile_summary": None,
         "on_leave_today_items": [],
+        "pending_leave_count": 0,
+        "pending_overtime_count": 0,
     }
+
+
+def build_dashboard_context(*, user: User, tenant, today, profile, request=None):
+    """Aggregate dashboard widgets from existing HRIS data."""
+    context = empty_dashboard_context(user=user)
 
     if not tenant:
         return context
