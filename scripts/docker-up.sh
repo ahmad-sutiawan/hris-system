@@ -11,7 +11,7 @@ if [ "$MODE" != "sqlite" ] && [ "$MODE" != "mysql" ]; then
   echo "Usage: $0 [sqlite|mysql]"
   echo ""
   echo "  sqlite  — uji coba lokal HTTP (--profile dev, port 8080)"
-  echo "  mysql   — production HTTPS (MySQL + Redis + Caddy)"
+  echo "  mysql   — production MySQL + Redis (nginx internal, TLS di host nginx)"
   exit 1
 fi
 
@@ -42,7 +42,7 @@ bash scripts/docker-verify.sh "$MODE"
 echo ""
 echo "=== Langkah berikutnya (opsional) ==="
 echo "  Seed demo:  docker compose exec web python manage.py seed_demo"
-echo "  Log live:   docker compose logs -f web caddy"
+echo "  Log live:   docker compose logs -f web nginx"
 echo "  Stop:       docker compose down"
 echo ""
 echo "Login demo (setelah seed): admin / Admin123456!"

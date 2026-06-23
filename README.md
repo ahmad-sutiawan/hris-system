@@ -71,7 +71,7 @@ mobile/        # Flutter employee app
 - **Tier B (MVP features):** Employee, attendance, leave, payroll flows — in progress
 - **Tier C (Scaffolded):** Hourly leave, OT before, THR, SSO — schema ready, logic later
 
-## Production (Docker + HTTPS)
+## Production (Docker + HTTPS via nginx host)
 
 ```bash
 cp deploy/env.production.example .env
@@ -82,20 +82,22 @@ chmod +x scripts/*.sh
 docker compose --profile mysql up -d --build
 ```
 
-**DNS:** A record `hris` → IP server (mis. `148.230.98.125`)  
-**Firewall:** buka TCP **80** dan **443** (Let's Encrypt + HTTPS)
+**DNS:** A record `hris` → IP server  
+**TLS:** nginx **host** (port 80/443) → proxy ke `127.0.0.1:8081` — lihat [`deploy/NGINX-HOST.md`](deploy/NGINX-HOST.md)
 
 | Script | Fungsi |
 |---|---|
 | `scripts/docker-up.sh sqlite` | Uji lokal HTTP (`--profile dev`, port 8080) |
-| `scripts/docker-up.sh mysql` | Production HTTPS + MySQL + Redis + worker |
+| `scripts/docker-up.sh mysql` | Production MySQL + Redis + worker |
 | `scripts/docker-preflight.sh` | Cek `.env` sebelum deploy |
 | `scripts/docker-verify.sh` | Cek health setelah deploy |
 
 | Service | Port | Keterangan |
 |---|---|---|
-| caddy | 80, 443 | HTTPS otomatis (profile `mysql`) |
-| nginx | 8080 | Dev lokal (profile `dev`) |
+| nginx (host) | 80, 443 | TLS + reverse proxy ke HRIS |
+| nginx (container) | 127.0.0.1:8081 | Profile `mysql` — tidak bentrok port 80/443 |
+| caddy | 80, 443 | Opsional (`--profile caddy`) jika VPS tanpa nginx host |
+| nginx (dev) | 8080 | Profile `dev` — set `HRIS_BIND_HOST=0.0.0.0` |
 | web | internal | Gunicorn + WhiteNoise |
 | mysql | internal | Profile `mysql` |
 | redis / worker / cron | internal | Profile `mysql` |

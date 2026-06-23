@@ -34,6 +34,8 @@ DEBUG=False
 ALLOWED_HOSTS=${HOSTS}
 HRIS_SITE_URL=http://${LAN_IP:-127.0.0.1}:8080
 HTTP_PORT=8080
+HRIS_BIND_HOST=0.0.0.0
+HRIS_HTTP_PORT=8080
 
 DB_ENGINE=django.db.backends.sqlite3
 DB_NAME=/app/data/db.sqlite3

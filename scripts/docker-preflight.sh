@@ -16,6 +16,9 @@ ok()   { echo -e "${GREEN}✓ $1${NC}"; }
 
 MODE="${1:-sqlite}"
 HTTP_PORT="${HTTP_PORT:-8080}"
+HRIS_HTTP_PORT="${HRIS_HTTP_PORT:-8081}"
+HRIS_BIND_HOST="${HRIS_BIND_HOST:-127.0.0.1}"
+HRIS_HTTP_PORT="${HRIS_HTTP_PORT:-8081}"
 
 echo "=== HRIS-Lite preflight (${MODE}) ==="
 echo ""
@@ -48,6 +51,8 @@ source <(grep -v '^#' .env | grep -v '^$' | sed 's/\r$//')
 set +a
 
 HTTP_PORT="${HTTP_PORT:-8080}"
+HRIS_HTTP_PORT="${HRIS_HTTP_PORT:-8081}"
+HRIS_BIND_HOST="${HRIS_BIND_HOST:-127.0.0.1}"
 
 if [ "${SECRET_KEY:-}" = "change-me-use-openssl-rand-hex-32" ] || [ -z "${SECRET_KEY:-}" ]; then
   fail "SECRET_KEY masih default. Generate: openssl rand -hex 32  lalu paste ke .env"
@@ -131,8 +136,13 @@ check_port() {
 }
 
 if [ "$MODE" = "mysql" ]; then
-  check_port 80 "HTTP / Let's Encrypt"
-  check_port 443 "HTTPS"
+  check_port "${HRIS_HTTP_PORT}" "HRIS Docker nginx (${HRIS_BIND_HOST})"
+  if command -v ss >/dev/null 2>&1 && ss -tln | grep -q ":80 "; then
+    warn "Port 80 dipakai (nginx host) — normal jika HRIS di belakang reverse proxy"
+  fi
+  if command -v ss >/dev/null 2>&1 && ss -tln | grep -q ":443 "; then
+    warn "Port 443 dipakai (nginx host) — TLS di host, bukan container Caddy"
+  fi
 else
   check_port "${HTTP_PORT}" "dev HTTP"
 fi

@@ -17,7 +17,7 @@
 	}
 }
 
-# Redirect legacy IP access to canonical HTTPS domain
+# Redirect legacy IP access to canonical HTTPS domain (hanya jika pakai profile caddy)
 http://148.230.98.125 {
 	redir https://{$HRIS_DOMAIN:hris.besibps.com}{uri} permanent
 }
