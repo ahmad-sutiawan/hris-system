@@ -22,6 +22,11 @@ services:
       - path: .env
         required: false
     environment:
+      SECRET_KEY: ${SECRET_KEY:-}
+      HRIS_FIELD_ENCRYPTION_KEY: ${HRIS_FIELD_ENCRYPTION_KEY:-}
+      HRIS_BOOTSTRAP_SUPERUSER: ${HRIS_BOOTSTRAP_SUPERUSER:-}
+      HRIS_BOOTSTRAP_PASSWORD: ${HRIS_BOOTSTRAP_PASSWORD:-}
+      HRIS_DEFAULT_TENANT_SLUG: ${HRIS_DEFAULT_TENANT_SLUG:-default}
       DB_ENGINE: ${DB_ENGINE:-django.db.backends.sqlite3}
       DB_NAME: ${DB_NAME:-/app/data/db.sqlite3}
       DB_HOST: ${DB_HOST:-mysql}
