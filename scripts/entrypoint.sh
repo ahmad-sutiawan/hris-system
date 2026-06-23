@@ -30,7 +30,7 @@ PY
 }
 
 wait_for_db
-python manage.py migrate --noinput
+python manage.py migrate --noinput --fake-initial
 
 if [ -n "${HRIS_BOOTSTRAP_SUPERUSER:-}" ] && [ -n "${HRIS_BOOTSTRAP_PASSWORD:-}" ]; then
   python manage.py shell -c "
