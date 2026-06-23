@@ -38,19 +38,26 @@ def _mysql_indexes(cursor, table):
     }
 
 
-def _mysql_foreign_keys_on_column(cursor, table, column):
+def _mysql_outbound_foreign_keys(cursor, table):
     cursor.execute(
         """
-        SELECT CONSTRAINT_NAME
+        SELECT CONSTRAINT_NAME, COLUMN_NAME, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
         FROM information_schema.KEY_COLUMN_USAGE
         WHERE TABLE_SCHEMA = DATABASE()
           AND TABLE_NAME = %s
-          AND COLUMN_NAME = %s
           AND REFERENCED_TABLE_NAME IS NOT NULL
+        ORDER BY CONSTRAINT_NAME, ORDINAL_POSITION
         """,
-        [table, column],
+        [table],
     )
-    return [row[0] for row in cursor.fetchall()]
+    fks: dict[str, dict] = {}
+    for constraint, column, ref_table, ref_col in cursor.fetchall():
+        entry = fks.setdefault(
+            constraint,
+            {"columns": [], "ref_table": ref_table, "ref_col": ref_col},
+        )
+        entry["columns"].append(column)
+    return fks
 
 
 def apply_shift_tenant_code_unique(apps, schema_editor):
@@ -72,8 +79,8 @@ def apply_shift_tenant_code_unique(apps, schema_editor):
     new_index = "shifts_shift_tenant_code_uniq"
 
     with connection.cursor() as cursor:
-        # MySQL memakai unique (tenant, plant, code) untuk FK plant_id — drop FK dulu.
-        for fk_name in _mysql_foreign_keys_on_column(cursor, table, "plant_id"):
+        saved_fks = _mysql_outbound_foreign_keys(cursor, table)
+        for fk_name in saved_fks:
             cursor.execute(f"ALTER TABLE `{table}` DROP FOREIGN KEY `{fk_name}`")
 
         indexes = _mysql_indexes(cursor, table)
@@ -91,7 +98,17 @@ def apply_shift_tenant_code_unique(apps, schema_editor):
                 f"ALTER TABLE `{table}` ADD UNIQUE INDEX `{new_index}` "
                 f"(`tenant_id`, `code`)"
             )
-        # plant_id dihapus di 0006 — tidak perlu re-add FK plant di sini.
+
+        # Re-add FK tenant; plant_id dihapus di 0006.
+        for fk_name, meta in saved_fks.items():
+            if meta["columns"] == ["plant_id"]:
+                continue
+            cols = ", ".join(f"`{c}`" for c in meta["columns"])
+            cursor.execute(
+                f"ALTER TABLE `{table}` ADD CONSTRAINT `{fk_name}` "
+                f"FOREIGN KEY ({cols}) REFERENCES `{meta['ref_table']}` "
+                f"(`{meta['ref_col']}`) ON DELETE CASCADE"
+            )
 
 
 class Migration(migrations.Migration):
