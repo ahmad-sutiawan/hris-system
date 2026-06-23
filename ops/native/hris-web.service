@@ -1,0 +1,23 @@
+[Unit]
+Description=BPS HRIS (uvicorn ASGI)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/hris-system
+EnvironmentFile=/var/www/hris-system/.env
+ExecStart=/var/www/hris-system/.venv/bin/uvicorn config.asgi:application \
+    --host 127.0.0.1 \
+    --port 8001 \
+    --workers 4 \
+    --proxy-headers \
+    --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
