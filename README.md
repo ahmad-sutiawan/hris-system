@@ -83,7 +83,7 @@ docker compose --profile mysql up -d --build
 ```
 
 **DNS:** A record `hris` → IP server  
-**TLS:** nginx **host** (port 80/443) → proxy ke `127.0.0.1:8081` — lihat [`deploy/NGINX-HOST.md`](deploy/NGINX-HOST.md)
+**TLS:** nginx **host** → `127.0.0.1:8081` — lihat [`docker/NGINX-HOST.md`](docker/NGINX-HOST.md) · `scripts/install-nginx-host.sh`
 
 | Script | Fungsi |
 |---|---|

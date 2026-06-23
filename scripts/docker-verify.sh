@@ -117,7 +117,7 @@ if [ "$MODE" = "mysql" ] && [ -n "${HRIS_SITE_URL:-}" ] && echo "${HRIS_SITE_URL
     echo "$RESP"
     ok "HTTPS publik OK (nginx host → 127.0.0.1:${HRIS_HTTP_PORT})"
   else
-    warn "HTTPS publik belum bisa — pasang deploy/nginx-host/hris.besibps.com.conf + certbot (lihat deploy/NGINX-HOST.md)"
+    warn "HTTPS publik belum bisa — jalankan: sudo ./scripts/install-nginx-host.sh && certbot (lihat docker/NGINX-HOST.md)"
   fi
   BASE_URL="${HRIS_SITE_URL}"
 fi
