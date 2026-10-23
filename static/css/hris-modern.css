@@ -307,9 +307,12 @@ body.hris-body::after {
   background: var(--hris-glass-panel-strong);
 }
 
+.hris-user-menu-panel,
 .hris-notif-panel {
-  background: var(--hris-glass-panel-strong);
+  background: #eef3fb;
   border-color: var(--hris-border-strong);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .hris-notif-item:hover {
