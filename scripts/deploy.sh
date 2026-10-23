@@ -40,17 +40,70 @@ fi
 ENV_FILE="$APP_DIR/.env"
 ENV_EXAMPLE="$APP_DIR/ops/native/env.production.example"
 
+fail() { echo "ERROR: $*" >&2; exit 1; }
+
+sql_escape() { printf '%s' "$1" | sed "s/'/''/g"; }
+
+fresh_database() {
+  local db="${DB_NAME:-hris_system}"
+  local user="${DB_USER:-hris}"
+  local pass_escaped
+  pass_escaped="$(sql_escape "${DB_PASSWORD}")"
+
+  local sql="
+DROP DATABASE IF EXISTS \`${db}\`;
+CREATE DATABASE \`${db}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${user}'@'localhost' IDENTIFIED BY '${pass_escaped}';
+ALTER USER '${user}'@'localhost' IDENTIFIED BY '${pass_escaped}';
+GRANT ALL PRIVILEGES ON \`${db}\`.* TO '${user}'@'localhost';
+FLUSH PRIVILEGES;
+"
+
+  if mysql -h"${DB_HOST:-127.0.0.1}" -P"${DB_PORT:-3306}" -u"$user" -p"${DB_PASSWORD}" -e "SELECT 1" &>/dev/null; then
+    echo "   akses MySQL sebagai $user OK"
+    mysql -h"${DB_HOST:-127.0.0.1}" -P"${DB_PORT:-3306}" -u"$user" -p"${DB_PASSWORD}" -e "$sql"
+  elif [ -n "${MYSQL_ROOT_PASSWORD:-}" ]; then
+    echo "   akses MySQL sebagai root (password dari .env)"
+    mysql -h"${DB_HOST:-127.0.0.1}" -P"${DB_PORT:-3306}" -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "$sql"
+  elif sudo mysql -e "SELECT 1" &>/dev/null; then
+    echo "   akses MySQL via sudo mysql (root socket Ubuntu)"
+    sudo mysql -e "$sql"
+  else
+    fail "Tidak bisa akses MySQL. Buat user manual atau set MYSQL_ROOT_PASSWORD di .env"
+  fi
+}
+
+setup_python() {
+  echo "→ Python venv + migrate + static"
+  DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv python3-dev \
+    default-libmysqlclient-dev build-essential pkg-config
+
+  mkdir -p "$APP_DIR/media" "$APP_DIR/audit_archive" "$APP_DIR/backups"
+  rm -rf "$APP_DIR/.venv"
+  python3 -m venv "$APP_DIR/.venv"
+  chown -R "$APP_USER:$APP_USER" "$APP_DIR/.venv" "$APP_DIR/media" "$APP_DIR/audit_archive" "$APP_DIR/backups"
+
+  sudo -u "$APP_USER" bash -c "
+    set -euo pipefail
+    cd '$APP_DIR'
+    .venv/bin/pip install -U pip wheel
+    .venv/bin/pip install -r requirements.txt
+    set -a
+    source <(grep -v '^#' .env | grep -v '^$' | sed 's/\r$//')
+    set +a
+    .venv/bin/python manage.py migrate --noinput
+    .venv/bin/python manage.py collectstatic --noinput
+  "
+}
+
 echo "=============================================="
 echo " HRIS deploy — $DOMAIN"
 echo "=============================================="
 
-# --- .env ---
 if [ ! -f "$ENV_FILE" ]; then
-  if [ -f "$ENV_EXAMPLE" ]; then
-    cp "$ENV_EXAMPLE" "$ENV_FILE"
-  fi
+  [ -f "$ENV_EXAMPLE" ] && cp "$ENV_EXAMPLE" "$ENV_FILE"
   echo ""
-  echo "File .env dibuat. Edit dulu (SECRET_KEY, DB_PASSWORD), lalu jalankan lagi:"
+  echo "File .env dibuat. Edit SECRET_KEY + DB_PASSWORD, lalu jalankan lagi:"
   echo "  nano $ENV_FILE"
   exit 1
 fi
@@ -58,27 +111,20 @@ fi
 # shellcheck disable=SC1091
 source <(grep -v '^#' "$ENV_FILE" | grep -v '^$' | sed 's/\r$//')
 
-if [ "${SECRET_KEY:-}" = "change-me-openssl-rand-hex-32" ] || [ -z "${SECRET_KEY:-}" ]; then
-  echo "ERROR: SECRET_KEY masih default. Generate: openssl rand -hex 32" >&2
-  exit 1
-fi
-if echo "${DB_PASSWORD:-}" | grep -qiE 'GANTI_|change-me|PASTE_'; then
-  echo "ERROR: DB_PASSWORD masih placeholder di .env" >&2
-  exit 1
-fi
-if [ -z "${HRIS_FIELD_ENCRYPTION_KEY:-}" ]; then
-  echo "ERROR: HRIS_FIELD_ENCRYPTION_KEY kosong di .env" >&2
-  exit 1
-fi
+[ "${SECRET_KEY:-}" = "change-me-openssl-rand-hex-32" ] || [ -z "${SECRET_KEY:-}" ] && \
+  fail "SECRET_KEY masih default — openssl rand -hex 32"
+echo "${DB_PASSWORD:-}" | grep -qiE 'GANTI_|change-me|PASTE_' && \
+  fail "DB_PASSWORD masih placeholder di .env"
+[ -z "${HRIS_FIELD_ENCRYPTION_KEY:-}" ] && fail "HRIS_FIELD_ENCRYPTION_KEY kosong"
+[ "${DB_USER:-}" = "root" ] && \
+  fail "DB_USER jangan 'root' di Ubuntu — pakai DB_USER=hris (script buat user otomatis saat --fresh-db)"
 
-# --- git pull ---
 if [ "$DO_PULL" = true ]; then
   echo "→ git pull origin/$BRANCH"
   git fetch origin "$BRANCH"
   git reset --hard "origin/$BRANCH"
 fi
 
-# --- paket sistem ---
 echo "→ paket sistem"
 apt-get update -qq
 DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
@@ -87,30 +133,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
   nginx certbot python3-certbot-nginx mysql-client \
   2>/dev/null || true
 
-# --- DB kosong (opsional) ---
 if [ "$FRESH_DB" = true ]; then
   echo "→ kosongkan database ${DB_NAME:-hris_system}"
-  mysql -h"${DB_HOST:-127.0.0.1}" -P"${DB_PORT:-3306}" -u"${DB_USER:-hris}" -p"${DB_PASSWORD}" -e "
-    DROP DATABASE IF EXISTS \`${DB_NAME:-hris_system}\`;
-    CREATE DATABASE \`${DB_NAME:-hris_system}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  "
+  fresh_database
 fi
 
-# --- venv, migrate, static ---
-echo "→ Python venv + migrate + static"
-sudo -u "$APP_USER" bash -c "
-  cd '$APP_DIR'
-  python3 -m venv .venv 2>/dev/null || true
-  .venv/bin/pip install -U pip wheel -q
-  .venv/bin/pip install -r requirements.txt -q
-  set -a
-  source <(grep -v '^#' .env | grep -v '^$' | sed 's/\r$//')
-  set +a
-  .venv/bin/python manage.py migrate --noinput
-  .venv/bin/python manage.py collectstatic --noinput
-"
+setup_python
 
-# --- systemd ---
 echo "→ systemd hris-web"
 cp "$APP_DIR/ops/native/hris-web.service" /etc/systemd/system/hris-web.service
 systemctl daemon-reload
@@ -123,38 +152,29 @@ for i in $(seq 1 24); do
     echo "   uvicorn OK"
     break
   fi
-  if [ "$i" -eq 24 ]; then
-    echo "ERROR: uvicorn tidak merespons — journalctl -u hris-web -n 50" >&2
-    exit 1
-  fi
+  [ "$i" -eq 24 ] && fail "uvicorn tidak merespons — journalctl -u hris-web -n 50"
   sleep 5
 done
 
-# --- nginx ---
 echo "→ nginx"
 bash "$APP_DIR/scripts/install-nginx.sh"
 
-# --- SSL (jika belum ada) ---
 if [ -d "/etc/letsencrypt/live/${DOMAIN}" ]; then
-  echo "→ SSL sudah ada untuk $DOMAIN"
+  echo "→ SSL sudah ada"
 else
   echo "→ certbot SSL"
-  CERTBOT_EMAIL="${ACME_EMAIL:-adminwebsite@besibps.com}"
-  certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$CERTBOT_EMAIL" || \
-    echo "⚠ certbot gagal — jalankan manual: certbot --nginx -d $DOMAIN"
+  certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos \
+    -m "${ACME_EMAIL:-adminwebsite@besibps.com}" || \
+    echo "⚠ certbot gagal — jalankan: certbot --nginx -d $DOMAIN"
 fi
 
-# --- verifikasi ---
 echo ""
 bash "$APP_DIR/scripts/native-verify.sh"
 
 echo ""
 echo "=============================================="
-echo " Deploy selesai — $HRIS_SITE_URL"
+echo " Deploy selesai — ${HRIS_SITE_URL:-https://$DOMAIN}"
 echo ""
-echo " Buat admin (sekali):"
+echo " Buat admin:"
 echo "   sudo -u $APP_USER bash -c 'cd $APP_DIR && .venv/bin/python manage.py createsuperuser'"
-echo ""
-echo " Import data (opsional):"
-echo "   bash scripts/import-bps-hris.sh /path/to/dump.sql"
 echo "=============================================="
