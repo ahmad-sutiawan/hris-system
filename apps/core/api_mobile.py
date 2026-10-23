@@ -7,6 +7,7 @@ from rest_framework.views import APIView
 
 from apps.attendance.models import AttendanceRecord, OvertimeRequest
 from apps.attendance.serializers import AttendanceRecordSerializer
+from apps.attendance.services.geo import punch_locations_for_employee
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.models import Notification, Plant, User
 from apps.core.approval import can_approve_request
@@ -270,6 +271,7 @@ class MobileDashboardView(APIView):
             ],
             "leave_balances": _serialize_leave_balances(dashboard.get("leave_balances") or []),
             "today_shift": today_shift,
+            "punch_locations": punch_locations_for_employee(profile) if profile else [],
             "upcoming_shifts": upcoming_shifts,
             "latest_payslip": _serialize_payslip(dashboard.get("latest_payslip")),
             "recent_notifications": [

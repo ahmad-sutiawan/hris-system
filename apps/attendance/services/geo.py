@@ -19,7 +19,27 @@ def _geo_cache_key(tenant_id: int, plant_id: int | None) -> str:
 
 
 def invalidate_geo_cache(*, tenant_id: int, plant_id: int | None) -> None:
-    cache.delete(_geo_cache_key(tenant_id, plant_id))
+    """Hapus cache plant ini dan cabang anaknya (karyawan cabang memakai kunci plant sendiri)."""
+    keys = [_geo_cache_key(tenant_id, plant_id)]
+    if plant_id:
+        child_ids = Plant.objects.filter(parent_id=plant_id).values_list("pk", flat=True)
+        keys.extend(_geo_cache_key(tenant_id, child_id) for child_id in child_ids)
+    cache.delete_many(keys)
+
+
+def punch_locations_for_employee(employee) -> list[dict]:
+    """Lokasi yang sama dengan validasi absen, untuk peta di aplikasi."""
+    if employee is None:
+        return []
+    return [
+        {
+            "name": label,
+            "latitude": lat,
+            "longitude": lng,
+            "radius_m": radius,
+        }
+        for lat, lng, radius, label in _points_for_employee(employee)
+    ]
 
 
 def _haversine_m(lat1, lon1, lat2, lon2) -> float:
@@ -56,11 +76,16 @@ def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
         radius = plant.geo_fence_radius_m or 150
         points.append((float(plant.latitude), float(plant.longitude), radius, plant.name))
 
+    location_plant_ids: list[int] = []
+    if plant_id:
+        location_plant_ids.append(plant_id)
     pt = _resolve_pt_plant(plant)
-    if pt:
+    if pt and pt.pk not in location_plant_ids:
+        location_plant_ids.append(pt.pk)
+    if location_plant_ids:
         for loc in PunchLocation.objects.filter(
             tenant_id=tenant_id,
-            plant=pt,
+            plant_id__in=location_plant_ids,
             is_active=True,
         ).only("latitude", "longitude", "radius_m", "name"):
             points.append((float(loc.latitude), float(loc.longitude), loc.radius_m, loc.name))

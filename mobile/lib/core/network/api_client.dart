@@ -362,6 +362,12 @@ class ApiClient {
     }
   }
 
+  Future<Map<String, dynamic>> serverTime({required bool clockOut}) {
+    return get('/attendance/server-time/', query: {
+      'punch': clockOut ? 'out' : 'in',
+    });
+  }
+
   Future<Map<String, dynamic>> clockIn(
     String photoBase64, {
     double? latitude,

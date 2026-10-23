@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
@@ -44,6 +45,9 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   String? _locationError;
   StreamSubscription<Position>? _positionSub;
   CameraController? _cameraController;
+  Timer? _serverClockTimer;
+  DateTime? _serverTime;
+  Map<String, dynamic>? _matchedShift;
 
   bool get _isClockOut {
     final action = GoRouterState.of(context).uri.queryParameters['action'];
@@ -55,11 +59,18 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startLocationTracking());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startLocationTracking();
+      _refreshServerClock();
+    });
+    _serverClockTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+      _refreshServerClock();
+    });
   }
 
   @override
   void dispose() {
+    _serverClockTimer?.cancel();
     _positionSub?.cancel();
     _disposeCamera();
     _notesController.dispose();
@@ -114,6 +125,33 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   }
 
   Future<void> _refreshLocation() => _startLocationTracking();
+
+  Future<DateTime?> _refreshServerClock() async {
+    if (!mounted) return _serverTime;
+    try {
+      final data = await ref.read(apiClientProvider).serverTime(clockOut: _isClockOut);
+      final raw = data['server_time']?.toString();
+      if (raw == null || raw.isEmpty) return _serverTime;
+      final parsed = DateTime.parse(raw).toLocal();
+      final shift = data['matched_shift'];
+      if (mounted) {
+        setState(() {
+          _serverTime = parsed;
+          _matchedShift = shift is Map<String, dynamic> ? shift : null;
+        });
+      }
+      return parsed;
+    } catch (_) {
+      return _serverTime;
+    }
+  }
+
+  String _shiftLabel() {
+    final shift = _matchedShift;
+    if (shift == null) return 'Belum ada jadwal shift';
+    final name = shift['shift_name'] ?? shift['shift_code'] ?? 'Shift';
+    return '$name · ${formatShiftTimeRange(shift)}';
+  }
 
   Future<void> _initCamera() async {
     await _disposeCamera();
@@ -218,7 +256,15 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       return;
     }
 
-    final capturedAt = DateTime.now();
+    final capturedAt = await _refreshServerClock();
+    if (capturedAt == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Jam server tidak tersedia. Coba lagi.')),
+        );
+      }
+      return;
+    }
     final confirmed = await _showPunchPreviewDialog(
       photoBytes: _photoBytes!,
       capturedAt: capturedAt,
@@ -227,10 +273,31 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
     setState(() => _loading = true);
     try {
+      Position? position = _position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 12),
+          ),
+        );
+        if (mounted) setState(() => _position = position);
+      } catch (_) {}
+      final fences = _PunchFence.fromDashboard(
+        ref.read(dashboardProvider).asData?.value['punch_locations'],
+      );
+      final fence = _evaluateFence(position, fences);
+      if (fence != null && !fence.inside) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(fence.message)));
+        }
+        return;
+      }
+
       final encoded = ApiClient.imageToBase64DataUrl(_photoBytes!);
       final api = ref.read(apiClientProvider);
-      final lat = _position?.latitude;
-      final lng = _position?.longitude;
+      final lat = position?.latitude;
+      final lng = position?.longitude;
       final notes = _notesController.text.trim();
       final Map<String, dynamic> result;
       if (_isClockOut) {
@@ -321,6 +388,9 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       data: (data) {
         final shift = data['today_shift'] as Map<String, dynamic>?;
         final location = shiftLocationLabel(shift, employee: employee);
+        final fences = _PunchFence.fromDashboard(data['punch_locations']);
+        final fence = _evaluateFence(_position, fences);
+        final insideFence = fences.isEmpty || (fence?.inside ?? false);
         final timeRange = formatShiftTimeRange(shift);
         final workDate = shift?['work_date'] as String? ?? data['today'] as String?;
         final dateLabel = _formatShiftDate(workDate, timeRange);
@@ -350,6 +420,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                   child: _TalentaShiftInfoCard(
                     location: location,
                     dateLabel: dateLabel,
+                    shiftLabel: _shiftLabel(),
+                    serverTime: _serverTime,
                   ),
                 ),
                 Expanded(
@@ -360,6 +432,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                           position: _position,
                           locationError: _locationError,
                           officeLabel: location,
+                          fences: fences,
+                          fence: fence,
                         )
                       : _SelfieStepBody(
                           photoBytes: _photoBytes,
@@ -373,7 +447,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                   loading: _loading,
                   notesController: _notesController,
                   canProceed: _step == _PunchStep.location
-                      ? _position != null && !_locating
+                      ? _position != null && !_locating && insideFence
                       : _cameraReady || _photoBytes != null,
                   primaryLabel: _step == _PunchStep.location
                       ? 'Lanjut'
@@ -468,10 +542,17 @@ class _TalentaPunchHeader extends StatelessWidget {
 }
 
 class _TalentaShiftInfoCard extends StatelessWidget {
-  const _TalentaShiftInfoCard({required this.location, required this.dateLabel});
+  const _TalentaShiftInfoCard({
+    required this.location,
+    required this.dateLabel,
+    required this.shiftLabel,
+    required this.serverTime,
+  });
 
   final String location;
   final String dateLabel;
+  final String shiftLabel;
+  final DateTime? serverTime;
 
   @override
   Widget build(BuildContext context) {
@@ -497,6 +578,26 @@ class _TalentaShiftInfoCard extends StatelessWidget {
               color: AppColors.textMuted,
             ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            shiftLabel,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.text,
+            ),
+          ),
+          if (serverTime != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Jam server ${DateFormat('HH:mm:ss').format(serverTime!)}',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.darkGold,
+              ),
+            ),
+          ],
           const SizedBox(height: 6),
           Row(
             children: [
@@ -527,6 +628,8 @@ class _LocationStepBody extends StatelessWidget {
     required this.position,
     required this.locationError,
     required this.officeLabel,
+    required this.fences,
+    required this.fence,
   });
 
   final MapController mapController;
@@ -534,6 +637,8 @@ class _LocationStepBody extends StatelessWidget {
   final Position? position;
   final String? locationError;
   final String officeLabel;
+  final List<_PunchFence> fences;
+  final _FenceCheck? fence;
 
   @override
   Widget build(BuildContext context) {
@@ -543,6 +648,7 @@ class _LocationStepBody extends StatelessWidget {
         _LiveMapView(
           mapController: mapController,
           position: position,
+          fences: fences,
         ),
         if (locating)
           Container(
@@ -556,6 +662,17 @@ class _LocationStepBody extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (fences.isNotEmpty) ...[
+                for (final area in fences) ...[
+                  _InfoChip(
+                    icon: Icons.radio_button_checked_rounded,
+                    label: '${area.name} · ${area.radiusM} m',
+                    color: AppColors.info,
+                    bg: AppColors.infoDim,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+              ],
               if (locationError != null)
                 _InfoChip(
                   icon: Icons.error_outline_rounded,
@@ -563,10 +680,17 @@ class _LocationStepBody extends StatelessWidget {
                   color: AppColors.danger,
                   bg: AppColors.dangerDim,
                 )
+              else if (fence != null && !fence!.inside)
+                _InfoChip(
+                  icon: Icons.wrong_location_rounded,
+                  label: fence!.message,
+                  color: AppColors.danger,
+                  bg: AppColors.dangerDim,
+                )
               else if (position != null) ...[
                 _InfoChip(
                   icon: Icons.gps_fixed_rounded,
-                  label: 'Live GPS · $officeLabel',
+                  label: fence?.message ?? 'Live GPS · $officeLabel',
                   color: AppColors.success,
                   bg: AppColors.successDim,
                 ),
@@ -594,10 +718,15 @@ class _LocationStepBody extends StatelessWidget {
 }
 
 class _LiveMapView extends StatefulWidget {
-  const _LiveMapView({required this.mapController, required this.position});
+  const _LiveMapView({
+    required this.mapController,
+    required this.position,
+    required this.fences,
+  });
 
   final MapController mapController;
   final Position? position;
+  final List<_PunchFence> fences;
 
   @override
   State<_LiveMapView> createState() => _LiveMapViewState();
@@ -674,6 +803,19 @@ class _LiveMapViewState extends State<_LiveMapView> {
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.bps.hris_mobile',
+        ),
+        CircleLayer(
+          circles: [
+            for (final fence in widget.fences)
+              CircleMarker(
+                point: LatLng(fence.latitude, fence.longitude),
+                radius: fence.radiusM.toDouble(),
+                useRadiusInMeter: true,
+                color: AppColors.info.withValues(alpha: 0.18),
+                borderColor: AppColors.info,
+                borderStrokeWidth: 2,
+              ),
+          ],
         ),
         MarkerLayer(
           markers: [
@@ -1103,4 +1245,112 @@ class _InfoChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _PunchFence {
+  const _PunchFence({
+    required this.name,
+    required this.latitude,
+    required this.longitude,
+    required this.radiusM,
+  });
+
+  final String name;
+  final double latitude;
+  final double longitude;
+  final int radiusM;
+
+  static List<_PunchFence> fromDashboard(Object? raw) {
+    if (raw is! List) return const [];
+    final fences = <_PunchFence>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final lat = _asDouble(item['latitude']);
+      final lng = _asDouble(item['longitude']);
+      final radius = _asInt(item['radius_m']);
+      if (lat == null || lng == null || radius == null) continue;
+      fences.add(
+        _PunchFence(
+          name: '${item['name'] ?? 'Lokasi absen'}',
+          latitude: lat,
+          longitude: lng,
+          radiusM: radius,
+        ),
+      );
+    }
+    return fences;
+  }
+}
+
+class _FenceCheck {
+  const _FenceCheck({required this.inside, required this.message});
+
+  final bool inside;
+  final String message;
+}
+
+double? _asDouble(Object? value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+int? _asInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.round();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+double _haversineMeters(double lat1, double lon1, double lat2, double lon2) {
+  const earth = 6371000.0;
+  final p1 = lat1 * math.pi / 180;
+  final p2 = lat2 * math.pi / 180;
+  final dLat = (lat2 - lat1) * math.pi / 180;
+  final dLon = (lon2 - lon1) * math.pi / 180;
+  final a = math.pow(math.sin(dLat / 2), 2) +
+      math.cos(p1) * math.cos(p2) * math.pow(math.sin(dLon / 2), 2);
+  return 2 * earth * math.asin(math.sqrt(a.toDouble()));
+}
+
+_FenceCheck? _evaluateFence(Position? position, List<_PunchFence> fences) {
+  if (fences.isEmpty || position == null) return null;
+  _PunchFence? nearest;
+  var nearestDist = double.infinity;
+  _PunchFence? insideFence;
+  var insideDist = double.infinity;
+  for (final fence in fences) {
+    final dist = _haversineMeters(
+      position.latitude,
+      position.longitude,
+      fence.latitude,
+      fence.longitude,
+    );
+    if (dist <= fence.radiusM && dist < insideDist) {
+      insideFence = fence;
+      insideDist = dist;
+    }
+    if (dist < nearestDist) {
+      nearest = fence;
+      nearestDist = dist;
+    }
+  }
+  if (insideFence != null) {
+    return _FenceCheck(
+      inside: true,
+      message: '${insideFence.name} — ${insideDist.round()} m dari ${insideFence.radiusM} m',
+    );
+  }
+  if (nearest == null) {
+    return const _FenceCheck(
+      inside: false,
+      message: 'Anda berada di luar area absen yang diizinkan.',
+    );
+  }
+  return _FenceCheck(
+    inside: false,
+    message:
+        'Anda berada di luar area absen yang diizinkan. '
+        'Lokasi terdekat: ${nearest.name} (~${nearestDist.round()} m, radius ${nearest.radiusM} m).',
+  );
 }

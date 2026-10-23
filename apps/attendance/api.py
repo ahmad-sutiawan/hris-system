@@ -8,6 +8,7 @@ from apps.attendance.models import AttendanceRecord, DailyTimesheet
 from apps.attendance.services.record_prefetch import attendance_record_map
 from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch import PunchError, clock_in, clock_out
+from apps.attendance.services.punch_context import server_punch_context
 from apps.attendance.services.import_punches import (
     PunchImportError,
     import_attendance_xlsx,
@@ -20,6 +21,13 @@ from apps.core.viewsets import TenantScopedViewSet
 from apps.attendance.serializers import AttendanceRecordSerializer, DailyTimesheetSerializer
 from apps.attendance.throttles import PunchRateThrottle
 from apps.employees.models import Employee
+
+
+def _punch_response(record, employee, request, *, is_clock_out: bool):
+    """Waktu dan shift dari server. Field waktu kiriman HP tidak dibaca."""
+    data = AttendanceRecordSerializer(record, context={"request": request}).data
+    data.update(server_punch_context(employee, is_clock_out=is_clock_out))
+    return Response(data)
 
 
 def _parse_punch_photo(request):
@@ -106,9 +114,21 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
                 longitude=request.data.get("longitude"),
                 notes=request.data.get("notes") or "",
             )
-            return Response(AttendanceRecordSerializer(record, context={"request": request}).data)
+            return _punch_response(record, profile, request, is_clock_out=False)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
+
+    @action(detail=False, methods=["get"], url_path="server-time")
+    def server_time(self, request):
+        profile = (
+            Employee.objects.select_related("tenant", "plant")
+            .filter(user=request.user)
+            .first()
+        )
+        if not profile:
+            return Response({"detail": "No employee profile."}, status=400)
+        is_clock_out = request.query_params.get("punch") == "out"
+        return Response(server_punch_context(profile, is_clock_out=is_clock_out))
 
     @action(detail=False, methods=["post"], throttle_classes=[PunchRateThrottle])
     def clock_out(self, request):
@@ -129,7 +149,7 @@ class AttendanceRecordViewSet(TenantScopedViewSet):
                 longitude=request.data.get("longitude"),
                 notes=request.data.get("notes") or "",
             )
-            return Response(AttendanceRecordSerializer(record, context={"request": request}).data)
+            return _punch_response(record, profile, request, is_clock_out=True)
         except PunchError as exc:
             return Response({"detail": str(exc)}, status=400)
 
