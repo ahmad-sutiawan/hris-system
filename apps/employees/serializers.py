@@ -6,14 +6,14 @@ from apps.payroll.services.calculator import effective_daily_wage, hourly_rate
 
 
 class EmployeePhotoUrlMixin:
-    photo_url = serializers.SerializerMethodField()
-
     def get_photo_url(self, obj):
         return employee_photo_url(obj, request=self.context.get("request"))
 
 
 class EmployeeDirectorySerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
     """Safe employee list for mobile directory — no compensation fields."""
+
+    photo_url = serializers.SerializerMethodField()
 
     plant_code = serializers.CharField(source="plant.code", read_only=True)
     plant_name = serializers.CharField(source="plant.name", read_only=True)
@@ -47,6 +47,7 @@ class EmployeeDirectorySerializer(EmployeePhotoUrlMixin, serializers.ModelSerial
 
 class EmployeeSerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
     """Full employee record — HR/Admin only."""
+    photo_url = serializers.SerializerMethodField()
     plant_code = serializers.CharField(source="plant.code", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)
     job_title = serializers.CharField(source="job_position.title", read_only=True)
@@ -122,6 +123,8 @@ class EmployeeSerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
 
 class EmployeeSelfSerializer(EmployeePhotoUrlMixin, serializers.ModelSerializer):
     """Read-only profile for the logged-in employee (no compensation/PII edits)."""
+
+    photo_url = serializers.SerializerMethodField()
 
     plant_code = serializers.CharField(source="plant.code", read_only=True)
     department_name = serializers.CharField(source="department.name", read_only=True)

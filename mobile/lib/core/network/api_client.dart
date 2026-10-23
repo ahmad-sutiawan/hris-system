@@ -434,7 +434,9 @@ class ApiClient {
       for (final entry in body.entries) {
         final val = entry.value;
         if (val is List && val.isNotEmpty) {
-          return ApiException('${entry.key}: ${val.first}', statusCode: status);
+          final text = val.first.toString();
+          final message = entry.key == 'non_field_errors' ? text : '${entry.key}: $text';
+          return ApiException(message, statusCode: status);
         }
         if (val is String && val.isNotEmpty) {
           return ApiException('${entry.key}: $val', statusCode: status);
