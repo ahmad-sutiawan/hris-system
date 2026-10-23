@@ -10,8 +10,9 @@ from django.db import transaction
 
 from apps.core.models import Plant
 from apps.employees.models import Employee
+from apps.employees.services.import_identity import IdentityIndex
 from apps.employees.services.mandatory_defaults import NA, apply_mandatory_defaults
-from apps.employees.services.onboarding import provision_new_employee
+from apps.employees.services.onboarding import provision_imported_employees
 from apps.organization.models import Department, JobLevel, JobPosition
 from apps.organization.services.codes import (
     department_code_from_name,
@@ -451,7 +452,7 @@ def _employee_defaults_from_row(row: dict, org: _OrgCache) -> dict:
     return defaults
 
 
-def _link_managers(tenant, rows: list[dict]) -> tuple[int, list[str]]:
+def _link_managers(tenant, rows: list[dict], *, only_ids: set[str]) -> tuple[int, list[str]]:
     by_name = {
         emp.full_name.strip().lower(): emp
         for emp in Employee.objects.filter(tenant=tenant).only("pk", "full_name", "manager_id")
@@ -463,6 +464,8 @@ def _link_managers(tenant, rows: list[dict]) -> tuple[int, list[str]]:
         if not manager_name:
             continue
         employee_id = _cell(row, "Employee ID")
+        if employee_id not in only_ids:
+            continue
         employee = Employee.objects.filter(tenant=tenant, employee_id=employee_id).first()
         if not employee:
             continue
@@ -480,7 +483,7 @@ def _link_managers(tenant, rows: list[dict]) -> tuple[int, list[str]]:
 
 
 @transaction.atomic
-def import_employees_talenta_xlsx(tenant, file_bytes: bytes, *, dry_run=False):
+def import_employees_talenta_xlsx(tenant, file_bytes: bytes, *, dry_run=False, on_progress=None):
     _, rows = _load_rows(file_bytes)
     if not rows:
         raise ValueError("Tidak ada baris data karyawan.")
@@ -488,50 +491,63 @@ def import_employees_talenta_xlsx(tenant, file_bytes: bytes, *, dry_run=False):
     org = _OrgCache(tenant)
     created = 0
     updated = 0
+    rejected = 0
     errors: list[str] = []
+    new_employees = []
+    identity = IdentityIndex.load(tenant)
+    total = len(rows)
+    if on_progress:
+        on_progress(0, total, created, updated)
 
-    for row_num, row in enumerate(rows, start=2):
+    for index, row in enumerate(rows, start=1):
+        row_num = index + 1
         try:
             employee_id = _cell(row, "Employee ID")
+            full_name = _cell(row, "Full Name")
+            raw_nik = _cell(row, "NIK (NPWP 16 Digit)")
             if not employee_id:
                 raise ImportErrorRow(row_num, "Employee ID wajib diisi.")
-            if not _cell(row, "Full Name"):
+            if not full_name:
                 raise ImportErrorRow(row_num, "Full Name wajib diisi.")
+            reason = identity.duplicate_reason(employee_id, full_name, raw_nik)
+            if reason:
+                rejected += 1
+                raise ImportErrorRow(row_num, reason)
 
             defaults = _employee_defaults_from_row(row, org)
 
             if dry_run:
-                if Employee.objects.filter(tenant=tenant, employee_id=employee_id).exists():
-                    updated += 1
-                else:
-                    created += 1
+                created += 1
+                identity.remember(employee_id, full_name, raw_nik)
                 continue
 
-            obj, was_created = Employee.objects.update_or_create(
-                tenant=tenant,
-                employee_id=employee_id,
-                defaults=defaults,
-            )
+            obj = Employee(tenant=tenant, employee_id=employee_id, **defaults)
             apply_mandatory_defaults(obj, fill_fk=False, skip_na_fill=True)
             obj.save()
-            if was_created:
-                created += 1
-                provision_new_employee(obj, assign_shift=True, sync_credentials=True)
-            else:
-                updated += 1
+            identity.remember(employee_id, full_name, raw_nik)
+            created += 1
+            new_employees.append(obj)
         except ImportErrorRow as exc:
             errors.append(str(exc).replace("Baris 0:", f"Baris {row_num}:"))
         except Exception as exc:
             errors.append(f"Baris {row_num}: {exc}")
+        finally:
+            if on_progress:
+                on_progress(index, total, created, updated)
 
     managers_linked = 0
     manager_warnings: list[str] = []
     if not dry_run:
-        managers_linked, manager_warnings = _link_managers(tenant, rows)
+        created_ids = {employee.employee_id for employee in new_employees}
+        managers_linked, manager_warnings = _link_managers(tenant, rows, only_ids=created_ids)
+        provision_imported_employees(new_employees)
+        if on_progress:
+            on_progress(total, total, created, updated)
 
     return {
         "created": created,
         "updated": updated,
+        "rejected": rejected,
         "errors": errors,
         "managers_linked": managers_linked,
         "manager_warnings": manager_warnings[:20],

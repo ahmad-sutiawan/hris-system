@@ -73,6 +73,139 @@ def ensure_leave_balances(
     return balances
 
 
+def provision_imported_employees(employees: list[Employee]) -> None:
+    """Saldo cuti, shift, dan akun login untuk karyawan yang baru diimpor.
+
+    Timesheet tidak dihitung di sini. Perhitungan tetap jalan saat absensi atau rekap.
+    """
+    if not employees:
+        return
+    _bulk_leave_balances(employees)
+    _bulk_shift_assignments(employees)
+    _bulk_login_accounts(employees)
+
+
+def _bulk_leave_balances(employees: list[Employee]) -> None:
+    year = timezone.localdate().year
+    tenant = employees[0].tenant
+    active = [
+        employee
+        for employee in employees
+        if employee.status not in {Employee.Status.INACTIVE, Employee.Status.RESIGNED}
+    ]
+    if not active:
+        return
+    leave_types = list(
+        LeaveType.objects.filter(tenant=tenant, is_active=True).order_by("code")
+    )
+    if not leave_types:
+        return
+    balances = []
+    for employee in active:
+        for leave_type in leave_types:
+            quota = leave_type.default_quota_days
+            balances.append(
+                LeaveBalance(
+                    tenant=employee.tenant,
+                    employee=employee,
+                    leave_type=leave_type,
+                    year=year,
+                    opening_balance=quota,
+                    accrued=quota,
+                    remaining=quota,
+                )
+            )
+    LeaveBalance.objects.bulk_create(balances, ignore_conflicts=True)
+
+
+def _bulk_shift_assignments(employees: list[Employee]) -> None:
+    from apps.core.models import Plant
+
+    tenant = employees[0].tenant
+    pagi = Shift.objects.filter(tenant=tenant, code="PAGI", is_active=True).first()
+    fallback = None
+    if pagi is None:
+        fallback = (
+            Shift.objects.filter(tenant=tenant, is_active=True).order_by("code").first()
+        )
+    plants = {
+        plant.pk: plant
+        for plant in Plant.objects.filter(
+            pk__in={employee.plant_id for employee in employees if employee.plant_id}
+        ).select_related("default_shift")
+    }
+    assignments = []
+    today = timezone.localdate()
+    for employee in employees:
+        shift = None
+        if employee.default_shift_id and getattr(employee.default_shift, "is_active", False):
+            shift = employee.default_shift
+        else:
+            plant = plants.get(employee.plant_id)
+            if plant and plant.default_shift_id and plant.default_shift.is_active:
+                shift = plant.default_shift
+            else:
+                shift = pagi or fallback
+        if shift is None:
+            continue
+        assignments.append(
+            ShiftAssignment(
+                tenant=employee.tenant,
+                employee=employee,
+                shift=shift,
+                work_date=employee.join_date or today,
+                scheduled_check_in=shift.scheduled_check_in,
+                scheduled_check_out=shift.scheduled_check_out,
+            )
+        )
+    if assignments:
+        ShiftAssignment.objects.bulk_create(assignments, ignore_conflicts=True)
+
+
+def _bulk_login_accounts(employees: list[Employee]) -> None:
+    from apps.core.auth_login import apply_employee_credentials, employee_login_password
+    from apps.core.models import User
+
+    pending = [employee for employee in employees if employee.employee_id and not employee.user_id]
+    if not pending:
+        return
+
+    wanted = [employee.employee_id for employee in pending]
+    taken = {
+        username.casefold()
+        for username in User.objects.filter(username__in=wanted).values_list("username", flat=True)
+    }
+    fresh = []
+    for employee in pending:
+        if employee.employee_id.casefold() in taken:
+            apply_employee_credentials(employee)
+            continue
+        user = User(
+            username=employee.employee_id,
+            tenant=employee.tenant,
+            plant=employee.plant,
+            role=User.Role.EMPLOYEE,
+            is_active=True,
+        )
+        user.set_password(employee_login_password(employee))
+        fresh.append((employee, user))
+        taken.add(employee.employee_id.casefold())
+
+    if not fresh:
+        return
+
+    User.objects.bulk_create([user for _, user in fresh])
+    created = {
+        user.username.casefold(): user
+        for user in User.objects.filter(username__in=[user.username for _, user in fresh])
+    }
+    linked = []
+    for employee, user in fresh:
+        employee.user = created[user.username.casefold()]
+        linked.append(employee)
+    Employee.objects.bulk_update(linked, ["user"])
+
+
 def provision_new_employee(
     employee: Employee,
     year: int | None = None,

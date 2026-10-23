@@ -81,6 +81,9 @@ def _row(**overrides):
         "Manager": "",
     }
     base.update(overrides)
+    if "NIK (NPWP 16 Digit)" not in overrides and "Employee ID" in overrides:
+        digits = "".join(ch for ch in str(overrides["Employee ID"]) if ch.isdigit()) or "0"
+        base["NIK (NPWP 16 Digit)"] = f"{int(digits):016d}"
     return base
 
 
@@ -165,10 +168,12 @@ class TalentaImportTests(TestCase):
         result = import_employees_talenta_xlsx(
             self.tenant, _build_xlsx([_row(**{"Email": "new@example.com"})])
         )
-        self.assertEqual(result["updated"], 1)
+        self.assertEqual(result["rejected"], 1)
+        self.assertEqual(result["updated"], 0)
         self.assertEqual(result["created"], 0)
         employee = Employee.objects.get(tenant=self.tenant, employee_id="25")
-        self.assertEqual(employee.email, "new@example.com")
+        self.assertEqual(employee.email, "amalu@example.com")
+        self.assertTrue(any("sudah terdaftar" in err for err in result["errors"]))
 
     def test_reimport_does_not_duplicate_master_data(self):
         rows = [
@@ -186,6 +191,9 @@ class TalentaImportTests(TestCase):
         result = import_employees_talenta_xlsx(self.tenant, content)
 
         self.assertEqual(result["created"], 0)
+        self.assertEqual(result["updated"], 0)
+        self.assertEqual(result["rejected"], 3)
+        self.assertEqual(Employee.objects.filter(tenant=self.tenant).count(), 3)
         self.assertEqual(Plant.objects.filter(tenant=self.tenant).count(), plants_1)
         self.assertEqual(Department.objects.filter(tenant=self.tenant).count(), depts_1)
         self.assertEqual(JobPosition.objects.filter(tenant=self.tenant).count(), jobs_1)

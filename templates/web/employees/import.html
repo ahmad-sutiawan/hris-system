@@ -2,6 +2,26 @@
 {% block title %}Import Karyawan — BPS HRIS{% endblock %}
 {% block page_title %}Import Karyawan{% endblock %}
 
+{% block extra_head %}
+<style>
+.hris-import-progress { margin-top: 1.25rem; }
+.hris-import-progress-track {
+  height: 0.5rem;
+  background: rgba(26, 39, 68, 0.12);
+  overflow: hidden;
+}
+.hris-import-progress-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--hris-brand-blue), var(--hris-brand-purple));
+  transition: width 0.2s ease;
+}
+.hris-import-progress-label { margin: 0.75rem 0 0; }
+.hris-import-progress-result { margin-top: 0.75rem; }
+.hris-import-progress-result p { margin: 0.25rem 0; }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="hris-form-card">
   <div class="hris-page-header">
@@ -13,20 +33,159 @@
       </p>
       <p class="hris-text-muted">
         Untuk file Talenta, plant/departemen/role/job level dan relasi atasan dibuat &amp; dipetakan otomatis.
+        Impor hanya menambah karyawan baru. Data yang sudah ada tidak diubah.
+        Baris dengan Employee ID atau NIK yang sudah terdaftar ditolak.
       </p>
     </div>
   </div>
   <div class="hris-card">
     <div class="hris-card-body">
-      <form method="post" enctype="multipart/form-data" class="hris-form-grid">
+      <form method="post" enctype="multipart/form-data" class="hris-form-grid" id="employee-import-form">
         {% csrf_token %}
         <div class="hris-field">
           <label for="file">File Excel (.xlsx)</label>
           <input type="file" name="file" id="file" accept=".xlsx,.xlsm" required class="hris-input">
         </div>
-        <button type="submit" class="hris-btn hris-btn-primary">Upload & Import</button>
+        <button type="submit" class="hris-btn hris-btn-primary" id="employee-import-submit">Upload & Import</button>
       </form>
+      <div id="import-progress" class="hris-import-progress" hidden>
+        <div class="hris-import-progress-track" aria-hidden="true">
+          <div id="import-progress-fill" class="hris-import-progress-fill"></div>
+        </div>
+        <p id="import-progress-label" class="hris-text-muted hris-import-progress-label" role="status">Menyiapkan impor...</p>
+        <div id="import-progress-result" class="hris-import-progress-result"></div>
+      </div>
     </div>
   </div>
 </div>
+<script>
+(function () {
+  var form = document.getElementById("employee-import-form");
+  var button = document.getElementById("employee-import-submit");
+  var panel = document.getElementById("import-progress");
+  var fill = document.getElementById("import-progress-fill");
+  var label = document.getElementById("import-progress-label");
+  var result = document.getElementById("import-progress-result");
+  var buttonLabel = "Upload & Import";
+  if (!form || !button) return;
+
+  function setBusy(busy) {
+    button.disabled = busy;
+    button.textContent = busy ? "Mengimpor..." : buttonLabel;
+    form.querySelector("#file").disabled = busy;
+  }
+
+  function showProgress(processed, total) {
+    var pct = total ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+    fill.style.width = pct + "%";
+    label.textContent = total
+      ? "Mengimpor " + processed + " / " + total + " (" + pct + "%)"
+      : "Mengimpor...";
+  }
+
+  function addLine(text) {
+    var p = document.createElement("p");
+    p.textContent = text;
+    result.appendChild(p);
+  }
+
+  function showDone(data) {
+    result.replaceChildren();
+    if (data.error) {
+      label.textContent = "Impor gagal";
+      addLine(data.error);
+      return;
+    }
+    fill.style.width = "100%";
+    label.textContent = "Impor selesai";
+    addLine((data.created || 0) + " baru, " + (data.updated || 0) + " diupdate.");
+    if (data.rejected) {
+      addLine(data.rejected + " ditolak karena sudah terdaftar. Data lama tidak diubah.");
+    }
+    var org = (data.plants_created || 0) + (data.departments_created || 0)
+      + (data.job_positions_created || 0) + (data.job_levels_created || 0);
+    if (org) {
+      addLine(
+        "Master organisasi dibuat otomatis: "
+        + (data.plants_created || 0) + " plant, "
+        + (data.departments_created || 0) + " departemen, "
+        + (data.job_positions_created || 0) + " role, "
+        + (data.job_levels_created || 0) + " job level."
+      );
+    }
+    if (data.managers_linked) {
+      addLine(data.managers_linked + " atasan langsung terhubung.");
+    }
+    if (data.error_count) {
+      addLine(data.error_count + " baris gagal.");
+      (data.errors || []).forEach(addLine);
+    }
+    var link = document.createElement("a");
+    link.href = "{% url 'web:employee_list' %}";
+    link.className = "hris-link";
+    link.textContent = "Lihat daftar karyawan";
+    result.appendChild(link);
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var payload = new FormData(form);
+    panel.hidden = false;
+    result.replaceChildren();
+    fill.style.width = "0";
+    label.textContent = "Menyiapkan impor...";
+    setBusy(true);
+
+    var csrf = form.querySelector("[name=csrfmiddlewaretoken]");
+    fetch(form.action || window.location.href, {
+      method: "POST",
+      body: payload,
+      headers: {
+        Accept: "application/x-ndjson",
+        "X-CSRFToken": csrf ? csrf.value : ""
+      },
+      credentials: "same-origin"
+    }).then(function (response) {
+      if (!response.body) throw new Error("Respons impor tidak dapat dibaca.");
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = "";
+      function pump() {
+        return reader.read().then(function (chunk) {
+          if (chunk.done) {
+            if (buffer.trim()) applyLine(buffer);
+            return;
+          }
+          buffer += decoder.decode(chunk.value, { stream: true });
+          var lines = buffer.split("\n");
+          buffer = lines.pop();
+          lines.forEach(applyLine);
+          return pump();
+        });
+      }
+      function applyLine(line) {
+        var text = line.trim();
+        if (!text) return;
+        var data;
+        try {
+          data = JSON.parse(text);
+        } catch (err) {
+          return;
+        }
+        if (typeof data.processed === "number") {
+          showProgress(data.processed, data.total || 0);
+        }
+        if (data.done) showDone(data);
+      }
+      return pump();
+    }).catch(function () {
+      label.textContent = "Impor gagal";
+      result.replaceChildren();
+      addLine("Koneksi terputus atau server tidak menjawab. Muat ulang halaman lalu coba lagi.");
+    }).finally(function () {
+      setBusy(false);
+    });
+  });
+})();
+</script>
 {% endblock %}

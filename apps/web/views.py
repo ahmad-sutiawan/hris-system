@@ -1,9 +1,13 @@
+import json
 import logging
+import queue
+import threading
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import close_old_connections
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.html import format_html
@@ -355,9 +359,115 @@ def employee_import_template(request):
     return xlsx_http_response(employee_import_template_xlsx(), "employee_import_template.xlsx")
 
 
+def _wants_import_stream(request) -> bool:
+    accept = request.headers.get("Accept", "")
+    return "application/x-ndjson" in accept
+
+
+def _import_progress_stream(tenant_id, filename, content):
+    """Jalankan impor di thread terpisah supaya progres bisa dialirkan per baris."""
+    from apps.core.models import Tenant
+
+    events = queue.Queue()
+
+    def on_progress(processed, total, created, updated):
+        events.put(
+            {
+                "processed": processed,
+                "total": total,
+                "created": created,
+                "updated": updated,
+            }
+        )
+
+    def run():
+        close_old_connections()
+        try:
+            tenant = Tenant.objects.get(pk=tenant_id)
+            result = import_employees_file(
+                tenant,
+                filename=filename,
+                content=content,
+                on_progress=on_progress,
+            )
+            errors = result.get("errors") or []
+            events.put(
+                {
+                    "done": True,
+                    "created": result.get("created", 0),
+                    "updated": result.get("updated", 0),
+                    "rejected": result.get("rejected", 0),
+                    "errors": errors[:5],
+                    "error_count": len(errors),
+                    "managers_linked": result.get("managers_linked", 0),
+                    "plants_created": result.get("plants_created", 0),
+                    "departments_created": result.get("departments_created", 0),
+                    "job_positions_created": result.get("job_positions_created", 0),
+                    "job_levels_created": result.get("job_levels_created", 0),
+                }
+            )
+        except ValueError as exc:
+            events.put({"done": True, "error": str(exc)})
+        except Exception as exc:
+            logger.exception("employee import failed")
+            events.put({"done": True, "error": str(exc)})
+        finally:
+            events.put(None)
+            close_old_connections()
+
+    threading.Thread(target=run, daemon=True).start()
+    while True:
+        item = events.get()
+        if item is None:
+            break
+        yield json.dumps(item, ensure_ascii=False) + "\n"
+
+
 @login_required
 @require_roles(User.Role.ADMIN, User.Role.HR)
 def employee_import(request):
+    if request.method == "POST" and _wants_import_stream(request):
+        upload = request.FILES.get("file")
+        if not upload:
+            response = StreamingHttpResponse(
+                iter(
+                    [
+                        json.dumps(
+                            {"done": True, "error": "Pilih file Excel (.xlsx) terlebih dahulu."},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    ]
+                ),
+                content_type="application/x-ndjson",
+            )
+            response["Cache-Control"] = "no-cache"
+            response["X-Accel-Buffering"] = "no"
+            return response
+        if not request.user.tenant_id:
+            response = StreamingHttpResponse(
+                iter(
+                    [
+                        json.dumps(
+                            {"done": True, "error": "Akun tidak terhubung ke tenant."},
+                            ensure_ascii=False,
+                        )
+                        + "\n"
+                    ]
+                ),
+                content_type="application/x-ndjson",
+            )
+            response["Cache-Control"] = "no-cache"
+            response["X-Accel-Buffering"] = "no"
+            return response
+        response = StreamingHttpResponse(
+            _import_progress_stream(request.user.tenant_id, upload.name, upload.read()),
+            content_type="application/x-ndjson",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"
+        return response
+
     if request.method == "POST":
         upload = request.FILES.get("file")
         if not upload:
@@ -371,7 +481,9 @@ def employee_import(request):
             )
             messages.success(
                 request,
-                f"Import selesai: {result['created']} baru, {result['updated']} diupdate.",
+                "Import selesai: "
+                f"{result['created']} baru, {result['updated']} diupdate, "
+                f"{result.get('rejected', 0)} ditolak.",
             )
             org_created = (
                 result.get("plants_created", 0)

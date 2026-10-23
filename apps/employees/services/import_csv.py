@@ -6,8 +6,9 @@ from django.db import transaction
 from apps.core.models import Plant
 from apps.core.xlsx_io import read_xlsx_rows, write_xlsx
 from apps.employees.models import Employee
+from apps.employees.services.import_identity import IdentityIndex
 from apps.employees.services.mandatory_defaults import NA, apply_mandatory_defaults
-from apps.employees.services.onboarding import provision_new_employee
+from apps.employees.services.onboarding import provision_imported_employees
 from apps.organization.models import Department, JobPosition
 
 REQUIRED_HEADERS = [
@@ -141,7 +142,7 @@ def _row_value(row, key, default=""):
 
 
 @transaction.atomic
-def import_employee_rows(tenant, rows, *, dry_run=False):
+def import_employee_rows(tenant, rows, *, dry_run=False, on_progress=None):
     if not rows:
         raise ValueError("File Excel kosong atau tidak ada baris data.")
 
@@ -166,9 +167,16 @@ def import_employee_rows(tenant, rows, *, dry_run=False):
 
     created = 0
     updated = 0
+    rejected = 0
     errors = []
+    new_employees = []
+    identity = IdentityIndex.load(tenant)
+    total = len(rows)
+    if on_progress:
+        on_progress(0, total, created, updated)
 
-    for row_num, row in enumerate(rows, start=2):
+    for index, row in enumerate(rows, start=1):
+        row_num = index + 1
         try:
             plant_code = str(row["plant_code"]).strip()
             plant = plants.get(plant_code)
@@ -183,11 +191,16 @@ def import_employee_rows(tenant, rows, *, dry_run=False):
                 raise ImportErrorRow(row_num, "employee_id wajib diisi.")
 
             full_name = str(row["full_name"]).strip()
-            nik = str(row["nik"]).strip() or NA
-            email = str(row["email"]).strip() or NA
-            phone = str(row["phone"]).strip() or NA
+            raw_nik = str(row["nik"]).strip()
+            nik = raw_nik or NA
             if not full_name:
                 raise ImportErrorRow(row_num, "full_name wajib diisi.")
+            reason = identity.duplicate_reason(employee_id, full_name, raw_nik)
+            if reason:
+                rejected += 1
+                raise ImportErrorRow(row_num, reason)
+            email = str(row["email"]).strip() or NA
+            phone = str(row["phone"]).strip() or NA
             if not dept:
                 raise ImportErrorRow(row_num, "department_code tidak valid.")
             if not job:
@@ -267,43 +280,41 @@ def import_employee_rows(tenant, rows, *, dry_run=False):
                 defaults["pph21_deduct"] = str(pph21).strip().lower() in {"1", "true", "yes"}
 
             if dry_run:
-                if Employee.objects.filter(tenant=tenant, employee_id=employee_id).exists():
-                    updated += 1
-                else:
-                    created += 1
+                created += 1
+                identity.remember(employee_id, full_name, raw_nik)
                 continue
 
-            obj, was_created = Employee.objects.update_or_create(
-                tenant=tenant,
-                employee_id=employee_id,
-                defaults=defaults,
-            )
+            obj = Employee(tenant=tenant, employee_id=employee_id, **defaults)
             apply_mandatory_defaults(obj, fill_fk=True)
             obj.save()
-            if was_created:
-                created += 1
-                provision_new_employee(obj, assign_shift=True, sync_credentials=True)
-            else:
-                updated += 1
+            identity.remember(employee_id, full_name, raw_nik)
+            created += 1
+            new_employees.append(obj)
         except ImportErrorRow as exc:
             errors.append(str(exc))
         except Exception as exc:
             errors.append(f"Baris {row_num}: {exc}")
+        finally:
+            if on_progress:
+                on_progress(index, total, created, updated)
 
-    return {"created": created, "updated": updated, "errors": errors}
+    if new_employees and not dry_run:
+        provision_imported_employees(new_employees)
+
+    return {"created": created, "updated": updated, "rejected": rejected, "errors": errors}
 
 
 @transaction.atomic
-def import_employees_xlsx(tenant, file_bytes: bytes, *, dry_run=False):
+def import_employees_xlsx(tenant, file_bytes: bytes, *, dry_run=False, on_progress=None):
     _, rows = read_xlsx_rows(file_bytes)
-    return import_employee_rows(tenant, rows, dry_run=dry_run)
+    return import_employee_rows(tenant, rows, dry_run=dry_run, on_progress=on_progress)
 
 
-def import_employees_csv(tenant, file_content, *, dry_run=False):
+def import_employees_csv(tenant, file_content, *, dry_run=False, on_progress=None):
     import csv
     from io import StringIO
 
     reader = csv.DictReader(StringIO(file_content))
     if not reader.fieldnames:
         raise ValueError("File kosong atau header tidak valid.")
-    return import_employee_rows(tenant, list(reader), dry_run=dry_run)
+    return import_employee_rows(tenant, list(reader), dry_run=dry_run, on_progress=on_progress)
