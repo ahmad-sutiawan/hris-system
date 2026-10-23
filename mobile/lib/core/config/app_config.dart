@@ -1,6 +1,9 @@
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
+  /// Server LAN Ubuntu. Samakan dengan HRIS_MOBILE_API_BASE_URL di ops/docker/compose.env.
+  static const lanBaseUrl = 'http://192.168.2.121:8020$apiPathSuffix';
+
   /// Backend publik PT BPS — HTTPS via hris.besibps.com
   static const productionBaseUrl = 'https://hris.besibps.com$apiPathSuffix';
 
@@ -8,7 +11,7 @@ abstract final class AppConfig {
   static String get defaultBaseUrl {
     const override = String.fromEnvironment('API_BASE_URL');
     if (override.isNotEmpty) return normalizeApiBaseUrl(override);
-    return productionBaseUrl;
+    return lanBaseUrl;
   }
 
   static String normalizeApiBaseUrl(String input) {

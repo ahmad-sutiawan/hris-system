@@ -8,6 +8,7 @@
     <!-- Legacy IP / dev LAN -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">148.230.98.125</domain>
+        <domain includeSubdomains="false">192.168.2.121</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
