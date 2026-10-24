@@ -159,7 +159,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
   Future<CameraController> _openCamera(CameraDescription selected) async {
     final formats = Platform.isAndroid
-        ? const [ImageFormatGroup.nv21]
+        ? const [ImageFormatGroup.nv21, ImageFormatGroup.yuv420]
         : const [ImageFormatGroup.bgra8888];
     Object? lastError;
     for (final format in formats) {
