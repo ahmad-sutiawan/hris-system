@@ -35,7 +35,6 @@ class PunchScreen extends ConsumerStatefulWidget {
 
 class _PunchScreenState extends ConsumerState<PunchScreen> {
   final _notesController = TextEditingController();
-  final _brightness = ValueNotifier<double>(0.5);
   final _mapController = MapController();
 
   _PunchStep _step = _PunchStep.location;
@@ -80,7 +79,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     _positionSub?.cancel();
     _disposeCamera();
     _notesController.dispose();
-    _brightness.dispose();
     _mapController.dispose();
     super.dispose();
   }
@@ -161,7 +159,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
   Future<CameraController> _openCamera(CameraDescription selected) async {
     final formats = Platform.isAndroid
-        ? const [ImageFormatGroup.yuv420]
+        ? const [ImageFormatGroup.nv21]
         : const [ImageFormatGroup.bgra8888];
     Object? lastError;
     for (final format in formats) {
@@ -518,7 +516,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                           photoBytes: _photoBytes,
                           cameraController: _cameraController,
                           cameraReady: _cameraReady,
-                          brightness: _brightness,
                           faceMessage: _photoBytes != null
                               ? null
                               : _cameraReady
@@ -1010,14 +1007,12 @@ class _SelfieStepBody extends StatelessWidget {
     required this.photoBytes,
     required this.cameraController,
     required this.cameraReady,
-    required this.brightness,
     required this.faceMessage,
   });
 
   final Uint8List? photoBytes;
   final CameraController? cameraController;
   final bool cameraReady;
-  final ValueNotifier<double> brightness;
   final String? faceMessage;
 
   @override
@@ -1058,61 +1053,29 @@ class _SelfieStepBody extends StatelessWidget {
         ),
         if (faceMessage != null)
           Positioned(
-            left: 24,
-            right: 24,
-            bottom: 64,
+            left: 32,
+            right: 32,
+            bottom: 20,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.68),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Text(
                   faceMessage!,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: 16,
                     height: 1.35,
                   ),
                 ),
               ),
             ),
           ),
-        Positioned(
-          left: 32,
-          right: 32,
-          bottom: 20,
-          child: ValueListenableBuilder<double>(
-            valueListenable: brightness,
-            builder: (_, value, __) {
-              return Row(
-                children: [
-                  Icon(Icons.wb_sunny_outlined, color: Colors.white.withValues(alpha: 0.85), size: 18),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderThemeData(
-                        trackHeight: 2,
-                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                        overlayShape: SliderComponentShape.noOverlay,
-                        activeTrackColor: Colors.white,
-                        inactiveTrackColor: Colors.white.withValues(alpha: 0.35),
-                        thumbColor: Colors.white,
-                      ),
-                      child: Slider(
-                        value: value,
-                        onChanged: (v) => brightness.value = v,
-                      ),
-                    ),
-                  ),
-                  Icon(Icons.wb_sunny_rounded, color: Colors.white.withValues(alpha: 0.95), size: 20),
-                ],
-              );
-            },
-          ),
-        ),
       ],
     );
   }
