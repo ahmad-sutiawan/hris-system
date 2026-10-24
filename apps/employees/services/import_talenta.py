@@ -167,6 +167,26 @@ class _OrgCache:
             "talenta_masters_created": 0,
         }
 
+    def snapshot(self):
+        return {
+            "plants": dict(self.plants),
+            "departments": dict(self.departments),
+            "jobs": dict(self.jobs),
+            "levels": dict(self.levels),
+            "pt_plants": dict(self.pt_plants),
+            "master_cache": dict(self.master_cache),
+            "stats": dict(self.stats),
+        }
+
+    def restore(self, snapshot):
+        self.plants = snapshot["plants"]
+        self.departments = snapshot["departments"]
+        self.jobs = snapshot["jobs"]
+        self.levels = snapshot["levels"]
+        self.pt_plants = snapshot["pt_plants"]
+        self.master_cache = snapshot["master_cache"]
+        self.stats = snapshot["stats"]
+
     def get_pt_plant(self, parent_name: str) -> Plant | None:
         name = _normalize_text(parent_name)
         if not name:
@@ -501,35 +521,39 @@ def import_employees_talenta_xlsx(tenant, file_bytes: bytes, *, dry_run=False, o
 
     for index, row in enumerate(rows, start=1):
         row_num = index + 1
+        org_snapshot = org.snapshot()
         try:
-            employee_id = _cell(row, "Employee ID")
-            full_name = _cell(row, "Full Name")
-            raw_nik = _cell(row, "NIK (NPWP 16 Digit)")
-            if not employee_id:
-                raise ImportErrorRow(row_num, "Employee ID wajib diisi.")
-            if not full_name:
-                raise ImportErrorRow(row_num, "Full Name wajib diisi.")
-            reason = identity.duplicate_reason(employee_id, full_name, raw_nik)
-            if reason:
-                rejected += 1
-                raise ImportErrorRow(row_num, reason)
+            with transaction.atomic():
+                employee_id = _cell(row, "Employee ID")
+                full_name = _cell(row, "Full Name")
+                raw_nik = _cell(row, "NIK (NPWP 16 Digit)")
+                if not employee_id:
+                    raise ImportErrorRow(row_num, "Employee ID wajib diisi.")
+                if not full_name:
+                    raise ImportErrorRow(row_num, "Full Name wajib diisi.")
+                reason = identity.duplicate_reason(employee_id, full_name, raw_nik)
+                if reason:
+                    rejected += 1
+                    raise ImportErrorRow(row_num, reason)
 
-            defaults = _employee_defaults_from_row(row, org)
+                defaults = _employee_defaults_from_row(row, org)
 
-            if dry_run:
-                created += 1
+                if dry_run:
+                    created += 1
+                    identity.remember(employee_id, full_name, raw_nik)
+                    continue
+
+                obj = Employee(tenant=tenant, employee_id=employee_id, **defaults)
+                apply_mandatory_defaults(obj, fill_fk=False, skip_na_fill=True)
+                obj.save()
                 identity.remember(employee_id, full_name, raw_nik)
-                continue
-
-            obj = Employee(tenant=tenant, employee_id=employee_id, **defaults)
-            apply_mandatory_defaults(obj, fill_fk=False, skip_na_fill=True)
-            obj.save()
-            identity.remember(employee_id, full_name, raw_nik)
-            created += 1
-            new_employees.append(obj)
+                created += 1
+                new_employees.append(obj)
         except ImportErrorRow as exc:
+            org.restore(org_snapshot)
             errors.append(str(exc).replace("Baris 0:", f"Baris {row_num}:"))
         except Exception as exc:
+            org.restore(org_snapshot)
             errors.append(f"Baris {row_num}: {exc}")
         finally:
             if on_progress:

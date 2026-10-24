@@ -242,3 +242,32 @@ class TalentaImportTests(TestCase):
         self.assertEqual(staff.plant.branch_type, Plant.BranchType.BPS_STAFF)
         self.assertEqual(spv.plant.code, "SPV_UP")
         self.assertEqual(spv.plant.branch_type, Plant.BranchType.SPV_UP)
+
+    def test_database_error_on_one_row_does_not_abort_import(self):
+        from django.db import connection
+        from django.db.models.signals import pre_save
+
+        def fail_bad_row(sender, instance, **kwargs):
+            if instance.employee_id != "bad":
+                return
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT missing_import_column FROM employees_employee WHERE 1=0")
+
+        pre_save.connect(fail_bad_row, sender=Employee)
+        try:
+            result = import_employees_talenta_xlsx(
+                self.tenant,
+                _build_xlsx(
+                    [
+                        _row(**{"Employee ID": "bad", "Full Name": "Rusak"}),
+                        _row(**{"Employee ID": "701", "Full Name": "Utuh"}),
+                    ]
+                ),
+            )
+        finally:
+            pre_save.disconnect(fail_bad_row, sender=Employee)
+
+        self.assertEqual(result["created"], 1)
+        self.assertTrue(any(err.startswith("Baris 2:") for err in result["errors"]))
+        self.assertTrue(Employee.objects.filter(tenant=self.tenant, employee_id="701").exists())
+        self.assertFalse(Employee.objects.filter(tenant=self.tenant, employee_id="bad").exists())

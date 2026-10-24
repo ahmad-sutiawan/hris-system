@@ -178,118 +178,119 @@ def import_employee_rows(tenant, rows, *, dry_run=False, on_progress=None):
     for index, row in enumerate(rows, start=1):
         row_num = index + 1
         try:
-            plant_code = str(row["plant_code"]).strip()
-            plant = plants.get(plant_code)
-            if not plant:
-                raise ImportErrorRow(row_num, f"Plant '{plant_code}' tidak ditemukan.")
+            with transaction.atomic():
+                plant_code = str(row["plant_code"]).strip()
+                plant = plants.get(plant_code)
+                if not plant:
+                    raise ImportErrorRow(row_num, f"Plant '{plant_code}' tidak ditemukan.")
 
-            dept = departments.get((plant_code, str(row["department_code"]).strip()))
-            job = jobs.get((plant_code, str(row["job_code"]).strip()))
+                dept = departments.get((plant_code, str(row["department_code"]).strip()))
+                job = jobs.get((plant_code, str(row["job_code"]).strip()))
 
-            employee_id = str(row["employee_id"]).strip()
-            if not employee_id:
-                raise ImportErrorRow(row_num, "employee_id wajib diisi.")
+                employee_id = str(row["employee_id"]).strip()
+                if not employee_id:
+                    raise ImportErrorRow(row_num, "employee_id wajib diisi.")
 
-            full_name = str(row["full_name"]).strip()
-            raw_nik = str(row["nik"]).strip()
-            nik = raw_nik or NA
-            if not full_name:
-                raise ImportErrorRow(row_num, "full_name wajib diisi.")
-            reason = identity.duplicate_reason(employee_id, full_name, raw_nik)
-            if reason:
-                rejected += 1
-                raise ImportErrorRow(row_num, reason)
-            email = str(row["email"]).strip() or NA
-            phone = str(row["phone"]).strip() or NA
-            if not dept:
-                raise ImportErrorRow(row_num, "department_code tidak valid.")
-            if not job:
-                raise ImportErrorRow(row_num, "job_code tidak valid.")
-            join_date = _parse_date(row["join_date"])
-            if not join_date:
-                raise ImportErrorRow(row_num, "join_date wajib diisi (YYYY-MM-DD).")
-            tax_status = str(row["tax_status"]).strip() or NA
+                full_name = str(row["full_name"]).strip()
+                raw_nik = str(row["nik"]).strip()
+                nik = raw_nik or NA
+                if not full_name:
+                    raise ImportErrorRow(row_num, "full_name wajib diisi.")
+                reason = identity.duplicate_reason(employee_id, full_name, raw_nik)
+                if reason:
+                    rejected += 1
+                    raise ImportErrorRow(row_num, reason)
+                email = str(row["email"]).strip() or NA
+                phone = str(row["phone"]).strip() or NA
+                if not dept:
+                    raise ImportErrorRow(row_num, "department_code tidak valid.")
+                if not job:
+                    raise ImportErrorRow(row_num, "job_code tidak valid.")
+                join_date = _parse_date(row["join_date"])
+                if not join_date:
+                    raise ImportErrorRow(row_num, "join_date wajib diisi (YYYY-MM-DD).")
+                tax_status = str(row["tax_status"]).strip() or NA
 
-            gender = str(_row_value(row, "gender")).strip() or Employee.Gender.NA
-            marital_status = str(_row_value(row, "marital_status")).strip() or Employee.MaritalStatus.NA
-            birth_place = str(_row_value(row, "birth_place")).strip() or NA
-            birth_date = _parse_date(_row_value(row, "birth_date"))
-            address = str(_row_value(row, "address")).strip() or NA
-            mother_name = str(_row_value(row, "mother_name")).strip() or NA
-            if gender not in Employee.Gender.values:
-                raise ImportErrorRow(row_num, f"gender '{gender}' tidak valid.")
-            if marital_status not in Employee.MaritalStatus.values:
-                raise ImportErrorRow(row_num, f"marital_status '{marital_status}' tidak valid.")
+                gender = str(_row_value(row, "gender")).strip() or Employee.Gender.NA
+                marital_status = str(_row_value(row, "marital_status")).strip() or Employee.MaritalStatus.NA
+                birth_place = str(_row_value(row, "birth_place")).strip() or NA
+                birth_date = _parse_date(_row_value(row, "birth_date"))
+                address = str(_row_value(row, "address")).strip() or NA
+                mother_name = str(_row_value(row, "mother_name")).strip() or NA
+                if gender not in Employee.Gender.values:
+                    raise ImportErrorRow(row_num, f"gender '{gender}' tidak valid.")
+                if marital_status not in Employee.MaritalStatus.values:
+                    raise ImportErrorRow(row_num, f"marital_status '{marital_status}' tidak valid.")
 
-            job_level_code = str(_row_value(row, "job_level_code")).strip()
-            job_level = job_levels.get(job_level_code) if job_level_code else None
-            if job_level_code and not job_level:
-                raise ImportErrorRow(row_num, f"job_level_code '{job_level_code}' tidak ditemukan.")
+                job_level_code = str(_row_value(row, "job_level_code")).strip()
+                job_level = job_levels.get(job_level_code) if job_level_code else None
+                if job_level_code and not job_level:
+                    raise ImportErrorRow(row_num, f"job_level_code '{job_level_code}' tidak ditemukan.")
 
-            salary_scheme = str(_row_value(row, "salary_scheme", Employee.SalaryScheme.MONTHLY)).strip()
-            if salary_scheme and salary_scheme not in Employee.SalaryScheme.values:
-                raise ImportErrorRow(
-                    row_num,
-                    f"salary_scheme '{salary_scheme}' tidak valid (monthly/daily).",
-                )
+                salary_scheme = str(_row_value(row, "salary_scheme", Employee.SalaryScheme.MONTHLY)).strip()
+                if salary_scheme and salary_scheme not in Employee.SalaryScheme.values:
+                    raise ImportErrorRow(
+                        row_num,
+                        f"salary_scheme '{salary_scheme}' tidak valid (monthly/daily).",
+                    )
 
-            defaults = {
-                "full_name": full_name,
-                "nik": nik,
-                "email": email,
-                "phone": phone,
-                "phone_landline": str(_row_value(row, "phone_landline")).strip() or "",
-                "plant": plant,
-                "department": dept,
-                "job_position": job,
-                "job_level": job_level,
-                "join_date": join_date,
-                "sign_date": _parse_date(_row_value(row, "sign_date")),
-                "contract_end_date": _parse_date(_row_value(row, "contract_end_date")),
-                "resign_date": _parse_date(_row_value(row, "resign_date")),
-                "status_employee": str(_row_value(row, "status_employee")).strip(),
-                "status": str(row["status"]).strip() or Employee.Status.PERMANENT,
-                "salary_scheme": salary_scheme or Employee.SalaryScheme.MONTHLY,
-                "base_salary": _parse_decimal(row["base_salary"]),
-                "allowance_transport": _parse_decimal(row["allowance_transport"]),
-                "allowance_meal": _parse_decimal(_row_value(row, "allowance_meal")),
-                "allowance_position": _parse_decimal(_row_value(row, "allowance_position")),
-                "tax_status": tax_status,
-                "employee_tax_status": str(_row_value(row, "employee_tax_status")).strip() or "",
-                "tax_config": str(_row_value(row, "tax_config")).strip() or "",
-                "bank_name": str(row["bank_name"]).strip() or NA,
-                "bank_account_number": str(row["bank_account_number"]).strip() or NA,
-                "bank_account_name": str(row["bank_account_name"]).strip() or NA,
-                "npwp": str(row["npwp"]).strip() or NA,
-                "bpjs_kesehatan_number": str(_row_value(row, "bpjs_kesehatan_number")).strip() or NA,
-                "bpjs_ketenagakerjaan_number": str(
-                    _row_value(row, "bpjs_ketenagakerjaan_number")
-                ).strip()
-                or NA,
-                "gender": gender,
-                "marital_status": marital_status,
-                "birth_place": birth_place,
-                "birth_date": birth_date,
-                "address": address,
-                "citizen_id_address": str(_row_value(row, "citizen_id_address")).strip() or "",
-                "mother_name": mother_name,
-                "barcode": str(_row_value(row, "barcode")).strip(),
-            }
-            pph21 = _row_value(row, "pph21_deduct")
-            if pph21 not in (None, ""):
-                defaults["pph21_deduct"] = str(pph21).strip().lower() in {"1", "true", "yes"}
+                defaults = {
+                    "full_name": full_name,
+                    "nik": nik,
+                    "email": email,
+                    "phone": phone,
+                    "phone_landline": str(_row_value(row, "phone_landline")).strip() or "",
+                    "plant": plant,
+                    "department": dept,
+                    "job_position": job,
+                    "job_level": job_level,
+                    "join_date": join_date,
+                    "sign_date": _parse_date(_row_value(row, "sign_date")),
+                    "contract_end_date": _parse_date(_row_value(row, "contract_end_date")),
+                    "resign_date": _parse_date(_row_value(row, "resign_date")),
+                    "status_employee": str(_row_value(row, "status_employee")).strip(),
+                    "status": str(row["status"]).strip() or Employee.Status.PERMANENT,
+                    "salary_scheme": salary_scheme or Employee.SalaryScheme.MONTHLY,
+                    "base_salary": _parse_decimal(row["base_salary"]),
+                    "allowance_transport": _parse_decimal(row["allowance_transport"]),
+                    "allowance_meal": _parse_decimal(_row_value(row, "allowance_meal")),
+                    "allowance_position": _parse_decimal(_row_value(row, "allowance_position")),
+                    "tax_status": tax_status,
+                    "employee_tax_status": str(_row_value(row, "employee_tax_status")).strip() or "",
+                    "tax_config": str(_row_value(row, "tax_config")).strip() or "",
+                    "bank_name": str(row["bank_name"]).strip() or NA,
+                    "bank_account_number": str(row["bank_account_number"]).strip() or NA,
+                    "bank_account_name": str(row["bank_account_name"]).strip() or NA,
+                    "npwp": str(row["npwp"]).strip() or NA,
+                    "bpjs_kesehatan_number": str(_row_value(row, "bpjs_kesehatan_number")).strip() or NA,
+                    "bpjs_ketenagakerjaan_number": str(
+                        _row_value(row, "bpjs_ketenagakerjaan_number")
+                    ).strip()
+                    or NA,
+                    "gender": gender,
+                    "marital_status": marital_status,
+                    "birth_place": birth_place,
+                    "birth_date": birth_date,
+                    "address": address,
+                    "citizen_id_address": str(_row_value(row, "citizen_id_address")).strip() or "",
+                    "mother_name": mother_name,
+                    "barcode": str(_row_value(row, "barcode")).strip(),
+                }
+                pph21 = _row_value(row, "pph21_deduct")
+                if pph21 not in (None, ""):
+                    defaults["pph21_deduct"] = str(pph21).strip().lower() in {"1", "true", "yes"}
 
-            if dry_run:
-                created += 1
+                if dry_run:
+                    created += 1
+                    identity.remember(employee_id, full_name, raw_nik)
+                    continue
+
+                obj = Employee(tenant=tenant, employee_id=employee_id, **defaults)
+                apply_mandatory_defaults(obj, fill_fk=True)
+                obj.save()
                 identity.remember(employee_id, full_name, raw_nik)
-                continue
-
-            obj = Employee(tenant=tenant, employee_id=employee_id, **defaults)
-            apply_mandatory_defaults(obj, fill_fk=True)
-            obj.save()
-            identity.remember(employee_id, full_name, raw_nik)
-            created += 1
-            new_employees.append(obj)
+                created += 1
+                new_employees.append(obj)
         except ImportErrorRow as exc:
             errors.append(str(exc))
         except Exception as exc:
