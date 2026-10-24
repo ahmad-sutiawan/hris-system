@@ -17,11 +17,11 @@ class BrandLogo extends StatelessWidget {
   double get _width {
     switch (size) {
       case BrandLogoSize.sidebar:
-        return 112;
+        return 168;
       case BrandLogoSize.panel:
-        return 136;
+        return 188;
       case BrandLogoSize.hero:
-        return 180;
+        return 220;
     }
   }
 
