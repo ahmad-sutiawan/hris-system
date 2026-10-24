@@ -791,6 +791,21 @@ class _LocationStepBody extends StatelessWidget {
   }
 }
 
+List<LatLng> _radiusCorners(LatLng center, int radiusM) {
+  const metersPerDegreeLat = 111320.0;
+  final latRad = center.latitude * math.pi / 180;
+  final metersPerDegreeLng = math.max(metersPerDegreeLat * math.cos(latRad).abs(), 1.0);
+  final dLat = radiusM / metersPerDegreeLat;
+  final dLng = radiusM / metersPerDegreeLng;
+  return [
+    LatLng(center.latitude + dLat, center.longitude + dLng),
+    LatLng(center.latitude + dLat, center.longitude - dLng),
+    LatLng(center.latitude - dLat, center.longitude + dLng),
+    LatLng(center.latitude - dLat, center.longitude - dLng),
+    center,
+  ];
+}
+
 class _LiveMapView extends StatefulWidget {
   const _LiveMapView({
     required this.mapController,
@@ -807,35 +822,50 @@ class _LiveMapView extends StatefulWidget {
 }
 
 class _LiveMapViewState extends State<_LiveMapView> {
-  LatLng? _lastCenter;
+  String? _lastFrame;
 
   @override
   void didUpdateWidget(covariant _LiveMapView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _syncMapCenter();
+    _frameMap();
   }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncMapCenter());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _frameMap());
   }
 
-  void _syncMapCenter() {
+  void _frameMap() {
     final pos = widget.position;
     if (pos == null) return;
     final target = LatLng(pos.latitude, pos.longitude);
-    if (_lastCenter != null &&
-        _lastCenter!.latitude == target.latitude &&
-        _lastCenter!.longitude == target.longitude) {
-      return;
-    }
-    _lastCenter = target;
+    final fenceKey = widget.fences
+        .map((fence) => '${fence.latitude},${fence.longitude},${fence.radiusM}')
+        .join('|');
+    final frame = '${target.latitude},${target.longitude}|$fenceKey';
+    if (_lastFrame == frame) return;
+    _lastFrame = frame;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
-        final zoom = widget.mapController.camera.zoom;
-        widget.mapController.move(target, zoom > 0 ? zoom : 17);
+        if (widget.fences.isEmpty) {
+          widget.mapController.move(target, 17);
+          return;
+        }
+        final points = <LatLng>[target];
+        for (final fence in widget.fences) {
+          points.addAll(
+            _radiusCorners(LatLng(fence.latitude, fence.longitude), fence.radiusM),
+          );
+        }
+        widget.mapController.fitCamera(
+          CameraFit.coordinates(
+            coordinates: points,
+            padding: const EdgeInsets.fromLTRB(36, 36, 36, 148),
+            maxZoom: 18,
+          ),
+        );
       } catch (_) {
         widget.mapController.move(target, 17);
       }
@@ -885,9 +915,9 @@ class _LiveMapViewState extends State<_LiveMapView> {
                 point: LatLng(fence.latitude, fence.longitude),
                 radius: fence.radiusM.toDouble(),
                 useRadiusInMeter: true,
-                color: AppColors.info.withValues(alpha: 0.18),
-                borderColor: AppColors.info,
-                borderStrokeWidth: 2,
+                color: const Color(0x332563EB),
+                borderColor: const Color(0xFF1D4ED8),
+                borderStrokeWidth: 3,
               ),
           ],
         ),

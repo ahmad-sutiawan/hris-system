@@ -72,9 +72,15 @@ def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
         return cached
 
     points: list[tuple[float, float, int, str]] = []
-    if plant and plant.latitude is not None and plant.longitude is not None:
-        radius = plant.geo_fence_radius_m or 150
-        points.append((float(plant.latitude), float(plant.longitude), radius, plant.name))
+    seen_plants: set[int] = set()
+    for site in (plant, _resolve_pt_plant(plant)):
+        if site is None or site.pk in seen_plants:
+            continue
+        seen_plants.add(site.pk)
+        if site.latitude is None or site.longitude is None:
+            continue
+        radius = site.geo_fence_radius_m or 150
+        points.append((float(site.latitude), float(site.longitude), radius, site.name))
 
     location_plant_ids: list[int] = []
     if plant_id:

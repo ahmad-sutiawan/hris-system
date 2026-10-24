@@ -11,7 +11,11 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from apps.attendance.models import AttendanceRecord
-from apps.attendance.services.geo import GeoFenceError, validate_punch_location
+from apps.attendance.services.geo import (
+    GeoFenceError,
+    punch_locations_for_employee,
+    validate_punch_location,
+)
 from apps.attendance.services.punch import PunchError, clock_in
 from apps.core.models import Plant, PunchLocation, Tenant, User
 from apps.employees.models import Employee
@@ -103,6 +107,30 @@ class GeoFenceTests(TestCase):
             radius_m=150,
         )
         validate_punch_location(self.employee, -6.1752, 106.8651)
+
+    def test_map_points_include_parent_plant_radius(self):
+        pt = Plant.objects.create(
+            tenant=self.tenant,
+            code="PTMAP",
+            name="Kantor Pusat",
+            entity_type=Plant.EntityType.PT,
+            latitude=Decimal("-6.1751000"),
+            longitude=Decimal("106.8650000"),
+            geo_fence_radius_m=180,
+        )
+        branch = Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRMAP",
+            name="Information & Technology",
+            entity_type=Plant.EntityType.BRANCH,
+        )
+        self.employee.plant = branch
+        self.employee.save(update_fields=["plant"])
+        locations = punch_locations_for_employee(self.employee)
+        self.assertEqual(len(locations), 1)
+        self.assertEqual(locations[0]["name"], "Kantor Pusat")
+        self.assertEqual(locations[0]["radius_m"], 180)
 
     def test_radius_change_applies_without_stale_cache(self):
         validate_punch_location(self.employee, -6.2097, 106.8456)
