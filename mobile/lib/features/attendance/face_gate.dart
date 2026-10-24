@@ -15,7 +15,7 @@ String faceGateMessage(FaceGateStatus status) {
     case FaceGateStatus.noFace:
       return 'Wajah tidak terdeteksi. Arahkan wajah ke kamera.';
     case FaceGateStatus.face:
-      return 'Tersenyum untuk mengambil foto.';
+      return 'Wajah terdeteksi. Tekan Submit.';
     case FaceGateStatus.smiling:
       return 'Wajah siap.';
   }
@@ -44,6 +44,10 @@ class FaceGateTracker {
 
   void reset() => _smileStreak = 0;
 }
+
+/// Submit is allowed as soon as a face is in frame. A smile is not required.
+bool faceGateReady(FaceGateStatus status) =>
+    status == FaceGateStatus.face || status == FaceGateStatus.smiling;
 
 /// On-device face detector. Frames are dropped while a read is in flight.
 class FaceStreamSession {

@@ -279,7 +279,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   Future<void> _captureFromPreview() async {
     final controller = _cameraController;
     if (controller == null || !controller.value.isInitialized || _capturing) return;
-    if (_faceStatus != FaceGateStatus.smiling) return;
+    if (!faceGateReady(_faceStatus)) return;
     _capturing = true;
     final camera = _activeCamera;
     try {
@@ -530,7 +530,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                   canProceed: _step == _PunchStep.location
                       ? _position != null && !_locating && insideFence
                       : _photoBytes != null ||
-                          (_cameraReady && _faceStatus == FaceGateStatus.smiling),
+                          (_cameraReady && faceGateReady(_faceStatus)),
                   primaryLabel: _step == _PunchStep.location
                       ? 'Lanjut'
                       : (_isClockOut ? 'Submit Pulang' : 'Submit Masuk'),

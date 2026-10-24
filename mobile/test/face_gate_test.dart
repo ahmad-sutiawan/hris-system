@@ -39,8 +39,14 @@ void main() {
       'Wajah tidak terdeteksi. Arahkan wajah ke kamera.',
     );
     expect(faceGateMessage(FaceGateStatus.face),
-        'Tersenyum untuk mengambil foto.');
+        'Wajah terdeteksi. Tekan Submit.');
     expect(faceGateMessage(FaceGateStatus.smiling), 'Wajah siap.');
+  });
+
+  test('a detected face is enough to submit', () {
+    expect(faceGateReady(FaceGateStatus.noFace), isFalse);
+    expect(faceGateReady(FaceGateStatus.face), isTrue);
+    expect(faceGateReady(FaceGateStatus.smiling), isTrue);
   });
 
   test('padded NV21 rows are packed to the frame width', () {
