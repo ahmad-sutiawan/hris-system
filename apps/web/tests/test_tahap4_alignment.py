@@ -82,6 +82,7 @@ class Tahap4PayrollSplitTests(TestCase):
         response = self.client.get(reverse("web:employee_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Job Level")
+        self.assertContains(response, ">NIK<")
         self.assertContains(response, "Data Gaji Karyawan")
         self.assertNotContains(response, "Gaji Pokok")
         self.assertNotContains(response, "Akun login")

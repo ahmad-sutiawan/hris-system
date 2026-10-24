@@ -11,8 +11,7 @@ from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
 
 
-from apps.employees.talenta_vocabulary import STATUS_EMPLOYEE_VALUES
-from apps.web.widgets import apply_date_fields, apply_time_fields
+from apps.web.widgets import ApprovalToWidget, apply_date_fields, apply_time_fields
 
 
 HRIS_INPUT_CLASS = "hris-input"
@@ -133,6 +132,13 @@ class HRISLoginForm(AuthenticationForm):
     )
 
 
+def _approval_to_label(employee):
+    label = f"{employee.employee_id} — {employee.full_name}"
+    if employee.status in {Employee.Status.INACTIVE, Employee.Status.RESIGNED}:
+        label = f"{label} ({employee.get_status_display()})"
+    return label
+
+
 class EmployeeForm(forms.ModelForm):
     class Meta:
         model = Employee
@@ -158,7 +164,6 @@ class EmployeeForm(forms.ModelForm):
             "join_date",
             "contract_end_date",
             "resign_date",
-            "status_employee",
             "status",
         ]
         labels = {
@@ -180,9 +185,9 @@ class EmployeeForm(forms.ModelForm):
             "join_date": "Join Date",
             "contract_end_date": "End Date",
             "resign_date": "Resign Date",
-            "status_employee": "Status Employee",
             "default_shift": "Shift default",
             "job_level": "Job Level",
+            "manager": "Approval to",
         }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
@@ -191,12 +196,6 @@ class EmployeeForm(forms.ModelForm):
             self.instance.tenant = tenant
         _style_fields(self)
         apply_date_fields(self, "join_date", "contract_end_date", "resign_date", "birth_date")
-        if "status_employee" in self.fields:
-            self.fields["status_employee"].required = False
-            self.fields["status_employee"].widget = forms.Select(
-                choices=[("", "— Pilih Status Employee —")]
-                + [(value, value) for value in STATUS_EMPLOYEE_VALUES]
-            )
         self.fields["photo"].required = False
         self.fields["address"].widget = forms.Textarea(attrs={"rows": 3, "class": HRIS_TEXTAREA_CLASS})
         for name in (
@@ -223,13 +222,20 @@ class EmployeeForm(forms.ModelForm):
             _configure_employee_department_shift_fields(
                 self, tenant=tenant, user=user, plant_id=plant_id
             )
-            self.fields["manager"].queryset = Employee.objects.filter(tenant=tenant).exclude(
-                status__in=[Employee.Status.INACTIVE, Employee.Status.RESIGNED]
-            )
+            approvers = Employee.objects.filter(tenant=tenant).only(
+                "employee_id", "full_name", "status"
+            ).order_by("full_name", "employee_id")
             if self.instance.pk:
-                self.fields["manager"].queryset = self.fields["manager"].queryset.exclude(
-                    pk=self.instance.pk
-                )
+                approvers = approvers.exclude(pk=self.instance.pk)
+            manager_field = self.fields["manager"]
+            manager_field.queryset = approvers
+            manager_field.empty_label = "Pilih karyawan"
+            manager_field.help_text = (
+                "Karyawan yang dipilih menyetujui cuti, lembur, dan koreksi absensi orang ini."
+            )
+            manager_field.label_from_instance = _approval_to_label
+            manager_field.widget = ApprovalToWidget()
+            manager_field.widget.choices = manager_field.choices
 
     def _resolve_plant_id(self, user):
         if self.data.get("plant"):

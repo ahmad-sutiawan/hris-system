@@ -31,7 +31,7 @@
         </div>
         {% endif %}
         {% for field in form %}
-          <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--checkbox{% elif field.name in 'full_name employee_id plant address photo' %} hris-field--full{% endif %}">
+          <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--checkbox{% elif field.name == 'manager' or field.name in 'full_name employee_id plant address photo' %} hris-field--full{% endif %}">
             {% if field.field.widget.input_type == 'checkbox' %}
               <label class="hris-checkbox-label">{{ field }} {{ field.label }}</label>
             {% elif field.field.widget.input_type == 'date' %}
@@ -76,4 +76,56 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll("[data-approval-picker]").forEach((root) => {
+    const trigger = root.querySelector(".hris-approval-picker__trigger");
+    const panel = root.querySelector(".hris-approval-picker__panel");
+    const search = panel.querySelector("input");
+    const items = Array.from(panel.querySelectorAll("[data-value]"));
+    const empty = panel.querySelector(".hris-approval-picker__empty");
+    const native = root.querySelector("select");
+
+    function setOpen(open) {
+      panel.hidden = !open;
+      trigger.setAttribute("aria-expanded", open ? "true" : "false");
+      if (open) {
+        search.value = "";
+        applyFilter("");
+        search.focus();
+      }
+    }
+
+    function applyFilter(query) {
+      const needle = query.trim().toLowerCase();
+      let visible = 0;
+      items.forEach((item) => {
+        const match = !needle || (item.dataset.search || "").includes(needle);
+        item.hidden = !match;
+        if (match) visible += 1;
+      });
+      empty.hidden = visible !== 0;
+    }
+
+    trigger.addEventListener("click", () => setOpen(panel.hidden));
+    search.addEventListener("input", () => applyFilter(search.value));
+    search.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") event.preventDefault();
+      if (event.key === "Escape") setOpen(false);
+    });
+    items.forEach((item) => {
+      item.addEventListener("click", () => {
+        native.value = item.dataset.value;
+        trigger.textContent = item.textContent;
+        items.forEach((other) => other.classList.toggle("is-selected", other === item));
+        setOpen(false);
+      });
+    });
+    document.addEventListener("click", (event) => {
+      if (!root.contains(event.target)) setOpen(false);
+    });
+  });
+</script>
 {% endblock %}
