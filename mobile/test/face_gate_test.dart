@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:hris_mobile/features/attendance/face_gate.dart';
 
 void main() {
@@ -108,5 +109,28 @@ void main() {
     for (var i = 0; i < unscoredFaceReadyReads; i++) {
       expect(tracker.update(const [0.2]), FaceGateStatus.face);
     }
+  });
+
+  test('rotation turns until a face is found, then stays', () {
+    final search = FaceRotationSearch();
+    expect(
+      search.current(fallback: InputImageRotation.rotation270deg),
+      InputImageRotation.rotation270deg,
+    );
+    search.note(FaceGateStatus.noFace);
+    search.note(null);
+    search.note(FaceGateStatus.noFace);
+    expect(
+      search.current(fallback: InputImageRotation.rotation270deg),
+      InputImageRotation.rotation0deg,
+    );
+    search.note(FaceGateStatus.face);
+    search.note(null);
+    search.note(null);
+    search.note(null);
+    expect(
+      search.current(fallback: InputImageRotation.rotation0deg),
+      InputImageRotation.rotation0deg,
+    );
   });
 }

@@ -69,14 +69,15 @@ class FaceStreamSession {
             enableClassification: true,
             enableLandmarks: false,
             enableContours: false,
-            enableTracking: true,
-            performanceMode: FaceDetectorMode.fast,
-            minFaceSize: 0.15,
+            enableTracking: false,
+            performanceMode: FaceDetectorMode.accurate,
+            minFaceSize: 0.1,
           ),
         );
 
   final FaceDetector _detector;
   final FaceGateTracker _tracker = FaceGateTracker();
+  final FaceRotationSearch _rotation = FaceRotationSearch();
   DateTime? _lastRun;
   bool _busy = false;
   bool _closed = false;
@@ -98,8 +99,11 @@ class FaceStreamSession {
       if (_closed) return null;
       final faces = await _detector.processImage(image);
       if (_closed) return null;
-      return _tracker.update(faces.map((face) => face.smilingProbability));
+      final status = _tracker.update(faces.map((face) => face.smilingProbability));
+      _rotation.note(status);
+      return status;
     } catch (_) {
+      _rotation.note(null);
       return null;
     } finally {
       _busy = false;
@@ -118,7 +122,9 @@ class FaceStreamSession {
     required CameraDescription camera,
     required DeviceOrientation deviceOrientation,
   }) {
-    final rotation = _rotationFor(camera: camera, deviceOrientation: deviceOrientation);
+    final rotation = _rotation.current(
+      fallback: _rotationFor(camera: camera, deviceOrientation: deviceOrientation),
+    );
     if (rotation == null) return null;
 
     if (Platform.isAndroid) {
@@ -127,10 +133,10 @@ class FaceStreamSession {
       return InputImage.fromBytes(
         bytes: nv21.bytes,
         metadata: InputImageMetadata(
-          size: Size(image.width.toDouble(), image.height.toDouble()),
+          size: Size(nv21.width.toDouble(), nv21.height.toDouble()),
           rotation: rotation,
           format: InputImageFormat.nv21,
-          bytesPerRow: nv21.bytesPerRow,
+          bytesPerRow: nv21.width,
         ),
       );
     }
@@ -150,10 +156,38 @@ class FaceStreamSession {
 }
 
 class _Nv21Frame {
-  const _Nv21Frame(this.bytes, this.bytesPerRow);
+  const _Nv21Frame(this.bytes, this.width, this.height);
 
   final Uint8List bytes;
-  final int bytesPerRow;
+  final int width;
+  final int height;
+}
+
+/// Tries the next quarter-turn when a clear frame still has no face.
+class FaceRotationSearch {
+  int? _degrees;
+  int _misses = 0;
+  bool _locked = false;
+
+  InputImageRotation? current({required InputImageRotation? fallback}) {
+    final initial = _degrees ?? fallback?.rawValue;
+    if (initial == null) return null;
+    _degrees ??= initial;
+    return InputImageRotationValue.fromRawValue(_degrees!);
+  }
+
+  void note(FaceGateStatus? status) {
+    if (_locked || _degrees == null) return;
+    if (status == FaceGateStatus.face || status == FaceGateStatus.smiling) {
+      _locked = true;
+      _misses = 0;
+      return;
+    }
+    _misses += 1;
+    if (_misses < 3) return;
+    _misses = 0;
+    _degrees = (_degrees! + 90) % 360;
+  }
 }
 
 const _deviceOrientations = <DeviceOrientation, int>{
@@ -224,46 +258,79 @@ Uint8List? compactNv21({
 }
 
 _Nv21Frame? _packNv21(CameraImage image) {
+  final width = image.width.isOdd ? image.width - 1 : image.width;
+  final height = image.height.isOdd ? image.height - 1 : image.height;
+  if (width <= 0 || height <= 0) return null;
+
   if (image.planes.length == 1) {
     final plane = image.planes.first;
     final bytes = compactNv21(
       bytes: plane.bytes,
-      width: image.width,
-      height: image.height,
+      width: width,
+      height: height,
       bytesPerRow: plane.bytesPerRow,
     );
     if (bytes == null) return null;
-    return _Nv21Frame(bytes, image.width);
+    return _Nv21Frame(bytes, width, height);
   }
   if (image.planes.length < 3) return null;
 
-  final width = image.width;
-  final height = image.height;
   final yPlane = image.planes[0];
   final uPlane = image.planes[1];
   final vPlane = image.planes[2];
   final ySize = width * height;
   final out = Uint8List(ySize + (ySize ~/ 2));
 
-  var offset = 0;
-  for (var row = 0; row < height; row++) {
-    final rowStart = row * yPlane.bytesPerRow;
-    out.setRange(offset, offset + width, yPlane.bytes, rowStart);
-    offset += width;
+  if (!_copyRows(out, 0, yPlane.bytes, width: width, height: height, stride: yPlane.bytesPerRow)) {
+    return null;
   }
 
   final uvHeight = height ~/ 2;
   final uvWidth = width ~/ 2;
-  final uStride = uPlane.bytesPerPixel ?? 1;
-  final vStride = vPlane.bytesPerPixel ?? 1;
+  final uPixel = uPlane.bytesPerPixel ?? 1;
+  final vPixel = vPlane.bytesPerPixel ?? 1;
+  var offset = ySize;
   for (var row = 0; row < uvHeight; row++) {
     for (var col = 0; col < uvWidth; col++) {
-      final uIndex = row * uPlane.bytesPerRow + col * uStride;
-      final vIndex = row * vPlane.bytesPerRow + col * vStride;
-      if (vIndex >= vPlane.bytes.length || uIndex >= uPlane.bytes.length) return null;
+      final uIndex = _sampleIndex(uPlane.bytes.length, row, col, uPlane.bytesPerRow, uPixel, uvWidth);
+      final vIndex = _sampleIndex(vPlane.bytes.length, row, col, vPlane.bytesPerRow, vPixel, uvWidth);
+      if (uIndex == null || vIndex == null) return null;
       out[offset++] = vPlane.bytes[vIndex];
       out[offset++] = uPlane.bytes[uIndex];
     }
   }
-  return _Nv21Frame(out, width);
+  return _Nv21Frame(out, width, height);
+}
+
+bool _copyRows(
+  Uint8List out,
+  int offset,
+  Uint8List bytes, {
+  required int width,
+  required int height,
+  required int stride,
+}) {
+  final packed = stride < width || offset + width * height > out.length;
+  final rowStride = packed ? width : stride;
+  if (height * rowStride > bytes.length && width * height > bytes.length) return false;
+  var dst = offset;
+  for (var row = 0; row < height; row++) {
+    final start = row * rowStride;
+    if (start + width > bytes.length) {
+      if (rowStride == width) return false;
+      return _copyRows(out, offset, bytes, width: width, height: height, stride: width);
+    }
+    out.setRange(dst, dst + width, bytes, start);
+    dst += width;
+  }
+  return true;
+}
+
+int? _sampleIndex(int length, int row, int col, int rowStride, int pixelStride, int tightWidth) {
+  final stride = rowStride < pixelStride ? pixelStride : rowStride;
+  final strided = row * stride + col * pixelStride;
+  if (strided >= 0 && strided < length) return strided;
+  final tight = (row * tightWidth + col) * pixelStride;
+  if (tight >= 0 && tight < length) return tight;
+  return null;
 }

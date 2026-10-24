@@ -42,7 +42,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   bool _loading = false;
   bool _locating = false;
   bool _cameraReady = false;
-  bool _useFrontCamera = true;
   Uint8List? _photoBytes;
   Position? _position;
   String? _locationError;
@@ -162,7 +161,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
   Future<CameraController> _openCamera(CameraDescription selected) async {
     final formats = Platform.isAndroid
-        ? const [ImageFormatGroup.nv21, ImageFormatGroup.yuv420]
+        ? const [ImageFormatGroup.yuv420]
         : const [ImageFormatGroup.bgra8888];
     Object? lastError;
     for (final format in formats) {
@@ -197,18 +196,10 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         return;
       }
 
-      CameraDescription selected;
-      if (_useFrontCamera) {
-        selected = cameras.firstWhere(
-          (c) => c.lensDirection == CameraLensDirection.front,
-          orElse: () => cameras.first,
-        );
-      } else {
-        selected = cameras.firstWhere(
-          (c) => c.lensDirection == CameraLensDirection.back,
-          orElse: () => cameras.first,
-        );
-      }
+      CameraDescription selected = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
 
       final controller = await _openCamera(selected);
       if (!mounted) {
@@ -285,14 +276,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       await controller.dispose();
     }
     await session?.close();
-  }
-
-  Future<void> _toggleCamera() async {
-    if (_photoBytes != null) {
-      setState(() => _photoBytes = null);
-    }
-    setState(() => _useFrontCamera = !_useFrontCamera);
-    await _initCamera();
   }
 
   Future<void> _captureFromPreview() async {
@@ -508,10 +491,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                       context.pop();
                     }
                   },
-                  onAction: _step == _PunchStep.location ? _refreshLocation : _toggleCamera,
-                  actionIcon: _step == _PunchStep.location
-                      ? Icons.my_location_rounded
-                      : Icons.cameraswitch_rounded,
+                  onAction: _step == _PunchStep.location ? _refreshLocation : null,
+                  actionIcon: _step == _PunchStep.location ? Icons.my_location_rounded : null,
                 ),
                 Transform.translate(
                   offset: const Offset(0, -18),
@@ -584,15 +565,15 @@ class _TalentaPunchHeader extends StatelessWidget {
     required this.title,
     required this.step,
     required this.onBack,
-    required this.onAction,
-    required this.actionIcon,
+    this.onAction,
+    this.actionIcon,
   });
 
   final String title;
   final _PunchStep step;
   final VoidCallback onBack;
-  final VoidCallback onAction;
-  final IconData actionIcon;
+  final VoidCallback? onAction;
+  final IconData? actionIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -626,19 +607,20 @@ class _TalentaPunchHeader extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            margin: const EdgeInsets.only(right: 4),
-            decoration: BoxDecoration(
-              color: step == _PunchStep.selfie
-                  ? AppColors.success
-                  : Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(10),
+          if (onAction == null || actionIcon == null)
+            const SizedBox(width: 48)
+          else
+            Container(
+              margin: const EdgeInsets.only(right: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: IconButton(
+                onPressed: onAction,
+                icon: Icon(actionIcon, color: Colors.white, size: 20),
+              ),
             ),
-            child: IconButton(
-              onPressed: onAction,
-              icon: Icon(actionIcon, color: Colors.white, size: 20),
-            ),
-          ),
         ],
       ),
     );
