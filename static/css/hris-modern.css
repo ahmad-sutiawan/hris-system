@@ -866,6 +866,17 @@ body.hris-body::after {
   white-space: nowrap;
 }
 
+.hris-table-wrap.hris-directory {
+  overflow: visible;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.hris-directory .hris-table thead {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 .hris-directory-scroll {
   max-height: calc(100vh - 15rem);
   overflow: auto;
@@ -887,7 +898,7 @@ body.hris-body::after {
 .hris-table--directory thead th {
   position: sticky;
   top: 0;
-  z-index: 3;
+  z-index: 5;
   background: #f4f7fb;
 }
 
@@ -899,11 +910,13 @@ body.hris-body::after {
 
 .hris-table--directory .is-sticky {
   position: sticky;
-  z-index: 2;
+  z-index: 4;
+  background: #fff;
 }
 
 .hris-table--directory thead .is-sticky {
-  z-index: 4;
+  z-index: 6;
+  background: #f4f7fb;
 }
 
 .hris-table--directory .is-sticky-no { left: 0; min-width: 3.25rem; }
@@ -921,5 +934,9 @@ body.hris-body::after {
 }
 
 .hris-table--directory tbody tr:hover td {
+  background: #eef3fb;
+}
+
+.hris-table--directory tbody tr:hover .is-sticky {
   background: #eef3fb;
 }

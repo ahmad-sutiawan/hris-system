@@ -355,7 +355,7 @@ def employee_list(request):
     if response:
         return response
     employees = list(ctx["page_obj"].object_list)
-    columns = employee_directory_headers()
+    columns = [header for header in employee_directory_headers() if header != "Manager"]
     wrap_headers = {
         "Citizen ID Address",
         "Residential Address",
@@ -371,14 +371,15 @@ def employee_list(request):
         for index, header in enumerate(columns)
     ]
     rows = []
+    export_headers = employee_directory_headers()
     for employee in employees:
-        values = employee_directory_cells(employee)
+        stored = dict(zip(export_headers, employee_directory_cells(employee), strict=True))
         rows.append(
             {
                 "employee": employee,
                 "cells": [
-                    {**meta, "value": values[index]}
-                    for index, meta in enumerate(column_meta)
+                    {**meta, "value": stored[meta["label"]]}
+                    for meta in column_meta
                 ],
             }
         )

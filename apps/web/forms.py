@@ -5,7 +5,7 @@ from django.utils import timezone
 from apps.attendance.models import OvertimeRequest, OvertimeType
 from apps.attendance.models import AttendanceCode, DailyTimesheet
 from apps.core.models import Plant
-from apps.employees.models import Employee, EmployeeDocument
+from apps.employees.models import Employee, EmployeeDocument, TalentaMaster
 from apps.leave.models import LeaveRequest, LeaveType
 from apps.payroll.models import PayrollRun
 from apps.shifts.models import Shift, ShiftAssignment
@@ -132,11 +132,8 @@ class HRISLoginForm(AuthenticationForm):
     )
 
 
-def _approval_to_label(employee):
-    label = f"{employee.employee_id} — {employee.full_name}"
-    if employee.status in {Employee.Status.INACTIVE, Employee.Status.RESIGNED}:
-        label = f"{label} ({employee.get_status_display()})"
-    return label
+def _approval_line_label(line):
+    return line.name
 
 
 class EmployeeForm(forms.ModelForm):
@@ -160,7 +157,7 @@ class EmployeeForm(forms.ModelForm):
             "job_position",
             "job_level",
             "default_shift",
-            "manager",
+            "approval_line",
             "join_date",
             "contract_end_date",
             "resign_date",
@@ -187,7 +184,7 @@ class EmployeeForm(forms.ModelForm):
             "resign_date": "Resign Date",
             "default_shift": "Shift default",
             "job_level": "Job Level",
-            "manager": "Approval to",
+            "approval_line": "Approval to",
         }
 
     def __init__(self, *args, tenant=None, user=None, **kwargs):
@@ -207,7 +204,6 @@ class EmployeeForm(forms.ModelForm):
             "plant",
             "department",
             "job_position",
-            "manager",
             "join_date",
             "gender",
             "marital_status",
@@ -223,20 +219,44 @@ class EmployeeForm(forms.ModelForm):
             _configure_employee_department_shift_fields(
                 self, tenant=tenant, user=user, plant_id=plant_id
             )
-            approvers = Employee.objects.filter(tenant=tenant).only(
-                "employee_id", "full_name", "status"
-            ).order_by("full_name", "employee_id")
-            if self.instance.pk:
-                approvers = approvers.exclude(pk=self.instance.pk)
-            manager_field = self.fields["manager"]
-            manager_field.queryset = approvers
-            manager_field.empty_label = "Pilih karyawan"
-            manager_field.help_text = (
-                "Karyawan yang dipilih menyetujui cuti, lembur, dan koreksi absensi orang ini."
+            approval_lines = TalentaMaster.objects.filter(
+                tenant=tenant,
+                category=TalentaMaster.Category.APPROVAL_LINE,
+                is_active=True,
             )
-            manager_field.label_from_instance = _approval_to_label
-            manager_field.widget = ApprovalToWidget()
-            manager_field.widget.choices = manager_field.choices
+            if self.instance.approval_line_id:
+                approval_lines = approval_lines | TalentaMaster.objects.filter(
+                    pk=self.instance.approval_line_id
+                )
+            approval_lines = approval_lines.order_by("name")
+            approval_field = self.fields["approval_line"]
+            approval_field.queryset = approval_lines
+            approval_field.required = False
+            approval_field.empty_label = "Pilih approval line"
+            approval_field.help_text = (
+                "Approval Line yang menyetujui cuti, lembur, dan koreksi absensi orang ini."
+            )
+            approval_field.label_from_instance = _approval_line_label
+            approval_field.widget = ApprovalToWidget()
+            approval_field.widget.choices = approval_field.choices
+
+    def save(self, commit=True):
+        employee = super().save(commit=False)
+        line = employee.approval_line
+        if line and employee.tenant_id:
+            matches = Employee.objects.filter(
+                tenant_id=employee.tenant_id,
+                full_name__iexact=line.name.strip(),
+            )
+            if employee.pk:
+                matches = matches.exclude(pk=employee.pk)
+            match = matches.order_by("pk").first()
+            if match:
+                employee.manager = match
+        if commit:
+            employee.save()
+            self.save_m2m()
+        return employee
 
     def _resolve_plant_id(self, user):
         if self.data.get("plant"):

@@ -31,7 +31,7 @@
         </div>
         {% endif %}
         {% for field in form %}
-          <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--checkbox{% elif field.name == 'manager' or field.name in 'full_name employee_id plant address photo' %} hris-field--full{% endif %}">
+          <div class="hris-field{% if field.field.widget.input_type == 'checkbox' %} hris-field--checkbox{% elif field.field.widget.input_type == 'date' %} hris-field--checkbox{% elif field.name == 'approval_line' or field.name in 'full_name employee_id plant address photo' %} hris-field--full{% endif %}">
             {% if field.field.widget.input_type == 'checkbox' %}
               <label class="hris-checkbox-label">{{ field }} {{ field.label }}</label>
             {% elif field.field.widget.input_type == 'date' %}

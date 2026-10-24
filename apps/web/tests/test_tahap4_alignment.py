@@ -7,7 +7,7 @@ from django.urls import reverse
 
 from apps.core.models import Plant, Tenant, User
 from apps.core.xlsx_io import read_xlsx_rows
-from apps.employees.models import Employee
+from apps.employees.models import Employee, TalentaMaster
 from apps.organization.models import Department, JobPosition
 
 
@@ -87,7 +87,9 @@ class Tahap4PayrollSplitTests(TestCase):
         self.assertContains(response, "Birth Place")
         self.assertContains(response, "Nama Ibu Kandung")
         self.assertContains(response, "Shift Default")
+        self.assertContains(response, "Approval Line")
         self.assertContains(response, "Data Gaji Karyawan")
+        self.assertNotContains(response, ">Manager</th>")
         self.assertNotContains(response, "Gaji Pokok")
         self.assertNotContains(response, "Base Salary")
         self.assertNotContains(response, "Akun login")
@@ -101,6 +103,41 @@ class Tahap4PayrollSplitTests(TestCase):
         comp_response = self.client.get(reverse("web:employee_compensation_edit", args=[emp.pk]))
         self.assertEqual(comp_response.status_code, 200)
         self.assertContains(comp_response, "Gaji & Tunjangan")
+
+    def test_approval_to_uses_approval_line(self):
+        line = TalentaMaster.objects.create(
+            tenant=self.tenant,
+            category=TalentaMaster.Category.APPROVAL_LINE,
+            name="Manager",
+        )
+        other = TalentaMaster.objects.create(
+            tenant=self.tenant,
+            category=TalentaMaster.Category.APPROVAL_LINE,
+            name="Bukan Karyawan",
+        )
+        self.client.login(username="t4admin", password="TestPassword123!")
+        response = self.client.post(
+            reverse("web:employee_create"),
+            self._employee_form(approval_line=line.pk),
+        )
+        self.assertEqual(response.status_code, 302)
+        emp = Employee.objects.get(employee_id="E-T4")
+        self.assertEqual(emp.approval_line_id, line.pk)
+        self.assertEqual(emp.manager_id, self.manager.pk)
+
+        response = self.client.post(
+            reverse("web:employee_edit", args=[emp.pk]),
+            self._employee_form(approval_line=other.pk),
+        )
+        self.assertEqual(response.status_code, 302)
+        emp.refresh_from_db()
+        self.assertEqual(emp.approval_line_id, other.pk)
+        self.assertEqual(emp.manager_id, self.manager.pk)
+
+        form_page = self.client.get(reverse("web:employee_edit", args=[emp.pk]))
+        self.assertContains(form_page, "Approval to")
+        self.assertContains(form_page, "Bukan Karyawan")
+        self.assertNotContains(form_page, "Pilih karyawan")
 
     def test_compensation_list_export(self):
         Employee.objects.create(
