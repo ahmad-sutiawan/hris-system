@@ -1,8 +1,8 @@
 abstract final class AppConfig {
   static const apiPathSuffix = '/api/v1';
 
-  /// Server LAN Ubuntu. Samakan dengan HRIS_MOBILE_API_BASE_URL di ops/docker/compose.env.
-  static const lanBaseUrl = 'http://192.168.2.121:8020$apiPathSuffix';
+  /// Server VPS. Samakan dengan HRIS_MOBILE_API_BASE_URL di ops/docker/compose.env.
+  static const lanBaseUrl = 'http://148.230.103.122:8020$apiPathSuffix';
 
   /// Backend publik PT BPS — HTTPS via hris.besibps.com
   static const productionBaseUrl = 'https://hris.besibps.com$apiPathSuffix';

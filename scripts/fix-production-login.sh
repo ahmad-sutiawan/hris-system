@@ -6,7 +6,6 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 PY="${ROOT}/.venv/bin/python"
-CANONICAL_KEY="change-me-openssl-rand-hex-32"
 
 echo "=== HRIS — perbaikan login production ==="
 
@@ -22,9 +21,9 @@ if [ -z "${HRIS_FIELD_ENCRYPTION_KEY:-}" ]; then
   exit 1
 fi
 
-if [ "${HRIS_FIELD_ENCRYPTION_KEY}" = "dev-only-32-char-encryption-key!!" ]; then
-  sed -i "s|^HRIS_FIELD_ENCRYPTION_KEY=.*|HRIS_FIELD_ENCRYPTION_KEY=${CANONICAL_KEY}|" .env
-  echo "HRIS_FIELD_ENCRYPTION_KEY diperbarui ke key production."
+if [ "${HRIS_FIELD_ENCRYPTION_KEY}" = "dev-only-32-char-encryption-key!!" ] || [ "${HRIS_FIELD_ENCRYPTION_KEY}" = "change-me-openssl-rand-hex-32" ]; then
+  echo "ERROR: HRIS_FIELD_ENCRYPTION_KEY masih placeholder. Isi kunci unik di .env (openssl rand -hex 32)."
+  exit 1
 fi
 
 sudo -u www-data bash -c "

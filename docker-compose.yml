@@ -1,8 +1,13 @@
-# HRIS di Ubuntu. Port host 8020 (8004, 8010–8012, 8090, 9090, 9116 sudah terpakai).
-# Pertama kali dan update:
-#   git pull
+# HRIS di VPS. Port host 8020.
+# Pertama kali, di server:
+#   cd /var/www && git clone git@github.com:ahmad-sutiawan/hris-system.git
+#   cd hris-system && git checkout develop
+#   cp ops/docker/compose.env.example ops/docker/compose.env
+#   nano ops/docker/compose.env
 #   docker compose up -d --build
+# Update: git pull && docker compose up -d --build
 # Cek: curl -fsS http://127.0.0.1:8020/api/v1/health/
+# compose.env tidak ada di git.
 
 name: hris
 
