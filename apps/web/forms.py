@@ -218,6 +218,7 @@ class EmployeeForm(forms.ModelForm):
                 self.fields[name].required = True
         if tenant:
             _filter_plant_queryset(self, tenant, user)
+            self.fields["plant"].label_from_instance = lambda plant: plant.name
             plant_id = self._resolve_plant_id(user)
             _configure_employee_department_shift_fields(
                 self, tenant=tenant, user=user, plant_id=plant_id

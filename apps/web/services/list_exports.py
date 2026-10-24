@@ -6,7 +6,23 @@ from apps.core.xlsx_io import write_xlsx
 from apps.employees.talenta_vocabulary import TALENTA_COLUMNS
 
 
-EMPLOYEE_EXPORT_HEADERS = list(TALENTA_COLUMNS)
+_DIRECTORY_LEAD = ("Employee ID", "Full Name")
+_DIRECTORY_EXTRA = ("Nama Ibu Kandung", "Shift Default", "Status")
+EMPLOYEE_WRAP_COLUMNS = {
+    "Citizen ID Address",
+    "Residential Address",
+    "Profile Picture",
+    "Email",
+}
+
+
+def employee_directory_headers() -> list[str]:
+    """Kolom daftar karyawan. Urutan yang sama dipakai tabel dan export."""
+    rest = [column for column in TALENTA_COLUMNS if column not in _DIRECTORY_LEAD]
+    return [*_DIRECTORY_LEAD, *rest, *_DIRECTORY_EXTRA]
+
+
+EMPLOYEE_EXPORT_HEADERS = employee_directory_headers()
 
 
 COMPENSATION_EXPORT_HEADERS = [
@@ -59,19 +75,18 @@ def export_employee_compensation_xlsx(qs) -> bytes:
     return write_xlsx(COMPENSATION_EXPORT_HEADERS, (row(emp) for emp in qs))
 
 
-def export_employees_xlsx(qs) -> bytes:
-    def row(emp):
-        data = emp.talenta_export_row()
-        barcode = getattr(emp, "barcode", "") or ""
-        out = []
-        for header in TALENTA_COLUMNS:
-            if header == "Barcode":
-                out.append(barcode)
-            else:
-                out.append(data.get(header, ""))
-        return out
+def employee_directory_cells(emp) -> list:
+    data = emp.talenta_export_row()
+    extra = {
+        "Nama Ibu Kandung": emp.mother_name or "",
+        "Shift Default": emp.default_shift.name if emp.default_shift_id else "",
+        "Status": emp.get_status_display(),
+    }
+    return [extra.get(header, data.get(header, "")) for header in EMPLOYEE_EXPORT_HEADERS]
 
-    return write_xlsx(TALENTA_COLUMNS, (row(emp) for emp in qs))
+
+def export_employees_xlsx(qs) -> bytes:
+    return write_xlsx(EMPLOYEE_EXPORT_HEADERS, (employee_directory_cells(emp) for emp in qs))
 
 
 SHIFT_EXPORT_HEADERS = [

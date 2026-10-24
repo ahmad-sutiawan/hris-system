@@ -6,6 +6,7 @@ from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from apps.core.models import Plant, Tenant, User
+from apps.core.xlsx_io import read_xlsx_rows
 from apps.employees.models import Employee
 from apps.organization.models import Department, JobPosition
 
@@ -82,9 +83,13 @@ class Tahap4PayrollSplitTests(TestCase):
         response = self.client.get(reverse("web:employee_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Job Level")
-        self.assertContains(response, ">NIK<")
+        self.assertContains(response, "NIK (NPWP 16 Digit)")
+        self.assertContains(response, "Birth Place")
+        self.assertContains(response, "Nama Ibu Kandung")
+        self.assertContains(response, "Shift Default")
         self.assertContains(response, "Data Gaji Karyawan")
         self.assertNotContains(response, "Gaji Pokok")
+        self.assertNotContains(response, "Base Salary")
         self.assertNotContains(response, "Akun login")
 
     def test_create_redirects_to_compensation(self):
@@ -122,11 +127,15 @@ class Tahap4PayrollSplitTests(TestCase):
             mother_name="Ibu Export",
         )
         self.client.login(username="t4admin", password="TestPassword123!")
-        response = self.client.get(reverse("web:employee_list"), {"export": "csv"})
+        response = self.client.get(reverse("web:employee_list"), {"export": "xlsx"})
         self.assertEqual(response.status_code, 200)
-        body = response.content.decode()
-        self.assertIn("Employee ID", body)
-        self.assertIn("Organization", body)
-        self.assertIn("Status Employee", body)
-        self.assertIn("Branch Name", body)
-        self.assertNotIn("Base Salary", body)
+        headers, rows = read_xlsx_rows(response.content)
+        self.assertIn("Employee ID", headers)
+        self.assertIn("Organization", headers)
+        self.assertIn("Status Employee", headers)
+        self.assertIn("Branch Name", headers)
+        self.assertIn("Nama Ibu Kandung", headers)
+        self.assertIn("Birth Place", headers)
+        self.assertNotIn("Base Salary", headers)
+        self.assertTrue(any(row.get("Full Name") == "Export Worker" for row in rows))
+        self.assertTrue(any(row.get("Nama Ibu Kandung") == "Ibu Export" for row in rows))

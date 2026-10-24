@@ -38,6 +38,10 @@ def employee_list_queryset(user: User, filters: ListFilters):
         qs = qs.filter(department_id=filters.department)
     if filters.job_level:
         qs = qs.filter(job_level_id=filters.job_level)
+    if filters.plant.isdigit():
+        qs = qs.filter(plant_id=int(filters.plant))
+    if filters.status_employee:
+        qs = qs.filter(status_employee=filters.status_employee)
     if filters.q:
         text = filters.q
         search = (
@@ -46,9 +50,24 @@ def employee_list_queryset(user: User, filters: ListFilters):
             | Q(nik__icontains=text)
             | Q(email__icontains=text)
             | Q(phone__icontains=text)
+            | Q(phone_landline__icontains=text)
+            | Q(barcode__icontains=text)
             | Q(mother_name__icontains=text)
             | Q(address__icontains=text)
+            | Q(citizen_id_address__icontains=text)
             | Q(birth_place__icontains=text)
+            | Q(status_employee__icontains=text)
+            | Q(length_of_service__icontains=text)
+            | Q(religion__name__icontains=text)
+            | Q(blood_type__name__icontains=text)
+            | Q(nationality__name__icontains=text)
+            | Q(grade__name__icontains=text)
+            | Q(talenta_class__name__icontains=text)
+            | Q(cost_center__name__icontains=text)
+            | Q(sbu__name__icontains=text)
+            | Q(approval_line__name__icontains=text)
+            | Q(default_shift__name__icontains=text)
+            | Q(default_shift__code__icontains=text)
             | Q(job_level__name__icontains=text)
             | Q(job_level__code__icontains=text)
             | Q(department__name__icontains=text)

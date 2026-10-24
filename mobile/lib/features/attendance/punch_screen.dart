@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -20,6 +21,7 @@ import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/hris_widgets.dart';
 import '../home/home_screen.dart';
 import 'attendance_screen.dart';
+import 'face_gate.dart';
 
 enum _PunchStep { location, selfie }
 
@@ -45,6 +47,10 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   String? _locationError;
   StreamSubscription<Position>? _positionSub;
   CameraController? _cameraController;
+  CameraDescription? _activeCamera;
+  FaceStreamSession? _faceSession;
+  FaceGateStatus _faceStatus = FaceGateStatus.noFace;
+  bool _capturing = false;
   Timer? _serverClockTimer;
   DateTime? _serverTime;
   Map<String, dynamic>? _matchedShift;
@@ -177,7 +183,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         selected,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
+        // NV21 is the buffer ML Kit reads. CameraX packs the YUV frame natively.
+        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
       );
       await controller.initialize();
       if (!mounted) {
@@ -185,6 +192,10 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         return;
       }
       _cameraController = controller;
+      _activeCamera = selected;
+      _faceStatus = FaceGateStatus.noFace;
+      await _startFaceStream(controller, selected);
+      if (!mounted) return;
       setState(() => _cameraReady = true);
     } catch (_) {
       if (mounted) {
@@ -195,13 +206,58 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     }
   }
 
+  Future<void> _startFaceStream(CameraController controller, CameraDescription camera) async {
+    await _faceSession?.close();
+    final session = FaceStreamSession();
+    _faceSession = session;
+    await controller.startImageStream((image) {
+      if (_photoBytes != null || _capturing) return;
+      if (!session.tryAcquire()) return;
+      try {
+        if (!controller.value.isInitialized) {
+          session.release();
+          return;
+        }
+        final input = session.inputImageFromCamera(
+          image: image,
+          camera: camera,
+          deviceOrientation: controller.value.deviceOrientation,
+        );
+        if (input == null) {
+          session.release();
+          return;
+        }
+        unawaited(() async {
+          final status = await session.analyze(input);
+          if (!mounted || status == null || _photoBytes != null || status == _faceStatus) return;
+          setState(() => _faceStatus = status);
+        }());
+      } catch (_) {
+        session.release();
+      }
+    });
+  }
+
+  Future<void> _stopFaceStream(CameraController controller) async {
+    if (controller.value.isInitialized && controller.value.isStreamingImages) {
+      await controller.stopImageStream();
+    }
+  }
+
   Future<void> _disposeCamera() async {
+    final session = _faceSession;
+    _faceSession = null;
     final controller = _cameraController;
     _cameraController = null;
+    _activeCamera = null;
     _cameraReady = false;
     if (controller != null) {
+      try {
+        await _stopFaceStream(controller);
+      } catch (_) {}
       await controller.dispose();
     }
+    await session?.close();
   }
 
   Future<void> _toggleCamera() async {
@@ -214,15 +270,28 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
   Future<void> _captureFromPreview() async {
     final controller = _cameraController;
-    if (controller == null || !controller.value.isInitialized) return;
+    if (controller == null || !controller.value.isInitialized || _capturing) return;
+    if (_faceStatus != FaceGateStatus.smiling) return;
+    _capturing = true;
+    final camera = _activeCamera;
     try {
+      await _stopFaceStream(controller);
       final file = await controller.takePicture();
       final bytes = await file.readAsBytes();
+      await _faceSession?.close();
+      _faceSession = null;
       if (mounted) setState(() => _photoBytes = bytes);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal ambil foto: $e')));
       }
+      if (_photoBytes == null && camera != null && _cameraController == controller) {
+        try {
+          await _startFaceStream(controller, camera);
+        } catch (_) {}
+      }
+    } finally {
+      _capturing = false;
     }
   }
 
@@ -239,6 +308,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       setState(() {
         _step = _PunchStep.location;
         _photoBytes = null;
+        _faceStatus = FaceGateStatus.noFace;
       });
     }
   }
@@ -440,6 +510,9 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                           cameraController: _cameraController,
                           cameraReady: _cameraReady,
                           brightness: _brightness,
+                          faceMessage: _photoBytes == null && _cameraReady
+                              ? faceGateMessage(_faceStatus)
+                              : null,
                         ),
                 ),
                 _TalentaBottomPanel(
@@ -448,7 +521,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                   notesController: _notesController,
                   canProceed: _step == _PunchStep.location
                       ? _position != null && !_locating && insideFence
-                      : _cameraReady || _photoBytes != null,
+                      : _photoBytes != null ||
+                          (_cameraReady && _faceStatus == FaceGateStatus.smiling),
                   primaryLabel: _step == _PunchStep.location
                       ? 'Lanjut'
                       : (_isClockOut ? 'Submit Pulang' : 'Submit Masuk'),
@@ -867,12 +941,14 @@ class _SelfieStepBody extends StatelessWidget {
     required this.cameraController,
     required this.cameraReady,
     required this.brightness,
+    required this.faceMessage,
   });
 
   final Uint8List? photoBytes;
   final CameraController? cameraController;
   final bool cameraReady;
   final ValueNotifier<double> brightness;
+  final String? faceMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -910,6 +986,31 @@ class _SelfieStepBody extends StatelessWidget {
                       ),
                     ),
         ),
+        if (faceMessage != null)
+          Positioned(
+            left: 24,
+            right: 24,
+            top: 12,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.68),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Text(
+                  faceMessage!,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ),
+          ),
         Positioned(
           left: 32,
           right: 32,

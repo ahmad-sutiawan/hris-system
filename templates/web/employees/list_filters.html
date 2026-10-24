@@ -1,4 +1,16 @@
 {% load hris_ui %}
+<select name="plant" class="hris-input hris-select" aria-label="Branch Name" title="Branch Name">
+  <option value="">Semua Branch</option>
+  {% for plant in plant_options %}
+  <option value="{{ plant.pk }}"{% if selected_plant == plant.pk|stringformat:"s" %} selected{% endif %}>{{ plant.name }}</option>
+  {% endfor %}
+</select>
+<select name="status_employee" class="hris-input hris-select" aria-label="Status Employee" title="Status Employee">
+  <option value="">Semua Status Employee</option>
+  {% for status in status_employee_options %}
+  <option value="{{ status }}"{% if selected_status_employee == status %} selected{% endif %}>{{ status }}</option>
+  {% endfor %}
+</select>
 <select name="job_position" class="hris-input hris-select" aria-label="Job Position" title="Job Position">
   <option value="">Semua Job Position</option>
   {% for role in role_options %}

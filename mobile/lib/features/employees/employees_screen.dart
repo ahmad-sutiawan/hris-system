@@ -15,18 +15,15 @@ class EmployeeDirectoryQuery {
   const EmployeeDirectoryQuery({
     this.search = '',
     this.plantId,
-    this.jobPositionId,
   });
 
   final String search;
   final int? plantId;
-  final int? jobPositionId;
 
   Map<String, dynamic> toParams() {
     return {
       if (search.trim().isNotEmpty) 'search': search.trim(),
       if (plantId != null) 'plant': plantId,
-      if (jobPositionId != null) 'job_position': jobPositionId,
     };
   }
 
@@ -34,12 +31,11 @@ class EmployeeDirectoryQuery {
   bool operator ==(Object other) {
     return other is EmployeeDirectoryQuery &&
         other.search == search &&
-        other.plantId == plantId &&
-        other.jobPositionId == jobPositionId;
+        other.plantId == plantId;
   }
 
   @override
-  int get hashCode => Object.hash(search, plantId, jobPositionId);
+  int get hashCode => Object.hash(search, plantId);
 }
 
 final employeeFilterOptionsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -67,7 +63,6 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   Timer? _debounce;
   String _search = '';
   int? _plantId;
-  int? _jobPositionId;
 
   @override
   void dispose() {
@@ -79,7 +74,6 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   EmployeeDirectoryQuery get _query => EmployeeDirectoryQuery(
         search: _search,
         plantId: _plantId,
-        jobPositionId: _jobPositionId,
       );
 
   void _onSearchChanged(String value) {
@@ -93,7 +87,6 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   void _clearFilters() {
     setState(() {
       _plantId = null;
-      _jobPositionId = null;
       _search = '';
       _searchController.clear();
     });
@@ -103,7 +96,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
   Widget build(BuildContext context) {
     final filters = ref.watch(employeeFilterOptionsProvider);
     final employees = ref.watch(employeeDirectoryProvider(_query));
-    final hasFilters = _plantId != null || _jobPositionId != null || _search.isNotEmpty;
+    final hasFilters = _plantId != null || _search.isNotEmpty;
 
     return HrisScaffold(
       withBackground: false,
@@ -161,14 +154,8 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                 error: (_, __) => const SizedBox(height: 4),
                 data: (data) => _FilterSection(
                   plants: (data['plants'] as List?) ?? const [],
-                  positions: (data['job_positions'] as List?) ?? const [],
                   plantId: _plantId,
-                  jobPositionId: _jobPositionId,
-                  onPlantChanged: (value) => setState(() {
-                    _plantId = value;
-                    _jobPositionId = null;
-                  }),
-                  onPositionChanged: (value) => setState(() => _jobPositionId = value),
+                  onPlantChanged: (value) => setState(() => _plantId = value),
                   onClear: hasFilters ? _clearFilters : null,
                 ),
               ),
@@ -300,27 +287,15 @@ class _EmployeesHero extends StatelessWidget {
 class _FilterSection extends StatelessWidget {
   const _FilterSection({
     required this.plants,
-    required this.positions,
     required this.plantId,
-    required this.jobPositionId,
     required this.onPlantChanged,
-    required this.onPositionChanged,
     this.onClear,
   });
 
   final List plants;
-  final List positions;
   final int? plantId;
-  final int? jobPositionId;
   final ValueChanged<int?> onPlantChanged;
-  final ValueChanged<int?> onPositionChanged;
   final VoidCallback? onClear;
-
-  List<Map<String, dynamic>> get _positionsForPlant {
-    final rows = positions.whereType<Map<String, dynamic>>();
-    if (plantId == null) return rows.toList();
-    return rows.where((row) => row['plant_id'] == plantId).toList();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -358,25 +333,10 @@ class _FilterSection extends StatelessWidget {
                 if (raw is Map<String, dynamic>)
                   DropdownMenuItem<int?>(
                     value: raw['id'] as int?,
-                    child: Text('${raw['code']} — ${raw['name']}'),
+                    child: Text(raw['name'] as String? ?? ''),
                   ),
             ],
             onChanged: onPlantChanged,
-          ),
-          const SizedBox(height: 10),
-          DropdownButtonFormField<int?>(
-            value: jobPositionId,
-            isExpanded: true,
-            decoration: _filterDecoration('Position', AppColors.brandOrange),
-            items: [
-              const DropdownMenuItem<int?>(value: null, child: Text('Semua position')),
-              for (final raw in _positionsForPlant)
-                DropdownMenuItem<int?>(
-                  value: raw['id'] as int?,
-                  child: Text(raw['title'] as String? ?? '—'),
-                ),
-            ],
-            onChanged: onPositionChanged,
           ),
         ],
       ),

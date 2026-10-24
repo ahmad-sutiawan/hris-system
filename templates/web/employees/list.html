@@ -16,61 +16,35 @@
   </div>
 </div>
 
-{% include "components/list_toolbar.html" with search_placeholder="Cari Employee ID, Full Name, Organization, Job Position, Branch Name…" show_date_range=True show_export=True search_reset_url=request.path show_employee_filters=True %}
+{% include "components/list_toolbar.html" with search_placeholder="Cari nama, Employee ID, NIK, email, cabang, organisasi…" show_date_range=True date_range_label="Join Date" show_export=True search_reset_url=request.path show_employee_filters=True %}
 
-<div class="hris-table-wrap" style="margin-top:1rem">
-  <div class="hris-table-scroll">
-    <table class="hris-table">
+<div class="hris-table-wrap hris-directory" style="margin-top:1rem">
+  <div class="hris-table-scroll hris-directory-scroll">
+    <table class="hris-table hris-table--directory">
       <thead>
         <tr>
-          <th class="hris-col-no">No</th>
-          <th class="hris-employee-avatar-cell" aria-label="Foto"></th>
-          <th>Employee ID</th>
-          <th>NIK</th>
-          <th>Full Name</th>
-          <th>Organization</th>
-          <th>Job Position</th>
-          <th>Job Level</th>
-          <th>Branch Name</th>
-          <th>Status Employee</th>
-          <th>Join Date</th>
-          <th>End Date</th>
-          <th>Email</th>
-          <th>Mobile Phone</th>
-          <th>Gender</th>
-          <th>Marital Status</th>
-          <th>PTKP Status</th>
-          <th>Manager</th>
-          <th>Aksi</th>
+          <th class="hris-col-no is-sticky is-sticky-no">No</th>
+          <th class="hris-employee-avatar-cell is-sticky is-sticky-photo" aria-label="Foto"></th>
+          {% for column in employee_columns %}
+          <th class="{% if column.kind == 'id' %}is-sticky is-sticky-id{% elif column.kind == 'name' %}is-sticky is-sticky-name{% endif %}{% if column.wrap %} is-wrap{% endif %}">{{ column.label }}</th>
+          {% endfor %}
+          <th class="is-sticky is-sticky-end">Aksi</th>
         </tr>
       </thead>
       <tbody>
-        {% for employee in employees %}
+        {% for row in employee_rows %}
         <tr>
-          <td class="hris-col-no hris-text-dim">{% list_row_no result_count forloop.counter0 page_start %}</td>
-          <td class="hris-employee-avatar-cell">{% employee_avatar employee 36 %}</td>
-          <td><span class="hris-mono">{{ employee.employee_id }}</span></td>
-          <td><span class="hris-mono">{{ employee.nik|default:"—" }}</span></td>
-          <td class="hris-strong">{{ employee.full_name }}</td>
-          <td>{{ employee.organization_name|default:"—" }}</td>
-          <td>{{ employee.job_position.title|default:"—" }}</td>
-          <td>{{ employee.job_level.name|default:"—" }}</td>
-          <td>{{ employee.branch_name|default:"—" }}</td>
-          <td>{{ employee.get_status_employee_display|default:"—" }}</td>
-          <td>{{ employee.join_date|local_date|default:"—" }}</td>
-          <td>{{ employee.contract_end_date|local_date|default:"—" }}</td>
-          <td>{{ employee.email|default:"—" }}</td>
-          <td>{{ employee.phone|default:"—" }}</td>
-          <td>{{ employee.get_gender_excel_display|default:"—" }}</td>
-          <td>{{ employee.get_marital_status_excel_display|default:"—" }}</td>
-          <td>{{ employee.tax_status|default:"—" }}</td>
-          <td>{{ employee.manager.full_name|default:"—" }}</td>
-          <td>
+          <td class="hris-col-no hris-text-dim is-sticky is-sticky-no">{% list_row_no result_count forloop.counter0 page_start %}</td>
+          <td class="hris-employee-avatar-cell is-sticky is-sticky-photo">{% employee_avatar row.employee 36 %}</td>
+          {% for cell in row.cells %}
+          <td class="{% if cell.kind == 'id' %}hris-mono is-sticky is-sticky-id{% elif cell.kind == 'name' %}hris-strong is-sticky is-sticky-name{% endif %}{% if cell.wrap %} is-wrap{% endif %}">{{ cell.value|default:"—" }}</td>
+          {% endfor %}
+          <td class="is-sticky is-sticky-end">
             <div class="hris-inline-actions">
-              <a href="{% url 'web:employee_edit' employee.pk %}" class="hris-link">Edit</a>
-              <a href="{% url 'web:employee_compensation_edit' employee.pk %}" class="hris-link">Gaji</a>
-              {% if employee.status != 'inactive' and employee.status != 'resigned' %}
-              <form method="post" action="{% url 'web:employee_deactivate' employee.pk %}" onsubmit="return confirm('Nonaktifkan karyawan ini?')">{% csrf_token %}
+              <a href="{% url 'web:employee_edit' row.employee.pk %}" class="hris-link">Edit</a>
+              <a href="{% url 'web:employee_compensation_edit' row.employee.pk %}" class="hris-link">Gaji</a>
+              {% if row.employee.status != 'inactive' and row.employee.status != 'resigned' %}
+              <form method="post" action="{% url 'web:employee_deactivate' row.employee.pk %}" onsubmit="return confirm('Nonaktifkan karyawan ini?')">{% csrf_token %}
                 <button type="submit" class="hris-link-danger">Nonaktifkan</button>
               </form>
               {% endif %}
@@ -78,7 +52,7 @@
           </td>
         </tr>
         {% empty %}
-        <tr><td colspan="19"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan. Import file Excel Talenta di folder media.{% endif %}</div></td></tr>
+        <tr><td colspan="{{ directory_colspan }}"><div class="hris-empty">{% if search_query %}Tidak ada karyawan yang cocok dengan pencarian.{% else %}Belum ada data karyawan. Import file Excel Talenta di folder media.{% endif %}</div></td></tr>
         {% endfor %}
       </tbody>
     </table>

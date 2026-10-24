@@ -11,6 +11,7 @@ Pola:
 def employee_list_qs(qs):
     return qs.select_related(
         "plant",
+        "plant__parent",
         "legal_entity",
         "department",
         "job_position",
@@ -18,6 +19,19 @@ def employee_list_qs(qs):
         "default_shift",
         "manager",
         "user",
+        "religion",
+        "blood_type",
+        "nationality",
+        "currency",
+        "payment_schedule",
+        "approval_line",
+        "grade",
+        "talenta_class",
+        "cost_center",
+        "cost_center_category",
+        "sbu",
+        "employee_tax_status_master",
+        "tax_config_master",
     )
 
 

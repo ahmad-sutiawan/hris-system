@@ -855,3 +855,71 @@ body.hris-body::after {
   color: var(--hris-text-muted, #64748b);
   font-size: 0.875rem;
 }
+
+.hris-filter-label {
+  align-self: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--hris-text-muted);
+  white-space: nowrap;
+}
+
+.hris-directory-scroll {
+  max-height: calc(100vh - 15rem);
+  overflow: auto;
+}
+
+.hris-table--directory {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.hris-table--directory th,
+.hris-table--directory td {
+  white-space: nowrap;
+  background: #fff;
+}
+
+.hris-table--directory thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #f4f7fb;
+}
+
+.hris-table--directory .is-wrap {
+  white-space: normal;
+  min-width: 16rem;
+  max-width: 22rem;
+}
+
+.hris-table--directory .is-sticky {
+  position: sticky;
+  z-index: 2;
+}
+
+.hris-table--directory thead .is-sticky {
+  z-index: 4;
+}
+
+.hris-table--directory .is-sticky-no { left: 0; min-width: 3.25rem; }
+.hris-table--directory .is-sticky-photo { left: 3.25rem; min-width: 3.25rem; }
+.hris-table--directory .is-sticky-id { left: 6.5rem; min-width: 7.5rem; }
+.hris-table--directory .is-sticky-name {
+  left: 14rem;
+  min-width: 12rem;
+  box-shadow: 8px 0 12px rgba(15, 23, 42, 0.06);
+}
+.hris-table--directory .is-sticky-end {
+  right: 0;
+  min-width: 11rem;
+  box-shadow: -8px 0 12px rgba(15, 23, 42, 0.06);
+}
+
+.hris-table--directory tbody tr:hover td {
+  background: #eef3fb;
+}

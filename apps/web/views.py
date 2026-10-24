@@ -31,7 +31,7 @@ from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.decorators import require_roles
 from apps.web.redirects import safe_redirect
-from apps.core.models import AuditLog, Notification, User
+from apps.core.models import AuditLog, Notification, Plant, User
 from apps.core.services.announcements import (
     announcements_for_user,
     dismiss_announcement,
@@ -73,6 +73,8 @@ from apps.web.services.dashboard import build_dashboard_context, empty_dashboard
 
 logger = logging.getLogger(__name__)
 from apps.web.services.list_exports import (
+    employee_directory_cells,
+    employee_directory_headers,
     export_attendance_csv,
     export_attendance_csv_with_default_range,
     export_audit_csv,
@@ -329,6 +331,21 @@ def employee_list(request):
         .order_by("name")
     )
     job_level_options = JobLevel.objects.filter(tenant=request.user.tenant).order_by("rank", "code")
+    plants = Plant.objects.filter(tenant=request.user.tenant, is_active=True)
+    if request.user.plant_id and not request.user.is_admin:
+        plants = plants.filter(pk=request.user.plant_id)
+    else:
+        plants = plants.filter(entity_type=Plant.EntityType.BRANCH)
+    from apps.employees.talenta_vocabulary import STATUS_EMPLOYEE_VALUES
+
+    stored_status = (
+        Employee.objects.filter(tenant=request.user.tenant)
+        .exclude(status_employee="")
+        .order_by("status_employee")
+        .values_list("status_employee", flat=True)
+        .distinct()
+    )
+    status_options = list(dict.fromkeys([*STATUS_EMPLOYEE_VALUES, *stored_status]))
     response, ctx = resolve_list(
         request,
         qs,
@@ -337,18 +354,53 @@ def employee_list(request):
     )
     if response:
         return response
+    employees = list(ctx["page_obj"].object_list)
+    columns = employee_directory_headers()
+    wrap_headers = {
+        "Citizen ID Address",
+        "Residential Address",
+        "Profile Picture",
+        "Email",
+    }
+    column_meta = [
+        {
+            "label": header,
+            "wrap": header in wrap_headers,
+            "kind": "id" if index == 0 else "name" if index == 1 else "",
+        }
+        for index, header in enumerate(columns)
+    ]
+    rows = []
+    for employee in employees:
+        values = employee_directory_cells(employee)
+        rows.append(
+            {
+                "employee": employee,
+                "cells": [
+                    {**meta, "value": values[index]}
+                    for index, meta in enumerate(column_meta)
+                ],
+            }
+        )
     return render(
         request,
         "web/employees/list.html",
         {
             **ctx,
-            "employees": list(ctx["page_obj"].object_list),
+            "employees": employees,
+            "employee_rows": rows,
+            "employee_columns": column_meta,
+            "directory_colspan": len(columns) + 3,
             "role_options": role_options,
             "department_options": department_options,
             "job_level_options": job_level_options,
+            "plant_options": plants,
+            "status_employee_options": status_options,
             "selected_job_position": filters.job_position,
             "selected_department": filters.department,
             "selected_job_level": filters.job_level,
+            "selected_plant": filters.plant,
+            "selected_status_employee": filters.status_employee,
         },
     )
 

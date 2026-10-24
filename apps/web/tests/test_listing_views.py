@@ -150,3 +150,42 @@ class ListFilteringPaginationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Siti Aminah")
         self.assertNotContains(response, "Budi Santoso")
+
+    def test_employee_export_uses_directory_columns_and_branch_filter(self):
+        other_plant = Plant.objects.create(
+            tenant=self.tenant,
+            code="P2",
+            name="Plant 2",
+        )
+        Employee.objects.create(
+            tenant=self.tenant,
+            plant=other_plant,
+            employee_id="E003",
+            full_name="Dewi Lestari",
+            mother_name="Ibu Dewi",
+            status_employee="Harian",
+            join_date=date(2024, 3, 1),
+        )
+        self.client.login(username="listingadmin", password="TestPassword123!")
+        page = self.client.get(reverse("web:employee_list"), {"plant": str(other_plant.pk)})
+        self.assertContains(page, "Dewi Lestari")
+        self.assertNotContains(page, "Budi Santoso")
+        self.assertContains(page, "Semua Branch")
+        self.assertContains(page, "Join Date")
+
+        exported = self.client.get(
+            reverse("web:employee_list"),
+            {"export": "xlsx", "plant": str(other_plant.pk), "q": "Dewi"},
+        )
+        self.assertEqual(exported.status_code, 200)
+        headers, rows = read_xlsx_rows(exported.content)
+        self.assertEqual(headers[0], "Employee ID")
+        self.assertEqual(headers[1], "Full Name")
+        self.assertIn("NIK (NPWP 16 Digit)", headers)
+        self.assertIn("Nama Ibu Kandung", headers)
+        self.assertIn("Shift Default", headers)
+        self.assertNotIn("Base Salary", headers)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["Full Name"], "Dewi Lestari")
+        self.assertEqual(rows[0]["Nama Ibu Kandung"], "Ibu Dewi")
+        self.assertEqual(rows[0]["Branch Name"], "Plant 2")

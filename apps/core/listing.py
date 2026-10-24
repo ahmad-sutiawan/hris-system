@@ -32,6 +32,8 @@ class ListFilters:
     job_position: str = ""
     department: str = ""
     job_level: str = ""
+    plant: str = ""
+    status_employee: str = ""
     page: int = 1
     per_page: int = DEFAULT_PAGE_SIZE
 
@@ -44,6 +46,8 @@ class ListFilters:
             or self.job_position
             or self.department
             or self.job_level
+            or self.plant
+            or self.status_employee
         )
 
 
@@ -63,6 +67,8 @@ def parse_list_filters(request, *, per_page: int = DEFAULT_PAGE_SIZE) -> ListFil
         ),
         department=request.GET.get("department", "").strip(),
         job_level=request.GET.get("job_level", "").strip(),
+        plant=request.GET.get("plant", "").strip(),
+        status_employee=request.GET.get("status_employee", "").strip(),
         page=page,
         per_page=per_page,
     )
