@@ -22,6 +22,7 @@ import '../../core/widgets/hris_widgets.dart';
 import '../home/home_screen.dart';
 import 'attendance_screen.dart';
 import 'face_gate.dart';
+import 'map_radius.dart';
 
 enum _PunchStep { location, selfie }
 
@@ -159,12 +160,42 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     return '$name · ${formatShiftTimeRange(shift)}';
   }
 
+  Future<CameraController> _openCamera(CameraDescription selected) async {
+    final formats = Platform.isAndroid
+        ? const [ImageFormatGroup.nv21, ImageFormatGroup.yuv420]
+        : const [ImageFormatGroup.bgra8888];
+    Object? lastError;
+    for (final format in formats) {
+      final controller = CameraController(
+        selected,
+        ResolutionPreset.medium,
+        enableAudio: false,
+        imageFormatGroup: format,
+      );
+      try {
+        await controller.initialize();
+        return controller;
+      } catch (error) {
+        lastError = error;
+        await controller.dispose();
+      }
+    }
+    throw lastError ?? StateError('Kamera tidak dapat dibuka.');
+  }
+
   Future<void> _initCamera() async {
     await _disposeCamera();
     setState(() => _cameraReady = false);
     try {
       final cameras = await availableCameras();
-      if (cameras.isEmpty) return;
+      if (cameras.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Kamera tidak ditemukan pada perangkat ini.')),
+          );
+        }
+        return;
+      }
 
       CameraDescription selected;
       if (_useFrontCamera) {
@@ -179,14 +210,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         );
       }
 
-      final controller = CameraController(
-        selected,
-        ResolutionPreset.medium,
-        enableAudio: false,
-        // NV21 is the buffer ML Kit reads. CameraX packs the YUV frame natively.
-        imageFormatGroup: Platform.isAndroid ? ImageFormatGroup.nv21 : ImageFormatGroup.bgra8888,
-      );
-      await controller.initialize();
+      final controller = await _openCamera(selected);
       if (!mounted) {
         await controller.dispose();
         return;
@@ -198,9 +222,11 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
       if (!mounted) return;
       setState(() => _cameraReady = true);
     } catch (_) {
+      await _disposeCamera();
       if (mounted) {
+        setState(() => _cameraReady = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Kamera tidak tersedia. Izinkan akses kamera di browser.')),
+          const SnackBar(content: Text('Kamera tidak tersedia. Izinkan akses kamera.')),
         );
       }
     }
@@ -229,7 +255,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         }
         unawaited(() async {
           final status = await session.analyze(input);
-          if (!mounted || status == null || _photoBytes != null || status == _faceStatus) return;
+          if (!mounted || !identical(session, _faceSession)) return;
+          if (status == null || _photoBytes != null || status == _faceStatus) return;
           setState(() => _faceStatus = status);
         }());
       } catch (_) {
@@ -460,6 +487,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         final location = shiftLocationLabel(shift, employee: employee);
         final fences = _PunchFence.fromDashboard(data['punch_locations']);
         final fence = _evaluateFence(_position, fences);
+        final mapFences = _fencesForMap(fences, _position);
         final insideFence = fences.isEmpty || (fence?.inside ?? false);
         final timeRange = formatShiftTimeRange(shift);
         final workDate = shift?['work_date'] as String? ?? data['today'] as String?;
@@ -502,7 +530,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                           position: _position,
                           locationError: _locationError,
                           officeLabel: location,
-                          fences: fences,
+                          fences: mapFences,
                           fence: fence,
                         )
                       : _SelfieStepBody(
@@ -510,9 +538,11 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                           cameraController: _cameraController,
                           cameraReady: _cameraReady,
                           brightness: _brightness,
-                          faceMessage: _photoBytes == null && _cameraReady
-                              ? faceGateMessage(_faceStatus)
-                              : null,
+                          faceMessage: _photoBytes != null
+                              ? null
+                              : _cameraReady
+                                  ? faceGateMessage(_faceStatus)
+                                  : 'Menyalakan deteksi wajah...',
                         ),
                 ),
                 _TalentaBottomPanel(
@@ -791,6 +821,20 @@ class _LocationStepBody extends StatelessWidget {
   }
 }
 
+const _fallbackRadiusM = fallbackAttendanceRadiusM;
+
+List<_PunchFence> _fencesForMap(List<_PunchFence> fences, Position? position) {
+  if (fences.isNotEmpty || position == null) return fences;
+  return [
+    _PunchFence(
+      name: 'Radius absen',
+      latitude: position.latitude,
+      longitude: position.longitude,
+      radiusM: _fallbackRadiusM,
+    ),
+  ];
+}
+
 List<LatLng> _radiusCorners(LatLng center, int radiusM) {
   const metersPerDegreeLat = 111320.0;
   final latRad = center.latitude * math.pi / 180;
@@ -822,7 +866,8 @@ class _LiveMapView extends StatefulWidget {
 }
 
 class _LiveMapViewState extends State<_LiveMapView> {
-  String? _lastFrame;
+  LatLng? _framedTarget;
+  String? _framedFences;
 
   @override
   void didUpdateWidget(covariant _LiveMapView oldWidget) {
@@ -843,14 +888,23 @@ class _LiveMapViewState extends State<_LiveMapView> {
     final fenceKey = widget.fences
         .map((fence) => '${fence.latitude},${fence.longitude},${fence.radiusM}')
         .join('|');
-    final frame = '${target.latitude},${target.longitude}|$fenceKey';
-    if (_lastFrame == frame) return;
-    _lastFrame = frame;
+    final previous = _framedTarget;
+    final moved = previous == null ||
+        haversineMeters(
+              previous.latitude,
+              previous.longitude,
+              target.latitude,
+              target.longitude,
+            ) >
+            25;
+    if (!moved && _framedFences == fenceKey) return;
+    _framedTarget = target;
+    _framedFences = fenceKey;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       try {
         if (widget.fences.isEmpty) {
-          widget.mapController.move(target, 17);
+          widget.mapController.move(target, 16);
           return;
         }
         final points = <LatLng>[target];
@@ -863,11 +917,13 @@ class _LiveMapViewState extends State<_LiveMapView> {
           CameraFit.coordinates(
             coordinates: points,
             padding: const EdgeInsets.fromLTRB(36, 36, 36, 148),
-            maxZoom: 18,
+            maxZoom: 17,
           ),
         );
       } catch (_) {
-        widget.mapController.move(target, 17);
+        try {
+          widget.mapController.move(target, 16);
+        } catch (_) {}
       }
     });
   }
@@ -908,16 +964,18 @@ class _LiveMapViewState extends State<_LiveMapView> {
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.bps.hris_mobile',
         ),
-        CircleLayer(
-          circles: [
+        PolygonLayer(
+          polygonCulling: false,
+          polygons: [
             for (final fence in widget.fences)
-              CircleMarker(
-                point: LatLng(fence.latitude, fence.longitude),
-                radius: fence.radiusM.toDouble(),
-                useRadiusInMeter: true,
-                color: const Color(0x332563EB),
+              Polygon(
+                points: circleRing(
+                  LatLng(fence.latitude, fence.longitude),
+                  fence.radiusM,
+                ),
+                color: const Color(0x552563EB),
                 borderColor: const Color(0xFF1D4ED8),
-                borderStrokeWidth: 3,
+                borderStrokeWidth: 4,
               ),
           ],
         ),
@@ -1020,7 +1078,7 @@ class _SelfieStepBody extends StatelessWidget {
           Positioned(
             left: 24,
             right: 24,
-            top: 12,
+            bottom: 64,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.68),
@@ -1398,14 +1456,14 @@ class _PunchFence {
       if (item is! Map) continue;
       final lat = _asDouble(item['latitude']);
       final lng = _asDouble(item['longitude']);
+      if (lat == null || lng == null) continue;
       final radius = _asInt(item['radius_m']);
-      if (lat == null || lng == null || radius == null) continue;
       fences.add(
         _PunchFence(
           name: '${item['name'] ?? 'Lokasi absen'}',
           latitude: lat,
           longitude: lng,
-          radiusM: radius,
+          radiusM: radius == null || radius <= 0 ? fallbackAttendanceRadiusM : radius,
         ),
       );
     }

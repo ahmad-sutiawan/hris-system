@@ -10,6 +10,10 @@ const faceGateInterval = Duration(milliseconds: 250);
 const smileProbabilityThreshold = 0.7;
 const stableSmileReads = 2;
 
+/// Some phones report a face but never a smile score. After this many reads,
+/// the face is accepted so clock-in is not stuck.
+const unscoredFaceReadyReads = 8;
+
 String faceGateMessage(FaceGateStatus status) {
   switch (status) {
     case FaceGateStatus.noFace:
@@ -24,13 +28,23 @@ String faceGateMessage(FaceGateStatus status) {
 /// Counts consecutive smiling reads so the banner does not flicker.
 class FaceGateTracker {
   int _smileStreak = 0;
+  int _unscoredFaceReads = 0;
 
   FaceGateStatus update(Iterable<double?> smileProbabilities) {
     final values = smileProbabilities.toList(growable: false);
     if (values.isEmpty) {
       _smileStreak = 0;
+      _unscoredFaceReads = 0;
       return FaceGateStatus.noFace;
     }
+    final hasScore = values.any((value) => value != null);
+    if (!hasScore) {
+      _smileStreak = 0;
+      _unscoredFaceReads += 1;
+      if (_unscoredFaceReads >= unscoredFaceReadyReads) return FaceGateStatus.smiling;
+      return FaceGateStatus.face;
+    }
+    _unscoredFaceReads = 0;
     final smiling = values.any((value) => value != null && value >= smileProbabilityThreshold);
     if (smiling) {
       _smileStreak += 1;
@@ -41,7 +55,10 @@ class FaceGateTracker {
     return FaceGateStatus.face;
   }
 
-  void reset() => _smileStreak = 0;
+  void reset() {
+    _smileStreak = 0;
+    _unscoredFaceReads = 0;
+  }
 }
 
 /// On-device face detector. Frames are dropped while a read is in flight.
@@ -54,7 +71,7 @@ class FaceStreamSession {
             enableContours: false,
             enableTracking: true,
             performanceMode: FaceDetectorMode.fast,
-            minFaceSize: 0.2,
+            minFaceSize: 0.15,
           ),
         );
 
@@ -154,7 +171,9 @@ InputImageRotation? _rotationFor({
     return InputImageRotationValue.fromRawValue(camera.sensorOrientation);
   }
   final compensation = _deviceOrientations[deviceOrientation];
-  if (compensation == null) return null;
+  if (compensation == null) {
+    return InputImageRotationValue.fromRawValue(camera.sensorOrientation);
+  }
   final adjusted = camera.lensDirection == CameraLensDirection.front
       ? (camera.sensorOrientation + compensation) % 360
       : (camera.sensorOrientation - compensation + 360) % 360;
@@ -169,10 +188,52 @@ _Nv21Frame? _androidNv21(CameraImage image) {
   }
 }
 
+/// ML Kit only accepts a tight NV21 buffer whose row width equals the frame width.
+Uint8List? compactNv21({
+  required Uint8List bytes,
+  required int width,
+  required int height,
+  required int bytesPerRow,
+}) {
+  if (width <= 0 || height <= 0 || height.isOdd || width.isOdd) return null;
+  final tightSize = width * height * 3 ~/ 2;
+  final stride = bytesPerRow < width ? width : bytesPerRow;
+  if (bytes.length == tightSize && stride == width) {
+    return Uint8List.fromList(bytes);
+  }
+  final uvOffset = height * stride;
+  final uvRows = height ~/ 2;
+  if (uvOffset + uvRows * stride > bytes.length && bytes.length < tightSize) return null;
+  if (bytes.length < tightSize && uvOffset + width > bytes.length) return null;
+
+  final out = Uint8List(tightSize);
+  var dst = 0;
+  for (var row = 0; row < height; row++) {
+    final start = row * stride;
+    if (start + width > bytes.length) return null;
+    out.setRange(dst, dst + width, bytes, start);
+    dst += width;
+  }
+  for (var row = 0; row < uvRows; row++) {
+    final start = uvOffset + row * stride;
+    if (start + width > bytes.length) return null;
+    out.setRange(dst, dst + width, bytes, start);
+    dst += width;
+  }
+  return out;
+}
+
 _Nv21Frame? _packNv21(CameraImage image) {
   if (image.planes.length == 1) {
     final plane = image.planes.first;
-    return _Nv21Frame(Uint8List.fromList(plane.bytes), plane.bytesPerRow);
+    final bytes = compactNv21(
+      bytes: plane.bytes,
+      width: image.width,
+      height: image.height,
+      bytesPerRow: plane.bytesPerRow,
+    );
+    if (bytes == null) return null;
+    return _Nv21Frame(bytes, image.width);
   }
   if (image.planes.length < 3) return null;
 
