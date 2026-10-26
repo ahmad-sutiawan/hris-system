@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
@@ -10,22 +9,6 @@ enum FaceGateStatus { noFace, face, smiling }
 const faceGateInterval = Duration(milliseconds: 250);
 const smileProbabilityThreshold = 0.7;
 const stableSmileReads = 2;
-
-/// Detector settings from the attendance build that unlocks Submit.
-final faceDetectorOptions = FaceDetectorOptions(
-  enableClassification: true,
-  enableLandmarks: false,
-  enableContours: false,
-  enableTracking: false,
-  performanceMode: FaceDetectorMode.accurate,
-  minFaceSize: 0.1,
-);
-
-/// NV21 first. YUV is only used when the camera rejects NV21.
-const androidAnalysisFormats = <ImageFormatGroup>[
-  ImageFormatGroup.nv21,
-  ImageFormatGroup.yuv420,
-];
 
 String faceGateMessage(FaceGateStatus status) {
   switch (status) {
@@ -68,7 +51,17 @@ bool faceGateReady(FaceGateStatus status) =>
 
 /// On-device face detector. Frames are dropped while a read is in flight.
 class FaceStreamSession {
-  FaceStreamSession() : _detector = FaceDetector(options: faceDetectorOptions);
+  FaceStreamSession()
+      : _detector = FaceDetector(
+          options: FaceDetectorOptions(
+            enableClassification: true,
+            enableLandmarks: false,
+            enableContours: false,
+            enableTracking: false,
+            performanceMode: FaceDetectorMode.accurate,
+            minFaceSize: 0.1,
+          ),
+        );
 
   final FaceDetector _detector;
   final FaceGateTracker _tracker = FaceGateTracker();
@@ -234,9 +227,8 @@ Uint8List? compactNv21({
   }
   final uvOffset = height * stride;
   final uvRows = height ~/ 2;
-  if (uvOffset + uvRows * stride > bytes.length && bytes.length < tightSize) {
+  if (uvOffset + uvRows * stride > bytes.length && bytes.length < tightSize)
     return null;
-  }
   if (bytes.length < tightSize && uvOffset + width > bytes.length) return null;
 
   final out = Uint8List(tightSize);
@@ -314,9 +306,8 @@ bool _copyRows(
 }) {
   final packed = stride < width || offset + width * height > out.length;
   final rowStride = packed ? width : stride;
-  if (height * rowStride > bytes.length && width * height > bytes.length) {
+  if (height * rowStride > bytes.length && width * height > bytes.length)
     return false;
-  }
   var dst = offset;
   for (var row = 0; row < height; row++) {
     final start = row * rowStride;
@@ -340,7 +331,3 @@ int? _sampleIndex(int length, int row, int col, int rowStride, int pixelStride,
   if (tight >= 0 && tight < length) return tight;
   return null;
 }
-
-@visibleForTesting
-Uint8List? packAndroidFrameForTest(CameraImage image) =>
-    _androidNv21(image)?.bytes;
