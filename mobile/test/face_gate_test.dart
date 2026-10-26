@@ -126,8 +126,6 @@ void main() {
       InputImageRotation.rotation270deg,
     );
     search.note(FaceGateStatus.noFace);
-    search.note(null);
-    search.note(FaceGateStatus.noFace);
     expect(
       search.current(fallback: InputImageRotation.rotation270deg),
       InputImageRotation.rotation0deg,

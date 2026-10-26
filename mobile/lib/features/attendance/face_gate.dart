@@ -173,8 +173,6 @@ class FaceRotationSearch {
       _misses = 0;
       return;
     }
-    _misses += 1;
-    if (_misses < 3) return;
     _misses = 0;
     _degrees = (_degrees! + 90) % 360;
   }
@@ -288,7 +286,13 @@ _Nv21Frame? _packNv21(CameraImage image) {
           uPlane.bytes.length, row, col, uPlane.bytesPerRow, uPixel, uvWidth);
       final vIndex = _sampleIndex(
           vPlane.bytes.length, row, col, vPlane.bytesPerRow, vPixel, uvWidth);
-      if (uIndex == null || vIndex == null) return null;
+      // A missing chroma sample must not drop the whole frame. ML Kit
+      // still finds a face from the luminance plane.
+      if (uIndex == null || vIndex == null) {
+        out[offset++] = 128;
+        out[offset++] = 128;
+        continue;
+      }
       out[offset++] = vPlane.bytes[vIndex];
       out[offset++] = uPlane.bytes[uIndex];
     }

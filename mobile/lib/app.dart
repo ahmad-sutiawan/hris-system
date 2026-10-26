@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
+import 'core/widgets/app_splash.dart';
 import 'core/widgets/mobile_preview_frame.dart';
 import 'router/app_router.dart';
 
@@ -18,6 +19,7 @@ class HrisApp extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         routerConfig: router,
+        builder: (context, child) => AppSplash(child: child ?? const SizedBox.shrink()),
       ),
     );
   }
