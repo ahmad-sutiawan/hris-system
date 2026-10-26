@@ -196,6 +196,127 @@ class GeoFenceTests(TestCase):
         )
         validate_punch_location(self.employee, -6.3001, 106.9000)
 
+    def test_sibling_branch_radius_applies(self):
+        pt = Plant.objects.create(
+            tenant=self.tenant,
+            code="PTSIB",
+            name="PT Bersama",
+            entity_type=Plant.EntityType.PT,
+        )
+        branch_a = Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRA",
+            name="Cabang A",
+            entity_type=Plant.EntityType.BRANCH,
+        )
+        Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRB",
+            name="Cabang B",
+            entity_type=Plant.EntityType.BRANCH,
+            latitude=Decimal("-6.1751000"),
+            longitude=Decimal("106.8650000"),
+            geo_fence_radius_m=100,
+        )
+        self.employee.plant = branch_a
+        self.employee.save(update_fields=["plant"])
+        validate_punch_location(self.employee, -6.1752, 106.8651)
+        with self.assertRaises(GeoFenceError):
+            validate_punch_location(self.employee, -6.3000, 106.9000)
+
+    def test_child_branch_radius_applies_to_pt_employee(self):
+        pt = Plant.objects.create(
+            tenant=self.tenant,
+            code="PTCHILD",
+            name="PT Induk",
+            entity_type=Plant.EntityType.PT,
+        )
+        Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRCHILD",
+            name="Cabang Kantor",
+            entity_type=Plant.EntityType.BRANCH,
+            latitude=Decimal("-6.1751000"),
+            longitude=Decimal("106.8650000"),
+            geo_fence_radius_m=100,
+        )
+        self.employee.plant = pt
+        self.employee.save(update_fields=["plant"])
+        validate_punch_location(self.employee, -6.1752, 106.8651)
+        with self.assertRaises(GeoFenceError):
+            validate_punch_location(self.employee, -6.3000, 106.9000)
+
+    def test_sibling_radius_change_applies_without_stale_cache(self):
+        pt = Plant.objects.create(
+            tenant=self.tenant,
+            code="PTCACHE",
+            name="PT Cache",
+            entity_type=Plant.EntityType.PT,
+        )
+        branch_a = Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRCA",
+            name="Cabang Tanpa Pin",
+            entity_type=Plant.EntityType.BRANCH,
+        )
+        branch_b = Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRCB",
+            name="Cabang Berpin",
+            entity_type=Plant.EntityType.BRANCH,
+            latitude=Decimal("-6.1751000"),
+            longitude=Decimal("106.8650000"),
+            geo_fence_radius_m=100,
+        )
+        self.employee.plant = branch_a
+        self.employee.save(update_fields=["plant"])
+        validate_punch_location(self.employee, -6.1752, 106.8651)
+        branch_b.geo_fence_radius_m = 5
+        branch_b.save(update_fields=["geo_fence_radius_m"])
+        with self.assertRaises(GeoFenceError):
+            validate_punch_location(self.employee, -6.1752, 106.8651)
+
+    def test_mobile_punch_outside_sibling_geo_rejected(self):
+        pt = Plant.objects.create(
+            tenant=self.tenant,
+            code="PTMOB",
+            name="PT Mobile",
+            entity_type=Plant.EntityType.PT,
+        )
+        branch_a = Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRMA",
+            name="Cabang Karyawan",
+            entity_type=Plant.EntityType.BRANCH,
+        )
+        Plant.objects.create(
+            tenant=self.tenant,
+            parent=pt,
+            code="BRMB",
+            name="Cabang Kantor",
+            entity_type=Plant.EntityType.BRANCH,
+            latitude=Decimal("-6.1751000"),
+            longitude=Decimal("106.8650000"),
+            geo_fence_radius_m=80,
+        )
+        self.employee.plant = branch_a
+        self.employee.save(update_fields=["plant"])
+        with self.assertRaises(PunchError) as ctx:
+            clock_in(
+                self.employee,
+                source=AttendanceRecord.Source.MOBILE,
+                photo=_photo(),
+                latitude=-6.3000,
+                longitude=106.9000,
+            )
+        self.assertIn("luar", str(ctx.exception).lower())
+
     def test_mobile_punch_outside_geo_rejected(self):
         with self.assertRaises(PunchError) as ctx:
             clock_in(

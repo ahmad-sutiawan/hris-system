@@ -19,12 +19,21 @@ def _geo_cache_key(tenant_id: int, plant_id: int | None) -> str:
 
 
 def invalidate_geo_cache(*, tenant_id: int, plant_id: int | None) -> None:
-    """Hapus cache plant ini dan cabang anaknya (karyawan cabang memakai kunci plant sendiri)."""
-    keys = [_geo_cache_key(tenant_id, plant_id)]
+    """Hapus cache plant ini, PT induk, dan seluruh cabang di bawah PT yang sama."""
+    root_ids: set[int] = set()
     if plant_id:
-        child_ids = Plant.objects.filter(parent_id=plant_id).values_list("pk", flat=True)
-        keys.extend(_geo_cache_key(tenant_id, child_id) for child_id in child_ids)
-    cache.delete_many(keys)
+        root_ids.add(plant_id)
+        parent_id = Plant.objects.filter(pk=plant_id).values_list("parent_id", flat=True).first()
+        if parent_id:
+            root_ids.add(parent_id)
+    plant_ids = set(root_ids)
+    if root_ids:
+        plant_ids.update(
+            Plant.objects.filter(parent_id__in=root_ids).values_list("pk", flat=True)
+        )
+    keys = [_geo_cache_key(tenant_id, plant_id)]
+    keys.extend(_geo_cache_key(tenant_id, pid) for pid in plant_ids)
+    cache.delete_many(list(dict.fromkeys(keys)))
 
 
 def punch_locations_for_employee(employee) -> list[dict]:
@@ -51,15 +60,19 @@ def _haversine_m(lat1, lon1, lat2, lon2) -> float:
     return 2 * r * math.asin(math.sqrt(a))
 
 
-def _resolve_pt_plant(plant) -> Plant | None:
-    """Cabang karyawan → plant induk (PT); plant PT tetap dipakai."""
-    if not plant:
-        return None
+def _company_plant_ids(plant) -> list[int]:
+    """PT karyawan dan seluruh cabang di bawahnya memakai radius yang sama."""
+    if plant is None:
+        return []
     if plant.entity_type == Plant.EntityType.PT:
-        return plant
-    if plant.parent_id:
-        return plant.parent
-    return plant
+        root_id = plant.pk
+    elif plant.parent_id:
+        root_id = plant.parent_id
+    else:
+        root_id = plant.pk
+    ids = {root_id, plant.pk}
+    ids.update(Plant.objects.filter(parent_id=root_id).values_list("pk", flat=True))
+    return list(ids)
 
 
 def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
@@ -72,26 +85,18 @@ def _points_for_employee(employee) -> list[tuple[float, float, int, str]]:
         return cached
 
     points: list[tuple[float, float, int, str]] = []
-    seen_plants: set[int] = set()
-    for site in (plant, _resolve_pt_plant(plant)):
-        if site is None or site.pk in seen_plants:
-            continue
-        seen_plants.add(site.pk)
-        if site.latitude is None or site.longitude is None:
-            continue
-        radius = site.geo_fence_radius_m or 150
-        points.append((float(site.latitude), float(site.longitude), radius, site.name))
-
-    location_plant_ids: list[int] = []
-    if plant_id:
-        location_plant_ids.append(plant_id)
-    pt = _resolve_pt_plant(plant)
-    if pt and pt.pk not in location_plant_ids:
-        location_plant_ids.append(pt.pk)
-    if location_plant_ids:
+    company_ids = _company_plant_ids(plant)
+    if company_ids:
+        for site in Plant.objects.filter(tenant_id=tenant_id, pk__in=company_ids).only(
+            "latitude", "longitude", "geo_fence_radius_m", "name"
+        ):
+            if site.latitude is None or site.longitude is None:
+                continue
+            radius = site.geo_fence_radius_m or 150
+            points.append((float(site.latitude), float(site.longitude), radius, site.name))
         for loc in PunchLocation.objects.filter(
             tenant_id=tenant_id,
-            plant_id__in=location_plant_ids,
+            plant_id__in=company_ids,
             is_active=True,
         ).only("latitude", "longitude", "radius_m", "name"):
             points.append((float(loc.latitude), float(loc.longitude), loc.radius_m, loc.name))

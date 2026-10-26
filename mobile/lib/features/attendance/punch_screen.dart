@@ -65,6 +65,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(dashboardProvider);
       _startLocationTracking();
       _refreshServerClock();
     });
@@ -304,6 +305,18 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   }
 
   Future<void> _goToSelfieStep() async {
+    final fences = _PunchFence.fromDashboard(
+      ref.read(dashboardProvider).asData?.value['punch_locations'],
+    );
+    final fence = _evaluateFence(_position, fences);
+    if (fence == null || !fence.inside) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(fence?.message ?? _outsideRadiusMessage)),
+        );
+      }
+      return;
+    }
     await _positionSub?.cancel();
     _positionSub = null;
     setState(() => _step = _PunchStep.selfie);
@@ -351,7 +364,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
 
     setState(() => _loading = true);
     try {
-      Position? position = _position;
+      Position? position;
       try {
         position = await Geolocator.getCurrentPosition(
           locationSettings: const LocationSettings(
@@ -360,22 +373,34 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
           ),
         );
         if (mounted) setState(() => _position = position);
-      } catch (_) {}
+      } catch (_) {
+        position = null;
+      }
+      if (position == null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Gagal mendeteksi lokasi. Coba lagi.')),
+          );
+        }
+        return;
+      }
       final fences = _PunchFence.fromDashboard(
         ref.read(dashboardProvider).asData?.value['punch_locations'],
       );
       final fence = _evaluateFence(position, fences);
-      if (fence != null && !fence.inside) {
+      if (fence == null || !fence.inside) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(fence.message)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(fence?.message ?? _outsideRadiusMessage)),
+          );
         }
         return;
       }
 
       final encoded = ApiClient.imageToBase64DataUrl(_photoBytes!);
       final api = ref.read(apiClientProvider);
-      final lat = position?.latitude;
-      final lng = position?.longitude;
+      final lat = position.latitude;
+      final lng = position.longitude;
       final notes = _notesController.text.trim();
       final Map<String, dynamic> result;
       if (_isClockOut) {
@@ -454,6 +479,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
     final employee = ref.watch(authProvider).employee;
 
     return dashboard.when(
+      skipLoadingOnReload: true,
       loading: () => const HrisScaffold(
         body: HrisSafeBody(
           child: Center(child: CircularProgressIndicator(color: AppColors.chinaRed)),
@@ -468,8 +494,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
         final location = shiftLocationLabel(shift, employee: employee);
         final fences = _PunchFence.fromDashboard(data['punch_locations']);
         final fence = _evaluateFence(_position, fences);
-        final mapFences = _fencesForMap(fences, _position);
-        final insideFence = fences.isEmpty || (fence?.inside ?? false);
+        final insideFence = fence?.inside == true;
         final timeRange = formatShiftTimeRange(shift);
         final workDate = shift?['work_date'] as String? ?? data['today'] as String?;
         final dateLabel = _formatShiftDate(workDate, timeRange);
@@ -509,7 +534,7 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                           position: _position,
                           locationError: _locationError,
                           officeLabel: location,
-                          fences: mapFences,
+                          fences: fences,
                           fence: fence,
                         )
                       : _SelfieStepBody(
@@ -527,6 +552,14 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
                   step: _step,
                   loading: _loading,
                   notesController: _notesController,
+                  showPrimary: _step != _PunchStep.location ||
+                      (_position != null && !_locating && insideFence),
+                  blockedMessage: _step == _PunchStep.location && !insideFence
+                      ? (fence?.message ??
+                          (_position == null
+                              ? 'Menunggu sinyal GPS...'
+                              : _outsideRadiusMessage))
+                      : null,
                   canProceed: _step == _PunchStep.location
                       ? _position != null && !_locating && insideFence
                       : _photoBytes != null ||
@@ -800,19 +833,7 @@ class _LocationStepBody extends StatelessWidget {
   }
 }
 
-const _fallbackRadiusM = fallbackAttendanceRadiusM;
-
-List<_PunchFence> _fencesForMap(List<_PunchFence> fences, Position? position) {
-  if (fences.isNotEmpty || position == null) return fences;
-  return [
-    _PunchFence(
-      name: 'Radius absen',
-      latitude: position.latitude,
-      longitude: position.longitude,
-      radiusM: _fallbackRadiusM,
-    ),
-  ];
-}
+const _outsideRadiusMessage = 'Anda di luar radius absen';
 
 List<LatLng> _radiusCorners(LatLng center, int radiusM) {
   const metersPerDegreeLat = 111320.0;
@@ -1086,17 +1107,21 @@ class _TalentaBottomPanel extends StatelessWidget {
     required this.step,
     required this.loading,
     required this.notesController,
+    required this.showPrimary,
     required this.canProceed,
     required this.primaryLabel,
     required this.onPrimary,
+    this.blockedMessage,
   });
 
   final _PunchStep step;
   final bool loading;
   final TextEditingController notesController;
+  final bool showPrimary;
   final bool canProceed;
   final String primaryLabel;
   final VoidCallback onPrimary;
+  final String? blockedMessage;
 
   @override
   Widget build(BuildContext context) {
@@ -1139,7 +1164,7 @@ class _TalentaBottomPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-          ] else
+          ] else if (showPrimary)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: Text(
@@ -1151,8 +1176,23 @@ class _TalentaBottomPanel extends StatelessWidget {
                 ),
                 textAlign: TextAlign.center,
               ),
+            )
+          else if (blockedMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                blockedMessage!,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.danger,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-          AnimatedPress(
+          if (showPrimary)
+            AnimatedPress(
             onTap: canProceed && !loading ? onPrimary : null,
             enabled: canProceed && !loading,
             child: Container(
@@ -1448,9 +1488,13 @@ double _haversineMeters(double lat1, double lon1, double lat2, double lon2) {
 }
 
 _FenceCheck? _evaluateFence(Position? position, List<_PunchFence> fences) {
-  if (fences.isEmpty || position == null) return null;
-  _PunchFence? nearest;
-  var nearestDist = double.infinity;
+  if (position == null) return null;
+  if (fences.isEmpty) {
+    return const _FenceCheck(
+      inside: false,
+      message: 'Lokasi absen belum diatur.',
+    );
+  }
   _PunchFence? insideFence;
   var insideDist = double.infinity;
   for (final fence in fences) {
@@ -1464,10 +1508,6 @@ _FenceCheck? _evaluateFence(Position? position, List<_PunchFence> fences) {
       insideFence = fence;
       insideDist = dist;
     }
-    if (dist < nearestDist) {
-      nearest = fence;
-      nearestDist = dist;
-    }
   }
   if (insideFence != null) {
     return _FenceCheck(
@@ -1475,16 +1515,8 @@ _FenceCheck? _evaluateFence(Position? position, List<_PunchFence> fences) {
       message: '${insideFence.name} — ${insideDist.round()} m dari ${insideFence.radiusM} m',
     );
   }
-  if (nearest == null) {
-    return const _FenceCheck(
-      inside: false,
-      message: 'Anda berada di luar area absen yang diizinkan.',
-    );
-  }
-  return _FenceCheck(
+  return const _FenceCheck(
     inside: false,
-    message:
-        'Anda berada di luar area absen yang diizinkan. '
-        'Lokasi terdekat: ${nearest.name} (~${nearestDist.round()} m, radius ${nearest.radiusM} m).',
+    message: _outsideRadiusMessage,
   );
 }
