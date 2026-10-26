@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
 
@@ -27,7 +28,7 @@ class AnnouncementsScreen extends ConsumerWidget {
         child: announcements.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ListView(
-            children: [EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', subtitle: '$e')],
+            children: [EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', subtitle: friendlyError(e))],
           ),
           data: (items) {
             if (items.isEmpty) {

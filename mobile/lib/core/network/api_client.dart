@@ -32,7 +32,7 @@ class ApiClient {
           final path = options.path;
           final isAuthEndpoint = path.contains('/auth/token');
           if (!isAuthEndpoint) {
-            final token = await _readStorage(_accessKey);
+            final token = await _accessTokenValue();
             if (token != null && token.isNotEmpty) {
               options.headers['Authorization'] = 'Bearer $token';
             }
@@ -52,7 +52,7 @@ class ApiClient {
               final opts = error.requestOptions;
               opts.extra['retried'] = true;
               opts.headers['Authorization'] =
-                  'Bearer ${await _readStorage(_accessKey)}';
+                  'Bearer ${await _accessTokenValue()}';
               handler.resolve(await _dio.fetch(opts));
               return;
             }
@@ -71,9 +71,28 @@ class ApiClient {
   final FlutterSecureStorage _storage;
   final Map<String, Uint8List> _mediaCache = {};
   final Map<String, Future<Uint8List?>> _mediaInflight = {};
+  String? _cachedAccess;
+  String? _cachedRefresh;
+  Future<bool>? _refreshing;
 
   Dio get dio => _dio;
   String get baseUrl => _dio.options.baseUrl;
+
+  Future<String?> _accessTokenValue() async {
+    final cached = _cachedAccess;
+    if (cached != null && cached.isNotEmpty) return cached;
+    final stored = await _readStorage(_accessKey);
+    if (stored != null && stored.isNotEmpty) _cachedAccess = stored;
+    return stored;
+  }
+
+  Future<String?> _refreshTokenValue() async {
+    final cached = _cachedRefresh;
+    if (cached != null && cached.isNotEmpty) return cached;
+    final stored = await _readStorage(_refreshKey);
+    if (stored != null && stored.isNotEmpty) _cachedRefresh = stored;
+    return stored;
+  }
 
   Future<String?> _readStorage(String key) async {
     try {
@@ -110,17 +129,25 @@ class ApiClient {
   }
 
   Future<void> setTokens({required String access, required String refresh}) async {
-    await _writeStorage(_accessKey, access);
-    await _writeStorage(_refreshKey, refresh);
+    _cachedAccess = access;
+    _cachedRefresh = refresh;
+    await Future.wait([
+      _writeStorage(_accessKey, access),
+      _writeStorage(_refreshKey, refresh),
+    ]);
   }
 
   Future<void> clearTokens() async {
-    await _deleteStorage(_accessKey);
-    await _deleteStorage(_refreshKey);
+    _cachedAccess = null;
+    _cachedRefresh = null;
+    await Future.wait([
+      _deleteStorage(_accessKey),
+      _deleteStorage(_refreshKey),
+    ]);
   }
 
   Future<void> logout() async {
-    final refresh = await _readStorage(_refreshKey);
+    final refresh = await _refreshTokenValue();
     if (refresh != null && refresh.isNotEmpty) {
       try {
         await _dio.post('/auth/logout/', data: {'refresh': refresh});
@@ -132,13 +159,23 @@ class ApiClient {
   }
 
   Future<bool> hasToken() async {
-    final token = await _readStorage(_accessKey);
+    final token = await _accessTokenValue();
     return token != null && token.isNotEmpty;
   }
 
-  Future<bool> _refreshToken() async {
-    final refresh = await _readStorage(_refreshKey);
-    if (refresh == null) return false;
+  Future<bool> _refreshToken() {
+    final pending = _refreshing;
+    if (pending != null) return pending;
+    final future = _refreshTokenOnce();
+    _refreshing = future;
+    return future.whenComplete(() {
+      if (identical(_refreshing, future)) _refreshing = null;
+    });
+  }
+
+  Future<bool> _refreshTokenOnce() async {
+    final refresh = await _refreshTokenValue();
+    if (refresh == null || refresh.isEmpty) return false;
     try {
       final res = await Dio(BaseOptions(
         baseUrl: _dio.options.baseUrl,
@@ -149,10 +186,16 @@ class ApiClient {
         data: {'refresh': refresh},
       );
       final access = res.data['access'] as String;
+      _cachedAccess = access;
       await _writeStorage(_accessKey, access);
       return true;
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      if (status == 401 || status == 403) {
+        await clearTokens();
+      }
+      return false;
     } catch (_) {
-      await clearTokens();
       return false;
     }
   }
@@ -184,10 +227,33 @@ class ApiClient {
   Future<Map<String, dynamic>> getProfile() async => _getMap('/mobile/profile/');
 
   Future<List<dynamic>> getPaginated(String path, {Map<String, dynamic>? query}) async {
-    return getPaginatedAll(path, query: query, pageSize: 50);
+    final page = await getPage(path, query: query, pageSize: 50);
+    return page.items;
   }
 
-  /// Fetch all pages for list endpoints (e.g. timesheet history).
+  Future<PageBatch> getPage(
+    String path, {
+    Map<String, dynamic>? query,
+    int page = 1,
+    int pageSize = 50,
+  }) async {
+    final data = await _getDynamic(path, query: {
+      ...?query,
+      'page': page,
+      'page_size': pageSize,
+    });
+    if (data is List) {
+      return PageBatch(items: data);
+    }
+    if (data is Map && data['results'] is List) {
+      final batch = data['results'] as List;
+      final hasNext = data['next'] != null && batch.isNotEmpty;
+      return PageBatch(items: batch, nextPage: hasNext ? page + 1 : null);
+    }
+    return const PageBatch(items: []);
+  }
+
+  /// Fetch every page. Stops only when the server reports no next page.
   Future<List<dynamic>> getPaginatedAll(
     String path, {
     Map<String, dynamic>? query,
@@ -196,21 +262,11 @@ class ApiClient {
     final merged = <dynamic>[];
     var page = 1;
     while (true) {
-      final params = {
-        ...?query,
-        'page': page,
-        'page_size': pageSize,
-      };
-      final data = await _getDynamic(path, query: params);
-      if (data is! Map || data['results'] is! List) {
-        if (data is List) return data;
-        break;
-      }
-      final batch = data['results'] as List;
-      merged.addAll(batch);
-      if (data['next'] == null || batch.isEmpty) break;
-      page += 1;
-      if (page > 20) break;
+      final batch = await getPage(path, query: query, page: page, pageSize: pageSize);
+      merged.addAll(batch.items);
+      final next = batch.nextPage;
+      if (next == null) break;
+      page = next;
     }
     return merged;
   }
@@ -287,7 +343,7 @@ class ApiClient {
       final origin = apiBase.replaceAll(AppConfig.apiPathSuffix, '');
       final suffix = query == null ? '' : '?$query';
       final url = '$origin/media/$mediaPath$suffix';
-      final token = await _readStorage(_accessKey);
+      final token = await _accessTokenValue();
       final client = Dio(
         BaseOptions(
           connectTimeout: const Duration(seconds: 20),
@@ -479,6 +535,13 @@ class ApiClient {
   static String imageToBase64DataUrl(List<int> bytes) {
     return 'data:image/jpeg;base64,${base64Encode(bytes)}';
   }
+}
+
+class PageBatch {
+  const PageBatch({required this.items, this.nextPage});
+
+  final List<dynamic> items;
+  final int? nextPage;
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

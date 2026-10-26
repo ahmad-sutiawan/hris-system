@@ -54,8 +54,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
       await _loadMe();
+    } on ApiException catch (e) {
+      final expired = e.statusCode == 401;
+      state = AuthState(
+        isLoading: false,
+        isAuthenticated: false,
+        error: expired ? null : e.message,
+      );
     } catch (_) {
-      state = const AuthState(isLoading: false, isAuthenticated: false);
+      state = const AuthState(
+        isLoading: false,
+        isAuthenticated: false,
+        error: 'Tidak bisa terhubung ke server HRIS. Periksa koneksi internet Anda.',
+      );
     } finally {
       if (state.isLoading) {
         state = state.copyWith(isLoading: false);

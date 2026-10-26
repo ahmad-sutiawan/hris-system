@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/network/paged_list.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/hris_widgets.dart';
@@ -13,8 +15,13 @@ enum InboxFilter { all, unread, leave, attendance, payroll, system }
 
 final inboxFilterProvider = StateProvider<InboxFilter>((ref) => InboxFilter.all);
 
-final notificationsProvider = FutureProvider<List<dynamic>>((ref) async {
-  return ref.watch(apiClientProvider).getPaginatedAll('/notifications/', pageSize: 50);
+final notificationsProvider =
+    StateNotifierProvider<PagedListNotifier, AsyncValue<PagedListState>>((ref) {
+  return PagedListNotifier(
+    ref.watch(apiClientProvider),
+    path: '/notifications/',
+    pageSize: 40,
+  );
 });
 
 class NotificationsScreen extends ConsumerWidget {
@@ -63,16 +70,24 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         color: AppColors.chinaRed,
-        onRefresh: () async => ref.invalidate(notificationsProvider),
-        child: notifications.when(
+        onRefresh: () => ref.read(notificationsProvider.notifier).refresh(),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            return onPagedScroll(
+              notification,
+              () => ref.read(notificationsProvider.notifier).loadMore(),
+            );
+          },
+          child: notifications.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', subtitle: '$e'),
+              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', subtitle: friendlyError(e)),
             ],
           ),
-          data: (items) {
+          data: (page) {
+            final items = page.items;
             final filtered = _applyFilter(items, filter);
             final stats = _computeStats(items);
 
@@ -165,10 +180,12 @@ class NotificationsScreen extends ConsumerWidget {
                       ),
                     ];
                   }),
-                const SliverToBoxAdapter(child: SizedBox(height: 100)),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                SliverToBoxAdapter(child: PagedListFooter(page: page)),
               ],
             );
           },
+        ),
         ),
       ),
     );

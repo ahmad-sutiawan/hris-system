@@ -36,6 +36,7 @@ class EmployeeAvatar extends ConsumerWidget {
     final bg = backgroundColor ?? AppColors.cyanDim;
     final fg = textColor ?? AppColors.cyan;
 
+    final cacheWidth = (size * MediaQuery.devicePixelRatioOf(context)).ceil();
     Widget avatar = Container(
       width: size,
       height: size,
@@ -49,6 +50,7 @@ class EmployeeAvatar extends ConsumerWidget {
           ? AuthMediaImage(
               url: photoUrl,
               fit: BoxFit.cover,
+              cacheWidth: cacheWidth,
               loading: Center(
                 child: SizedBox(
                   width: size * 0.35,

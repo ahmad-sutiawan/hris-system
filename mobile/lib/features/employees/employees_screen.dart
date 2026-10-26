@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/network/paged_list.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/employee_avatar.dart';
@@ -42,13 +44,16 @@ final employeeFilterOptionsProvider = FutureProvider<Map<String, dynamic>>((ref)
   return ref.watch(apiClientProvider).get('/mobile/employees/filters/');
 });
 
-final employeeDirectoryProvider =
-    FutureProvider.family<List<dynamic>, EmployeeDirectoryQuery>((ref, query) async {
-  return ref.watch(apiClientProvider).getPaginatedAll(
-        '/employees/',
-        query: query.toParams(),
-        pageSize: 80,
-      );
+final employeeDirectoryProvider = StateNotifierProvider.family<
+    PagedListNotifier,
+    AsyncValue<PagedListState>,
+    EmployeeDirectoryQuery>((ref, query) {
+  return PagedListNotifier(
+    ref.watch(apiClientProvider),
+    path: '/employees/',
+    query: query.toParams(),
+    pageSize: 40,
+  );
 });
 
 class EmployeesScreen extends ConsumerStatefulWidget {
@@ -104,16 +109,23 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _EmployeesHero(
-            total: employees.maybeWhen(data: (v) => v.length, orElse: () => null),
+            total: employees.maybeWhen(data: (page) => page.items.length, orElse: () => null),
           ),
           Expanded(
             child: RefreshIndicator(
               color: AppColors.cyan,
               onRefresh: () async {
                 ref.invalidate(employeeFilterOptionsProvider);
-                ref.invalidate(employeeDirectoryProvider(_query));
+                await ref.read(employeeDirectoryProvider(_query).notifier).refresh();
               },
-              child: CustomScrollView(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  return onPagedScroll(
+                    notification,
+                    () => ref.read(employeeDirectoryProvider(_query).notifier).loadMore(),
+                  );
+                },
+                child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   SliverToBoxAdapter(
@@ -168,10 +180,11 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                 child: EmptyState(
                   icon: Icons.error_outline_rounded,
                   title: 'Gagal memuat karyawan',
-                  subtitle: '$e',
+                  subtitle: friendlyError(e),
                 ),
               ),
-              data: (items) {
+              data: (page) {
+                final items = page.items;
                 if (items.isEmpty) {
                   return const SliverFillRemaining(
                     child: EmptyState(
@@ -181,32 +194,38 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                     ),
                   );
                 }
-                return SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final emp = items[index] as Map<String, dynamic>;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: FadeSlideIn(
-                            index: index,
-                            delayMs: 20,
-                            child: _EmployeeCard(
-                              employee: emp,
-                              onTap: () => context.push('/employees/${emp['id']}'),
-                            ),
-                          ),
-                        );
-                      },
-                      childCount: items.length,
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final emp = items[index] as Map<String, dynamic>;
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: FadeSlideIn(
+                                index: index,
+                                delayMs: 20,
+                                child: _EmployeeCard(
+                                  employee: emp,
+                                  onTap: () => context.push('/employees/${emp['id']}'),
+                                ),
+                              ),
+                            );
+                          },
+                          childCount: items.length,
+                        ),
+                      ),
                     ),
-                  ),
+                    SliverToBoxAdapter(child: PagedListFooter(page: page)),
+                  ],
                 );
               },
             ),
                 ],
               ),
+            ),
             ),
           ),
         ],

@@ -88,9 +88,7 @@ def _resolve_employee_photo_urls(employee_ids: list[int], *, request=None) -> di
 
 def build_on_leave_today_items(*, user: User, tenant, today, request=None) -> list[dict]:
     """Karyawan aktif yang sedang cuti (semua jenis, approved) pada tanggal `today`."""
-    active_ids = list(_active_employees(user, tenant).values_list("id", flat=True))
-    if not active_ids:
-        return []
+    active_ids = _active_employees(user, tenant).values("id")
 
     leave_requests = (
         LeaveRequest.objects.filter(
@@ -547,6 +545,88 @@ def empty_dashboard_context(*, user=None) -> dict:
         "pending_leave_count": 0,
         "pending_overtime_count": 0,
     }
+
+
+def build_mobile_dashboard_context(*, user: User, tenant, today, profile, request=None):
+    """Beranda mobile: angka hadir/cuti dan data karyawan, tanpa grafik web."""
+    context = {
+        "recent_notifications": [],
+        "stats_extra": {
+            "present_today": 0,
+            "on_leave_today": 0,
+            "absent_today": 0,
+        },
+        "analytics": {"attendance_rate": 0.0},
+        "on_leave_today_items": [],
+        "leave_balances": [],
+        "today_shift": None,
+        "latest_payslip": None,
+        "profile_summary": None,
+    }
+    if not tenant:
+        return context
+
+    context["recent_notifications"] = list(
+        Notification.objects.filter(user=user).order_by("-created_at")[:5]
+    )
+
+    active_emp = _active_employees(user, tenant)
+    active_count = active_emp.count()
+    on_leave_today_items = build_on_leave_today_items(
+        user=user,
+        tenant=tenant,
+        today=today,
+        request=request,
+    )
+    on_leave_count = len({item["employee"].id for item in on_leave_today_items})
+    context["on_leave_today_items"] = on_leave_today_items
+
+    present_count = _plant_filter(
+        user,
+        AttendanceRecord.objects.filter(
+            tenant=tenant,
+            work_date=today,
+            check_in__isnull=False,
+            employee_id__in=active_emp.values("id"),
+        ),
+    ).count()
+    context["stats_extra"] = {
+        "present_today": present_count,
+        "on_leave_today": on_leave_count,
+        "absent_today": max(0, active_count - present_count - on_leave_count),
+    }
+    context["analytics"] = {
+        "attendance_rate": _attendance_rate(
+            present=present_count,
+            on_leave=on_leave_count,
+            total=active_count,
+        ),
+    }
+
+    if profile:
+        context["leave_balances"] = employee_leave_balances_summary(profile)
+        context["today_shift"] = (
+            ShiftAssignment.objects.filter(employee=profile, work_date=today)
+            .select_related("shift", "employee", "employee__plant")
+            .first()
+        )
+        context["latest_payslip"] = (
+            Payslip.objects.filter(employee=profile)
+            .select_related("payroll_run", "payroll_run__plant")
+            .order_by("-payroll_run__period_start")
+            .first()
+        )
+        job = profile.job_position
+        dept = profile.department
+        context["profile_summary"] = {
+            "employee_id": profile.employee_id,
+            "department": dept.name if dept else "—",
+            "position": job.title if job else "—",
+            "ptkp": profile.tax_status or "—",
+            "plant": profile.plant.name if profile.plant_id else "—",
+            "status": profile.get_status_display(),
+        }
+    return context
 
 
 def build_dashboard_context(*, user: User, tenant, today, profile, request=None):

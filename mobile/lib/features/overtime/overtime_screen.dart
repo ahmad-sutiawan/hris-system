@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/hris_widgets.dart';
 import '../shared/request_actions.dart';
@@ -46,7 +47,7 @@ class OvertimeScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ListView(
             children: [
-              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', subtitle: '$e'),
+              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat', subtitle: friendlyError(e)),
             ],
           ),
           data: (items) {

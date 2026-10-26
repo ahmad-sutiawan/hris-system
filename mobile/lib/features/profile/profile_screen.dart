@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/money_utils.dart';
 import '../../core/widgets/employee_avatar.dart';
@@ -29,7 +30,7 @@ class ProfileScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ListView(
             children: [
-              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat profil', subtitle: '$e'),
+              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat profil', subtitle: friendlyError(e)),
             ],
           ),
           data: (data) {

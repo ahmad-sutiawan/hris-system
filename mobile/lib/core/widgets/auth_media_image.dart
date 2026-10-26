@@ -12,12 +12,14 @@ class AuthMediaImage extends ConsumerWidget {
     super.key,
     required this.url,
     this.fit = BoxFit.cover,
+    this.cacheWidth,
     this.loading,
     this.error,
   });
 
   final String? url;
   final BoxFit fit;
+  final int? cacheWidth;
   final Widget? loading;
   final Widget? error;
 
@@ -44,7 +46,12 @@ class AuthMediaImage extends ConsumerWidget {
                 child: Icon(Icons.broken_image_outlined, color: AppColors.textDim),
               );
         }
-        return Image.memory(bytes, fit: fit);
+        return Image.memory(
+          bytes,
+          fit: fit,
+          cacheWidth: cacheWidth,
+          gaplessPlayback: true,
+        );
       },
     );
   }

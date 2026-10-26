@@ -10,7 +10,6 @@ from apps.attendance.serializers import AttendanceRecordSerializer
 from apps.attendance.services.geo import punch_locations_for_employee
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.models import Notification, Plant, User
-from apps.core.approval import can_approve_request
 from apps.core.serializers_extra import AnnouncementSerializer
 from apps.core.services.announcements import active_announcement_count, active_announcements_for_user
 from apps.core.services.approval_chain import approval_steps
@@ -24,7 +23,7 @@ from apps.organization.models import JobPosition
 from apps.shifts.models import ShiftAssignment
 from apps.payroll.models import Pph21TerCategory
 from apps.payroll.services.salary_preview import build_salary_preview
-from apps.web.services.dashboard import build_dashboard_context
+from apps.web.services.dashboard import build_mobile_dashboard_context
 
 
 def _pending_own_summary(profile) -> dict:
@@ -40,6 +39,80 @@ def _pending_own_summary(profile) -> dict:
             status=OvertimeRequest.Status.PENDING,
         ).count(),
     }
+
+
+def _count_approvable(user, qs, steps) -> int:
+    """Hitung pengajuan yang bisa disetujui user ini tanpa memuat objek satu per satu."""
+    if not steps:
+        return qs.count()
+
+    from apps.core.models import ApprovalLine
+
+    profile = getattr(user, "employee_profile", None)
+    hr_plant: dict[int | None, int | None] = {}
+    hr_tenant_id: int | None = None
+    hr_tenant_loaded = False
+    count = 0
+    rows = qs.values_list(
+        "approval_step",
+        "employee__manager_id",
+        "employee__manager__user_id",
+        "employee__plant_id",
+    ).iterator(chunk_size=500)
+    for approval_step, manager_id, manager_user_id, plant_id in rows:
+        current = approval_step or 1
+        step = None
+        skipped = False
+        for candidate in steps:
+            if candidate.step_order < current:
+                continue
+            if candidate.step_order > current:
+                skipped = True
+                break
+            step = candidate
+            break
+        if skipped:
+            continue
+        if step is None:
+            if user.is_hr or user.is_admin:
+                count += 1
+            elif profile and manager_id == profile.pk:
+                count += 1
+            continue
+        if step.approver_kind == ApprovalLine.ApproverKind.DIRECT_MANAGER:
+            if manager_user_id == user.pk:
+                count += 1
+        elif step.approver_kind == ApprovalLine.ApproverKind.HR_PLANT:
+            if plant_id not in hr_plant:
+                hr_plant[plant_id] = (
+                    User.objects.filter(
+                        tenant_id=user.tenant_id,
+                        plant_id=plant_id,
+                        role__in=[User.Role.HR, User.Role.ADMIN],
+                        is_active=True,
+                    )
+                    .order_by("id")
+                    .values_list("pk", flat=True)
+                    .first()
+                )
+            if hr_plant[plant_id] == user.pk:
+                count += 1
+        elif step.approver_kind == ApprovalLine.ApproverKind.HR_TENANT:
+            if not hr_tenant_loaded:
+                hr_tenant_loaded = True
+                hr_tenant_id = (
+                    User.objects.filter(
+                        tenant_id=user.tenant_id,
+                        role__in=[User.Role.HR, User.Role.ADMIN],
+                        is_active=True,
+                    )
+                    .order_by("id")
+                    .values_list("pk", flat=True)
+                    .first()
+                )
+            if hr_tenant_id == user.pk:
+                count += 1
+    return count
 
 
 def _pending_approval_summary(user, profile, tenant) -> dict:
@@ -68,21 +141,10 @@ def _pending_approval_summary(user, profile, tenant) -> dict:
 
     leave_steps = approval_steps(tenant, "leave")
     ot_steps = approval_steps(tenant, "overtime")
-    leave_count = sum(
-        1
-        for req in leave_qs
-        if can_approve_request(
-            user, req.employee, "leave", req.approval_step or 1, steps=leave_steps
-        )
-    )
-    ot_count = sum(
-        1
-        for req in ot_qs
-        if can_approve_request(
-            user, req.employee, "overtime", req.approval_step or 1, steps=ot_steps
-        )
-    )
-    return {"leave": leave_count, "overtime": ot_count}
+    return {
+        "leave": _count_approvable(user, leave_qs, leave_steps),
+        "overtime": _count_approvable(user, ot_qs, ot_steps),
+    }
 
 
 def _serialize_salary_preview(preview: dict) -> dict:
@@ -180,7 +242,21 @@ class MobileDashboardView(APIView):
             ).first()
             punch_ui = get_punch_ui_state(today_record)
 
-        dashboard = build_dashboard_context(
+        if profile:
+            profile = (
+                Employee.objects.select_related(
+                    "plant",
+                    "plant__default_shift",
+                    "department",
+                    "job_position",
+                    "manager",
+                    "default_shift",
+                )
+                .filter(pk=profile.pk)
+                .first()
+            )
+
+        dashboard = build_mobile_dashboard_context(
             user=user,
             tenant=user.tenant,
             today=today,
@@ -206,18 +282,6 @@ class MobileDashboardView(APIView):
         pending_summary = _pending_own_summary(profile)
         pending_approvals = _pending_approval_summary(user, profile, user.tenant)
         if profile:
-            profile = (
-                Employee.objects.select_related(
-                    "plant",
-                    "plant__default_shift",
-                    "department",
-                    "job_position",
-                    "manager",
-                    "default_shift",
-                )
-                .filter(pk=profile.pk)
-                .first()
-            )
             direct_reports = _serialize_direct_reports(profile, request=request)
             if not direct_reports:
                 team_colleagues = _serialize_team_colleagues(profile, request=request)

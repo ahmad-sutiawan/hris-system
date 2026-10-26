@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
+import '../../core/network/paged_list.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/auth_media_image.dart';
@@ -102,13 +104,16 @@ final attendanceFilterProvider = StateProvider<AttendanceDateFilter>(
   (ref) => AttendanceDateFilter.thisMonth(),
 );
 
-final timesheetsProvider = FutureProvider<List<dynamic>>((ref) async {
-  final filter = ref.watch(attendanceFilterProvider);
-  return ref.watch(apiClientProvider).getPaginatedAll(
-        '/timesheets/',
-        query: filter.toQuery(),
-        pageSize: 60,
-      );
+final timesheetsProvider = StateNotifierProvider.family<
+    PagedListNotifier,
+    AsyncValue<PagedListState>,
+    AttendanceDateFilter>((ref, filter) {
+  return PagedListNotifier(
+    ref.watch(apiClientProvider),
+    path: '/timesheets/',
+    query: filter.toQuery(),
+    pageSize: 40,
+  );
 });
 
 class AttendanceScreen extends ConsumerWidget {
@@ -117,7 +122,7 @@ class AttendanceScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(attendanceFilterProvider);
-    final timesheets = ref.watch(timesheetsProvider);
+    final timesheets = ref.watch(timesheetsProvider(filter));
 
     return HrisScaffold(
       withBackground: false,
@@ -154,16 +159,28 @@ class AttendanceScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         color: AppColors.chinaRed,
-        onRefresh: () async => ref.invalidate(timesheetsProvider),
-        child: timesheets.when(
+        onRefresh: () => ref.read(timesheetsProvider(filter).notifier).refresh(),
+        child: NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            return onPagedScroll(
+              notification,
+              () => ref.read(timesheetsProvider(filter).notifier).loadMore(),
+            );
+          },
+          child: timesheets.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              EmptyState(icon: Icons.error_outline, title: 'Gagal memuat data', subtitle: '$e'),
+              EmptyState(
+                icon: Icons.error_outline,
+                title: 'Gagal memuat data',
+                subtitle: friendlyError(e),
+              ),
             ],
           ),
-          data: (items) {
+          data: (page) {
+            final items = page.items;
             final stats = _computeStats(items);
             return CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -182,13 +199,11 @@ class AttendanceScreen extends ConsumerWidget {
                       onPreset: (preset) {
                         ref.read(attendanceFilterProvider.notifier).state =
                             AttendanceDateFilter.forPreset(preset);
-                        ref.invalidate(timesheetsProvider);
                       },
                       onCustomRange: () async {
                         final picked = await _pickDateRange(context, filter);
                         if (picked != null) {
                           ref.read(attendanceFilterProvider.notifier).state = picked;
-                          ref.invalidate(timesheetsProvider);
                         }
                       },
                     ),
@@ -223,9 +238,11 @@ class AttendanceScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
+                SliverToBoxAdapter(child: PagedListFooter(page: page)),
               ],
             );
           },
+        ),
         ),
       ),
     );

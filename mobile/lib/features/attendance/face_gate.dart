@@ -54,12 +54,12 @@ class FaceStreamSession {
   FaceStreamSession()
       : _detector = FaceDetector(
           options: FaceDetectorOptions(
-            enableClassification: true,
+            enableClassification: false,
             enableLandmarks: false,
             enableContours: false,
             enableTracking: false,
-            performanceMode: FaceDetectorMode.accurate,
-            minFaceSize: 0.1,
+            performanceMode: FaceDetectorMode.fast,
+            minFaceSize: 0.15,
           ),
         );
 

@@ -7,3 +7,8 @@ class ApiException implements Exception {
   @override
   String toString() => message;
 }
+
+String friendlyError(Object error) {
+  if (error is ApiException && error.message.isNotEmpty) return error.message;
+  return 'Tidak bisa memuat data. Periksa koneksi lalu coba lagi.';
+}

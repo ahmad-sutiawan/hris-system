@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/employee_avatar.dart';
 import '../../core/widgets/hris_widgets.dart';
@@ -35,7 +36,7 @@ class EmployeeDetailScreen extends ConsumerWidget {
               EmptyState(
                 icon: Icons.error_outline_rounded,
                 title: 'Gagal memuat profil',
-                subtitle: '$e',
+                subtitle: friendlyError(e),
               ),
             ],
           ),

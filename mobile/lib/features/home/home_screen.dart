@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/auth/auth_provider.dart';
 import '../../core/network/api_client.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/shift_utils.dart';
 import '../../core/widgets/animated_interactions.dart';
@@ -47,7 +48,7 @@ class HomeScreen extends ConsumerWidget {
               child: EmptyState(
                 icon: Icons.cloud_off,
                 title: 'Gagal memuat dashboard',
-                subtitle: '$e',
+                subtitle: friendlyError(e),
               ),
             ),
           ],

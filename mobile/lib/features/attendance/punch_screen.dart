@@ -65,7 +65,6 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.invalidate(dashboardProvider);
       _startLocationTracking();
       _refreshServerClock();
     });
