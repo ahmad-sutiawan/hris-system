@@ -13,6 +13,10 @@ class AppSplash extends StatefulWidget {
 }
 
 class _AppSplashState extends State<AppSplash> with SingleTickerProviderStateMixin {
+  static const _visible = Duration(milliseconds: 1500);
+  static const _fadeIn = Duration(milliseconds: 420);
+  static const _fadeOut = Duration(milliseconds: 280);
+
   late final AnimationController _controller;
   late final Animation<double> _logo;
   late final Animation<double> _veil;
@@ -21,18 +25,24 @@ class _AppSplashState extends State<AppSplash> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1700),
-    );
+    final total = _visible + _fadeOut;
+    _controller = AnimationController(vsync: this, duration: total);
     _logo = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.08, 0.62, curve: Curves.easeOutCubic),
+      curve: Interval(
+        0,
+        _fadeIn.inMilliseconds / total.inMilliseconds,
+        curve: Curves.easeOutCubic,
+      ),
     );
     _veil = Tween<double>(begin: 1, end: 0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.72, 1, curve: Curves.easeInOutCubic),
+        curve: Interval(
+          _visible.inMilliseconds / total.inMilliseconds,
+          1,
+          curve: Curves.easeInOutCubic,
+        ),
       ),
     );
     _controller.forward().whenComplete(() {

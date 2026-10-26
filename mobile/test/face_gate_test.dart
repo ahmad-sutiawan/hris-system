@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:camera/camera.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:hris_mobile/features/attendance/face_gate.dart';
@@ -119,8 +120,36 @@ void main() {
     expect(packed, isNull);
   });
 
-  test('rotation turns until a face is found, then stays', () {
+  test('extra bytes after the luminance plane are not treated as pixels', () {
+    const width = 4;
+    const height = 4;
+    final bytes = Uint8List(width * height + 12);
+    bytes[0] = 3;
+    bytes[width * height - 1] = 4;
+    bytes[width * height] = 99;
+
+    final packed = compactNv21(
+      bytes: bytes,
+      width: width,
+      height: height,
+      bytesPerRow: width,
+    );
+
+    expect(packed, isNotNull);
+    expect(packed![0], 3);
+    expect(packed[width * height - 1], 4);
+    expect(packed[width * height], 99);
+    expect(packed.length, width * height * 3 ~/ 2);
+  });
+
+  test('rotation turns only after three misses, then stays on a face', () {
     final search = FaceRotationSearch();
+    expect(
+      search.current(fallback: InputImageRotation.rotation270deg),
+      InputImageRotation.rotation270deg,
+    );
+    search.note(FaceGateStatus.noFace);
+    search.note(null);
     expect(
       search.current(fallback: InputImageRotation.rotation270deg),
       InputImageRotation.rotation270deg,
@@ -138,5 +167,85 @@ void main() {
       search.current(fallback: InputImageRotation.rotation0deg),
       InputImageRotation.rotation0deg,
     );
+  });
+
+  test('detector options and camera format match the working attendance build',
+      () {
+    expect(faceDetectorOptions.enableClassification, isTrue);
+    expect(faceDetectorOptions.minFaceSize, 0.1);
+    expect(faceDetectorOptions.performanceMode, FaceDetectorMode.accurate);
+    expect(androidAnalysisFormats, [
+      ImageFormatGroup.nv21,
+      ImageFormatGroup.yuv420,
+    ]);
+  });
+
+  test('a phone YUV frame keeps luminance and interleaved chroma', () {
+    const width = 4;
+    const height = 4;
+    final y = Uint8List(width * height)..fillRange(0, width * height, 5);
+    y[0] = 8;
+    final u = Uint8List.fromList([11, 0, 12, 0, 13, 0, 14, 0]);
+    final v = Uint8List.fromList([21, 0, 22, 0, 23, 0, 24, 0]);
+    final image = CameraImage.fromPlatformData(<dynamic, dynamic>{
+      'format': 35,
+      'width': width,
+      'height': height,
+      'planes': [
+        {'bytes': y, 'bytesPerRow': width, 'bytesPerPixel': 1},
+        {'bytes': u, 'bytesPerRow': width, 'bytesPerPixel': 2},
+        {'bytes': v, 'bytesPerRow': width, 'bytesPerPixel': 2},
+      ],
+    });
+
+    final packed = packAndroidFrameForTest(image);
+
+    expect(packed, isNotNull);
+    expect(packed!.length, width * height * 3 ~/ 2);
+    expect(packed[0], 8);
+    expect(packed.sublist(width * height), [21, 11, 22, 12, 23, 13, 24, 14]);
+  });
+
+  test('a phone frame with a missing chroma sample is dropped', () {
+    const width = 4;
+    const height = 4;
+    final image = CameraImage.fromPlatformData(<dynamic, dynamic>{
+      'format': 35,
+      'width': width,
+      'height': height,
+      'planes': [
+        {
+          'bytes': Uint8List(width * height),
+          'bytesPerRow': width,
+          'bytesPerPixel': 1,
+        },
+        {
+          'bytes': Uint8List.fromList([1]),
+          'bytesPerRow': width,
+          'bytesPerPixel': 2,
+        },
+        {
+          'bytes': Uint8List(width * height ~/ 2),
+          'bytesPerRow': width,
+          'bytesPerPixel': 2,
+        },
+      ],
+    });
+
+    expect(packAndroidFrameForTest(image), isNull);
+  });
+
+  test('two camera planes are not sent to the detector', () {
+    final image = CameraImage.fromPlatformData(<dynamic, dynamic>{
+      'format': 35,
+      'width': 4,
+      'height': 4,
+      'planes': [
+        {'bytes': Uint8List(16), 'bytesPerRow': 4, 'bytesPerPixel': 1},
+        {'bytes': Uint8List(8), 'bytesPerRow': 4, 'bytesPerPixel': 1},
+      ],
+    });
+
+    expect(packAndroidFrameForTest(image), isNull);
   });
 }

@@ -158,11 +158,8 @@ class _PunchScreenState extends ConsumerState<PunchScreen> {
   }
 
   Future<CameraController> _openCamera(CameraDescription selected) async {
-    // Ponsel mengirim YUV_420_888. Konversi NV21 bawaan plugin kamera
-    // sering merusak frame di perangkat sungguhan, sementara emulator tetap
-    // jalan. Minta YUV dulu, NV21 hanya cadangan jika kamera menolaknya.
     final formats = Platform.isAndroid
-        ? const [ImageFormatGroup.yuv420, ImageFormatGroup.nv21]
+        ? androidAnalysisFormats
         : const [ImageFormatGroup.bgra8888];
     Object? lastError;
     for (final format in formats) {

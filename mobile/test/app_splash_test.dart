@@ -16,10 +16,13 @@ void main() {
     final mark = tester.widget<FadeTransition>(find.byType(FadeTransition).last);
     expect(mark.opacity.value, 0);
 
-    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump(const Duration(milliseconds: 420));
     expect(mark.opacity.value, greaterThan(0.9));
 
-    await tester.pump(const Duration(milliseconds: 1100));
+    await tester.pump(const Duration(milliseconds: 1080));
+    expect(find.byType(Image), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 400));
     await tester.pump();
 
     expect(find.byType(Image), findsNothing);

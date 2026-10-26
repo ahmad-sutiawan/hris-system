@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:camera/camera.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
@@ -9,6 +10,22 @@ enum FaceGateStatus { noFace, face, smiling }
 const faceGateInterval = Duration(milliseconds: 250);
 const smileProbabilityThreshold = 0.7;
 const stableSmileReads = 2;
+
+/// Detector settings from the attendance build that unlocks Submit.
+final faceDetectorOptions = FaceDetectorOptions(
+  enableClassification: true,
+  enableLandmarks: false,
+  enableContours: false,
+  enableTracking: false,
+  performanceMode: FaceDetectorMode.accurate,
+  minFaceSize: 0.1,
+);
+
+/// NV21 first. YUV is only used when the camera rejects NV21.
+const androidAnalysisFormats = <ImageFormatGroup>[
+  ImageFormatGroup.nv21,
+  ImageFormatGroup.yuv420,
+];
 
 String faceGateMessage(FaceGateStatus status) {
   switch (status) {
@@ -51,17 +68,7 @@ bool faceGateReady(FaceGateStatus status) =>
 
 /// On-device face detector. Frames are dropped while a read is in flight.
 class FaceStreamSession {
-  FaceStreamSession()
-      : _detector = FaceDetector(
-          options: FaceDetectorOptions(
-            enableClassification: true,
-            enableLandmarks: false,
-            enableContours: false,
-            enableTracking: false,
-            performanceMode: FaceDetectorMode.accurate,
-            minFaceSize: 0.1,
-          ),
-        );
+  FaceStreamSession() : _detector = FaceDetector(options: faceDetectorOptions);
 
   final FaceDetector _detector;
   final FaceGateTracker _tracker = FaceGateTracker();
@@ -173,6 +180,8 @@ class FaceRotationSearch {
       _misses = 0;
       return;
     }
+    _misses += 1;
+    if (_misses < 3) return;
     _misses = 0;
     _degrees = (_degrees! + 90) % 360;
   }
@@ -225,8 +234,9 @@ Uint8List? compactNv21({
   }
   final uvOffset = height * stride;
   final uvRows = height ~/ 2;
-  if (uvOffset + uvRows * stride > bytes.length && bytes.length < tightSize)
+  if (uvOffset + uvRows * stride > bytes.length && bytes.length < tightSize) {
     return null;
+  }
   if (bytes.length < tightSize && uvOffset + width > bytes.length) return null;
 
   final out = Uint8List(tightSize);
@@ -286,13 +296,7 @@ _Nv21Frame? _packNv21(CameraImage image) {
           uPlane.bytes.length, row, col, uPlane.bytesPerRow, uPixel, uvWidth);
       final vIndex = _sampleIndex(
           vPlane.bytes.length, row, col, vPlane.bytesPerRow, vPixel, uvWidth);
-      // A missing chroma sample must not drop the whole frame. ML Kit
-      // still finds a face from the luminance plane.
-      if (uIndex == null || vIndex == null) {
-        out[offset++] = 128;
-        out[offset++] = 128;
-        continue;
-      }
+      if (uIndex == null || vIndex == null) return null;
       out[offset++] = vPlane.bytes[vIndex];
       out[offset++] = uPlane.bytes[uIndex];
     }
@@ -310,8 +314,9 @@ bool _copyRows(
 }) {
   final packed = stride < width || offset + width * height > out.length;
   final rowStride = packed ? width : stride;
-  if (height * rowStride > bytes.length && width * height > bytes.length)
+  if (height * rowStride > bytes.length && width * height > bytes.length) {
     return false;
+  }
   var dst = offset;
   for (var row = 0; row < height; row++) {
     final start = row * rowStride;
@@ -335,3 +340,7 @@ int? _sampleIndex(int length, int row, int col, int rowStride, int pixelStride,
   if (tight >= 0 && tight < length) return tight;
   return null;
 }
+
+@visibleForTesting
+Uint8List? packAndroidFrameForTest(CameraImage image) =>
+    _androidNv21(image)?.bytes;
