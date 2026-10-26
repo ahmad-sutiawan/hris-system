@@ -31,13 +31,15 @@ from apps.attendance.services.photo import PhotoError, decode_selfie
 from apps.attendance.services.punch_ui import get_punch_ui_state
 from apps.core.decorators import require_roles
 from apps.web.redirects import safe_redirect
-from apps.core.models import AuditLog, Notification, Plant, User
+from apps.core.models import Announcement, AuditLog, Notification, Plant, User
 from apps.core.services.announcements import (
     announcements_for_user,
     dismiss_announcement,
     get_announcement_for_user,
     increment_announcement_views,
+    managed_announcements,
 )
+from apps.web.admin_crud.forms import AnnouncementForm
 from apps.core.services.notifications import mark_notifications_read
 from apps.employees.models import Employee, EmployeeDocument
 from apps.leave.models import LeaveRequest
@@ -1705,22 +1707,142 @@ def audit_log_list(request):
     )
 
 
+def _save_announcement(form, request):
+    announcement = form.save(commit=False)
+    if not announcement.tenant_id:
+        announcement.tenant = request.user.tenant
+    if not announcement.created_by_id:
+        announcement.created_by = request.user
+    announcement.save()
+    return announcement
+
+
+def _announcement_saved_message(announcement) -> str:
+    if not announcement.is_active:
+        return (
+            "Pengumuman disimpan sebagai nonaktif. Aktifkan agar tampil di web dan aplikasi karyawan."
+        )
+    if announcement.publish_start > timezone.now():
+        when = timezone.localtime(announcement.publish_start).strftime("%d %b %Y %H:%M")
+        return f"Pengumuman dijadwalkan. Karyawan akan melihatnya di web dan aplikasi mulai {when}."
+    if announcement.reaches_everyone:
+        return (
+            "Pengumuman diterbitkan untuk seluruh karyawan. Mereka bisa membacanya di web dan aplikasi."
+        )
+    return "Pengumuman diterbitkan untuk target yang dipilih, di web dan aplikasi."
+
+
 @login_required
 def announcement_list(request):
-    announcements = announcements_for_user(request.user)
+    can_manage = bool(request.user.is_hr)
+    if can_manage:
+        announcements = list(managed_announcements(request.user))
+    else:
+        announcements = announcements_for_user(request.user)
     return render(
         request,
         "web/announcements/list.html",
         {
             "announcements": announcements,
             "result_count": len(announcements),
+            "can_manage": can_manage,
         },
     )
 
 
 @login_required
+@require_roles(User.Role.HR)
+def announcement_create(request):
+    if request.method == "POST":
+        form = AnnouncementForm(
+            request.POST,
+            request.FILES,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+        if form.is_valid():
+            announcement = _save_announcement(form, request)
+            messages.success(request, _announcement_saved_message(announcement))
+            return redirect("web:announcement_list")
+    else:
+        form = AnnouncementForm(tenant=request.user.tenant, user=request.user)
+
+    return render(
+        request,
+        "web/announcements/form.html",
+        _form_context(
+            form,
+            "Buat Pengumuman",
+            cancel_url=reverse("web:announcement_list"),
+            subtitle="Pengumuman yang aktif, tanpa plant, dan tanpa target role langsung tampil untuk semua karyawan di web dan aplikasi.",
+            submit_label="Terbitkan",
+        ),
+    )
+
+
+@login_required
+@require_roles(User.Role.HR)
+def announcement_edit(request, pk):
+    announcement = get_object_or_404(
+        Announcement.objects.filter(tenant=request.user.tenant),
+        pk=pk,
+    )
+    if request.method == "POST":
+        form = AnnouncementForm(
+            request.POST,
+            request.FILES,
+            instance=announcement,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+        if form.is_valid():
+            announcement = _save_announcement(form, request)
+            messages.success(request, _announcement_saved_message(announcement))
+            return redirect("web:announcement_list")
+    else:
+        form = AnnouncementForm(
+            instance=announcement,
+            tenant=request.user.tenant,
+            user=request.user,
+        )
+
+    return render(
+        request,
+        "web/announcements/form.html",
+        _form_context(
+            form,
+            "Edit Pengumuman",
+            cancel_url=reverse("web:announcement_detail", kwargs={"pk": announcement.pk}),
+            subtitle=announcement.title,
+            submit_label="Simpan Perubahan",
+        ),
+    )
+
+
+@login_required
+@require_roles(User.Role.HR)
+@require_POST
+def announcement_delete(request, pk):
+    announcement = get_object_or_404(
+        Announcement.objects.filter(tenant=request.user.tenant),
+        pk=pk,
+    )
+    title = announcement.title
+    announcement.delete()
+    messages.success(request, f"Pengumuman «{title}» dihapus dan tidak lagi tampil di web maupun aplikasi.")
+    return redirect("web:announcement_list")
+
+
+@login_required
 def announcement_detail(request, pk):
-    announcement = get_announcement_for_user(request.user, pk)
+    can_manage = bool(request.user.is_hr)
+    if can_manage:
+        announcement = Announcement.objects.filter(
+            tenant=request.user.tenant,
+            pk=pk,
+        ).select_related("plant", "created_by").first()
+    else:
+        announcement = get_announcement_for_user(request.user, pk)
     if not announcement:
         messages.error(request, "Pengumuman tidak ditemukan atau tidak tersedia untuk Anda.")
         return redirect("web:announcement_list")
@@ -1730,7 +1852,7 @@ def announcement_detail(request, pk):
     return render(
         request,
         "web/announcements/detail.html",
-        {"announcement": announcement},
+        {"announcement": announcement, "can_manage": can_manage},
     )
 
 

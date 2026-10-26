@@ -719,8 +719,20 @@ class AnnouncementForm(forms.ModelForm):
         _style_fields(self)
         _base_init(self, tenant, user)
         if tenant and "plant" in self.fields:
+            plant_qs = Plant.objects.filter(tenant=tenant, is_active=True)
+            if user and user.plant_id and not user.is_admin:
+                plant_qs = plant_qs.filter(pk=user.plant_id)
+            self.fields["plant"].queryset = plant_qs
             self.fields["plant"].required = False
-            self.fields["plant"].empty_label = "Semua plant"
+            self.fields["plant"].empty_label = "Semua karyawan (semua plant)"
+            self.fields["plant"].help_text = (
+                "Biarkan kosong agar pengumuman tampil untuk seluruh karyawan di web dan aplikasi."
+            )
+        if "target_roles" in self.fields:
+            self.fields["target_roles"].help_text = (
+                "Kosongkan agar semua role menerima pengumuman ini."
+            )
+            self.fields["target_roles"].widget.attrs.pop("class", None)
         for field_name in ("publish_start", "publish_end"):
             if field_name not in self.fields:
                 continue
@@ -743,6 +755,19 @@ class AnnouncementForm(forms.ModelForm):
 
             self.initial.setdefault("publish_start", timezone.localtime())
 
+    def clean(self):
+        cleaned = super().clean()
+        start = cleaned.get("publish_start")
+        end = cleaned.get("publish_end")
+        if start and end and end <= start:
+            self.add_error("publish_end", "Waktu selesai harus setelah waktu mulai.")
+        return cleaned
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.target_roles = list(self.cleaned_data.get("target_roles") or [])
+        tags_raw = self.cleaned_data.get("tags_input") or ""
+        instance.tags = [tag.strip() for tag in tags_raw.split(",") if tag.strip()]
         if commit:
             instance.save()
             self.save_m2m()

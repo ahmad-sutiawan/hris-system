@@ -7,11 +7,80 @@
 <div class="hris-page-header">
   <div>
     <h1>Pengumuman</h1>
+    {% if can_manage %}
+    <p>Buat dan kelola pengumuman perusahaan. Yang berstatus Tayang tampil di web karyawan dan aplikasi — {{ result_count|num:0 }} pengumuman</p>
+    {% else %}
     <p>Informasi resmi perusahaan, kebijakan, dan pengumuman penting — {{ result_count|num:0 }} aktif</p>
+    {% endif %}
   </div>
+  {% if can_manage %}
+  <a href="{% url 'web:announcement_create' %}" class="hris-btn hris-btn-primary">+ Buat Pengumuman</a>
+  {% endif %}
 </div>
 
-{% if announcements %}
+{% if can_manage %}
+<div class="hris-table-wrap" style="margin-top:1rem">
+  <div class="hris-table-scroll">
+    <table class="hris-table">
+      <thead>
+        <tr>
+          <th class="hris-col-no">No</th>
+          <th>Judul</th>
+          <th>Kategori</th>
+          <th>Penerima</th>
+          <th>Status</th>
+          <th>Terbit</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in announcements %}
+        <tr>
+          <td class="hris-col-no hris-text-dim">{{ forloop.counter }}</td>
+          <td>
+            <a href="{% url 'web:announcement_detail' item.pk %}" class="hris-strong">{{ item.title }}</a>
+            {% if item.is_pinned %}<span class="hris-announcement-chip is-pinned">Disematkan</span>{% endif %}
+          </td>
+          <td>{{ item.get_category_display }}</td>
+          <td>
+            {% if item.reaches_everyone %}
+            Semua karyawan
+            {% else %}
+              {% if item.plant %}{{ item.plant.code }}{% else %}Semua plant{% endif %}
+              · {% if item.target_roles %}{{ item.target_roles|join:", " }}{% else %}semua role{% endif %}
+            {% endif %}
+          </td>
+          <td>
+            {% if item.publish_state_label == "Tayang" %}
+            <span class="hris-badge hris-badge--approved">Tayang</span>
+            {% elif item.publish_state_label == "Terjadwal" %}
+            <span class="hris-badge hris-badge--pending">Terjadwal</span>
+            {% else %}
+            <span class="hris-badge hris-badge--default">{{ item.publish_state_label }}</span>
+            {% endif %}
+          </td>
+          <td>{{ item.publish_start|date:"d M Y, H:i" }}</td>
+          <td>
+            <div class="hris-inline-actions">
+              <a href="{% url 'web:announcement_edit' item.pk %}" class="hris-link">Edit</a>
+              <form method="post" action="{% url 'web:announcement_delete' item.pk %}" onsubmit="return confirm('Hapus pengumuman ini? Karyawan tidak akan melihatnya lagi di web dan aplikasi.')">{% csrf_token %}
+                <button type="submit" class="hris-link-danger">Hapus</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7">
+            <div class="hris-empty">Belum ada pengumuman. Buat pengumuman agar tampil untuk seluruh karyawan di web dan aplikasi.</div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% elif announcements %}
 <div class="hris-announcement-list">
   {% for item in announcements %}
   <article class="hris-announcement-card hris-announcement-card--{{ item.priority }}{% if item.is_pinned %} is-pinned{% endif %}">

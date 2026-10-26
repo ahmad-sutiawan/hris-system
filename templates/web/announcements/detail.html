@@ -9,7 +9,15 @@
     <h1>{{ announcement.title }}</h1>
     <p>Detail pengumuman resmi perusahaan</p>
   </div>
-  <a href="{% url 'web:announcement_list' %}" class="hris-btn hris-btn-ghost">← Daftar Pengumuman</a>
+  <div class="hris-actions">
+    {% if can_manage %}
+    <a href="{% url 'web:announcement_edit' announcement.pk %}" class="hris-btn hris-btn-secondary">Edit</a>
+    <form method="post" action="{% url 'web:announcement_delete' announcement.pk %}" onsubmit="return confirm('Hapus pengumuman ini? Karyawan tidak akan melihatnya lagi di web dan aplikasi.')">{% csrf_token %}
+      <button type="submit" class="hris-btn hris-btn-ghost">Hapus</button>
+    </form>
+    {% endif %}
+    <a href="{% url 'web:announcement_list' %}" class="hris-btn hris-btn-ghost">← Daftar Pengumuman</a>
+  </div>
 </div>
 
 <article class="hris-card hris-announcement-detail hris-announcement-detail--{{ announcement.priority }}">
@@ -35,7 +43,8 @@
           {% endif %}
         </dd>
       </div>
-      <div><dt>Status</dt><dd>{% if announcement.is_active %}<span class="hris-badge hris-badge--approved">Aktif</span>{% else %}<span class="hris-badge hris-badge--default">Nonaktif</span>{% endif %}</dd></div>
+      <div><dt>Status</dt><dd><span class="hris-badge {% if announcement.publish_state_label == 'Tayang' %}hris-badge--approved{% else %}hris-badge--default{% endif %}">{{ announcement.publish_state_label }}</span></dd></div>
+      <div><dt>Penerima</dt><dd>{% if announcement.reaches_everyone %}Semua karyawan, web dan aplikasi{% else %}{% if announcement.plant %}{{ announcement.plant.code }}{% else %}Semua plant{% endif %}{% if announcement.target_roles %} · {{ announcement.target_roles|join:", " }}{% endif %}{% endif %}</dd></div>
     </dl>
 
     {% if announcement.summary %}

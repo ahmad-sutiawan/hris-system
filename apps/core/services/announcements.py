@@ -75,6 +75,17 @@ def active_announcements_for_user(user: User, *, limit: int = 5):
     return results
 
 
+def managed_announcements(user: User):
+    """Semua pengumuman tenant untuk panel HR/admin, termasuk yang belum tayang."""
+    if not user.is_authenticated or not user.tenant_id or not user.is_hr:
+        return Announcement.objects.none()
+    return (
+        Announcement.objects.filter(tenant=user.tenant)
+        .select_related("plant", "created_by")
+        .order_by("-is_pinned", "-publish_start", "-pk")
+    )
+
+
 def announcements_for_user(user: User):
     if not user.is_authenticated or not user.tenant_id:
         return []

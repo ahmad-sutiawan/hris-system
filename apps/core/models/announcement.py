@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 from apps.core.models.base import TenantScopedModel
 
@@ -88,6 +89,21 @@ class Announcement(TenantScopedModel):
 
     def __str__(self):
         return self.title
+
+    @property
+    def publish_state_label(self) -> str:
+        now = timezone.now()
+        if not self.is_active:
+            return "Nonaktif"
+        if self.publish_start > now:
+            return "Terjadwal"
+        if self.publish_end and self.publish_end < now:
+            return "Berakhir"
+        return "Tayang"
+
+    @property
+    def reaches_everyone(self) -> bool:
+        return self.plant_id is None and not (self.target_roles or [])
 
 
 class AnnouncementDismissal(models.Model):
