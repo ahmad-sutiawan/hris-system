@@ -27,20 +27,6 @@ class RequestHubScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           RequestActionCard(
-            icon: Icons.beach_access_rounded,
-            title: 'Pengajuan Cuti',
-            subtitle: 'Cuti tahunan, sakit, atau keperluan pribadi',
-            color: AppColors.info,
-            onTap: () => context.push('/leave/new'),
-          ),
-          RequestActionCard(
-            icon: Icons.more_time_rounded,
-            title: 'Pengajuan Lembur',
-            subtitle: 'Lembur sebelum atau sesudah shift',
-            color: AppColors.accent,
-            onTap: () => context.push('/overtime/new'),
-          ),
-          RequestActionCard(
             icon: Icons.login_rounded,
             title: 'Absen Masuk',
             subtitle: 'Clock in dengan selfie dan GPS',
@@ -53,6 +39,20 @@ class RequestHubScreen extends ConsumerWidget {
             subtitle: 'Clock out dengan selfie dan GPS',
             color: AppColors.danger,
             onTap: () => context.push('/punch?action=out'),
+          ),
+          RequestActionCard(
+            icon: Icons.beach_access_rounded,
+            title: 'Pengajuan Cuti',
+            subtitle: 'Cuti tahunan, sakit, atau keperluan pribadi',
+            color: AppColors.info,
+            onTap: () => context.push('/leave/new'),
+          ),
+          RequestActionCard(
+            icon: Icons.more_time_rounded,
+            title: 'Pengajuan Lembur',
+            subtitle: 'Lembur sebelum atau sesudah shift',
+            color: AppColors.accent,
+            onTap: () => context.push('/overtime/new'),
           ),
           const SizedBox(height: 8),
           const HomeSectionHeader(

@@ -737,7 +737,7 @@ class LeaveBalanceStrip extends StatelessWidget {
           return AnimatedPress(
             scale: 0.97,
             child: SizedBox(
-              width: 136,
+              width: 168,
               child: AuroraGlass(
             padding: const EdgeInsets.all(12),
             borderRadius: _cardRadius,
@@ -759,10 +759,13 @@ class LeaveBalanceStrip extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '${b['leave_type_code'] ?? '—'}',
+                        '${b['leave_type_name'] ?? b['leave_type_code'] ?? '—'}',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w800,
-                          fontSize: 14,
+                          fontSize: 13,
+                          height: 1.15,
                           color: AppColors.brandPurple,
                         ),
                       ),

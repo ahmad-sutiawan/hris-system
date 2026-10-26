@@ -586,9 +586,13 @@ class MobileEmployeeFiltersView(APIView):
     def get(self, request):
         tenant = request.user.tenant
         plants = (
-            Plant.objects.filter(tenant=tenant, is_active=True)
+            Plant.objects.filter(
+                tenant=tenant,
+                is_active=True,
+                entity_type=Plant.EntityType.BRANCH,
+            )
             .order_by("code")
-            .values("id", "code", "name")
+            .values("id", "code", "name", "entity_type")
         )
         positions = (
             JobPosition.objects.filter(tenant=tenant, is_active=True)
@@ -599,7 +603,12 @@ class MobileEmployeeFiltersView(APIView):
         return Response(
             {
                 "plants": [
-                    {"id": row["id"], "code": row["code"], "name": row["name"]}
+                    {
+                        "id": row["id"],
+                        "code": row["code"],
+                        "name": row["name"],
+                        "entity_type": row["entity_type"],
+                    }
                     for row in plants
                 ],
                 "job_positions": [

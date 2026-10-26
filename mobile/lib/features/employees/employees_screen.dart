@@ -12,6 +12,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/widgets/animated_interactions.dart';
 import '../../core/widgets/employee_avatar.dart';
 import '../../core/widgets/hris_widgets.dart';
+import 'directory_branches.dart';
 
 class EmployeeDirectoryQuery {
   const EmployeeDirectoryQuery({
@@ -165,7 +166,7 @@ class _EmployeesScreenState extends ConsumerState<EmployeesScreen> {
                 loading: () => const SizedBox(height: 4),
                 error: (_, __) => const SizedBox(height: 4),
                 data: (data) => _FilterSection(
-                  plants: (data['plants'] as List?) ?? const [],
+                  plants: directoryBranches((data['plants'] as List?) ?? const []),
                   plantId: _plantId,
                   onPlantChanged: (value) => setState(() => _plantId = value),
                   onClear: hasFilters ? _clearFilters : null,

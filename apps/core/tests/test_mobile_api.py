@@ -346,10 +346,19 @@ class MobileEmployeeDirectoryApiTests(TestCase):
         self.assertEqual(names, ["Beta Worker"])
 
     def test_mobile_employee_filter_options(self):
+        parent = Plant.objects.create(
+            tenant=self.tenant,
+            code="PT",
+            name="Plant BPS",
+            entity_type=Plant.EntityType.PT,
+        )
         response = self.client.get("/api/v1/mobile/employees/filters/")
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertGreaterEqual(len(data["plants"]), 2)
+        plant_ids = [row["id"] for row in data["plants"]]
+        self.assertEqual(plant_ids, [self.plant_a.pk, self.plant_b.pk])
+        self.assertNotIn(parent.pk, plant_ids)
+        self.assertTrue(all(row["entity_type"] == "branch" for row in data["plants"]))
         self.assertGreaterEqual(len(data["job_positions"]), 2)
 
     def test_employee_can_retrieve_directory_profile(self):
