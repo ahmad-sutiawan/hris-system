@@ -34,22 +34,6 @@ subprojects {
     }
 }
 
-// google_mlkit_commons 0.13 mencetak peringatan tipe Kotlin pada path file
-// yang tidak dipakai alur kamera. Matikan peringatan modul itu saja.
-subprojects {
-    if (name != "google_mlkit_commons") return@subprojects
-    afterEvaluate {
-        runCatching {
-            val kotlinExt = extensions.findByName("kotlin") ?: return@runCatching
-            val compilerOptions = kotlinExt.javaClass.getMethod("getCompilerOptions").invoke(kotlinExt)
-            val suppress = compilerOptions.javaClass.getMethod("getSuppressWarnings").invoke(compilerOptions)
-            suppress.javaClass.methods
-                .first { it.name == "set" && it.parameterCount == 1 }
-                .invoke(suppress, true)
-        }
-    }
-}
-
 subprojects {
     project.evaluationDependsOn(":app")
 }
